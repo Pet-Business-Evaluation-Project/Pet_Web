@@ -10,10 +10,10 @@ export default function Signupmember() {
     name: "",
     phnum: "",
     classifnumber: "",
-    classification: "기업", 
+    classification: "기업",
   });
 
-   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -26,13 +26,23 @@ export default function Signupmember() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-100 to-gray-200 px-4">
-      <div className="bg-white w-full max-w-lg p-10 rounded-2xl shadow-lg">
+      {/* relative 추가: X 버튼 위치를 위해 */}
+      <div className="relative bg-white w-full max-w-lg p-10 rounded-2xl shadow-lg">
+        {/* 오른쪽 상단 X 버튼 */}
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-3xl font-bold"
+          aria-label="뒤로가기"
+        >
+          &times;
+        </button>
+
         <h1 className="text-3xl font-bold text-center mb-10 text-gray-800">
           판매 기업 회원가입
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
           <div>
             <label className="block text-gray-700 mb-2">기업명</label>
             <input
@@ -93,7 +103,7 @@ export default function Signupmember() {
               value={formData.phnum}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-              placeholder="01012345678"
+              placeholder="01012345678 또는 010-1234-5678"
               required
             />
           </div>
@@ -106,7 +116,7 @@ export default function Signupmember() {
               value={formData.classifnumber}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-              placeholder="602-30-23453"
+              placeholder="000-00-00000"
               required
             />
           </div>

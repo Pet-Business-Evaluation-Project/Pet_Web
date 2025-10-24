@@ -30,7 +30,7 @@ export default function Header() {
 
       <div className="flex space-x-2">
         <button>로그인</button>
-        <Link href="/Signup">회원가입</Link>
+        <Link href="/Signupagree">회원가입</Link>
         <Link href="/mypage">마이페이지</Link>
       </div>
     </header>
