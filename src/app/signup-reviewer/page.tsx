@@ -23,13 +23,9 @@ export default function SignupReviewer() {
     referralID: "",
   });
 
-  // 비밀번호 확인 (프론트 전용)
   const [passwordcheck, setPasswordcheck] = useState("");
-
-  // 주민등록번호 실제 값 (7자리)
   const [ssnRaw, setSsnRaw] = useState("");
 
-  // 유효성 검사 함수
   const validateField = (name: string, value: string) => {
     let errorMsg = "";
 
@@ -76,12 +72,10 @@ export default function SignupReviewer() {
     return errorMsg === "";
   };
 
-  // 입력 핸들러
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     if (name === "Classifnumber") {
-      // 주민등록번호 처리
       let digits = value.replace(/[^0-9]/g, "");
       if (digits.length > 7) digits = digits.slice(0, 7);
 
@@ -107,7 +101,6 @@ export default function SignupReviewer() {
     validateField(name, value);
   };
 
-  // 주민등록번호 백스페이스 처리
   const handleSsnKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace") {
       e.preventDefault();
@@ -129,11 +122,9 @@ export default function SignupReviewer() {
     }
   };
 
-  // 제출 처리
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 전체 유효성검사
     const fields = Object.keys(formData);
     let isValid = true;
     fields.forEach((field) => {
@@ -147,7 +138,6 @@ export default function SignupReviewer() {
       return;
     }
 
-    // 실제 전송 데이터
     const payload = {
       ...formData,
       Classifnumber: ssnRaw,
@@ -159,7 +149,7 @@ export default function SignupReviewer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      console.log(payload)
+      console.log(payload);
       if (!res.ok) throw new Error("회원가입 요청 실패");
 
       const data = await res.json();
@@ -172,8 +162,18 @@ export default function SignupReviewer() {
   };
 
   return (
-    <div className="flex justify-center bg-gradient-to-b from-gray-100 to-gray-200 px-4 py-10 sm:py-16">
-      <div className="bg-white w-full max-w-lg p-8 sm:p-10 rounded-2xl shadow-lg">
+    <div className="flex justify-center bg-gradient-to-b from-gray-100 to-gray-200 px-4 py-10 sm:py-16 min-h-screen items-start">
+      <div className="relative bg-white w-full max-w-lg p-8 sm:p-10 rounded-2xl shadow-lg">
+        {/* X 버튼 - 폼 내부 오른쪽 상단 */}
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="absolute top-4 right-4 text-gray-600 hover:text-gray-900 text-3xl font-bold"
+          aria-label="뒤로가기"
+        >
+          &times;
+        </button>
+
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
           심사원 회원가입
         </h1>
@@ -248,7 +248,7 @@ export default function SignupReviewer() {
               value={formData.phnum}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
-              placeholder="010-1234-5678"
+              placeholder="01012345678 또는 010-1234-5678"
               required
             />
             {errors.phnum && <p className="text-red-500 text-sm">{errors.phnum}</p>}
@@ -296,7 +296,7 @@ export default function SignupReviewer() {
         </form>
 
         <p className="text-right text-gray-500 text-sm mt-6">
-            회원가입 가능 예외 케이스 처리 해줘야함
+          회원가입 가능 예외 케이스 처리 해줘야함
         </p>
       </div>
     </div>
