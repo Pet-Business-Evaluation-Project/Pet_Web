@@ -1,22 +1,26 @@
-"use client";
-
-import React, { ReactNode } from "react";
+import React from "react";
 
 interface ModalProps {
-  children: ReactNode;
+  isOpen: boolean;
   onClose: () => void;
+  children: React.ReactNode;
 }
 
-export default function Modal({ children, onClose }: ModalProps) {
+export default function Modal({ isOpen, onClose, children }: ModalProps) {
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded-lg relative w-96">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 relative">
+        {/* 닫기 버튼 */}
         <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
           onClick={onClose}
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
         >
           ✕
         </button>
+
+        {/* 모달 내용 */}
         {children}
       </div>
     </div>
