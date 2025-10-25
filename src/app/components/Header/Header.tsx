@@ -37,7 +37,6 @@ export default function Header() {
     <header className="w-full shadow-md px-6 py-0">
       {/* 최상단: 로그인/회원가입 or 사용자정보 */}
       <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-6 py-1 pr-50">
-<<<<<<< HEAD
         {!user ? (
           <>
             <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
@@ -50,11 +49,6 @@ export default function Header() {
             <Link href="/mypage">마이페이지</Link>
           </>
         )}
-=======
-        <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
-        <Link href="/signupagree">회원가입</Link>
-        <Link href="/mypage">마이페이지</Link>
->>>>>>> 933dff368be250ca0a0977d07388a7db8282daad
       </div>
 
       {/* 두 번째 줄: 로고 + 네비게이션 */}
