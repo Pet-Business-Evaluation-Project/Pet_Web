@@ -11,7 +11,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 relative">
+      <div className="bg-white dark:bg-white-500 p-6 rounded-lg w-96 relative">
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}

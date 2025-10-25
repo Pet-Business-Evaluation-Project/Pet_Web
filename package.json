@@ -9,11 +9,19 @@
     "lint": "eslint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "axios": "^1.12.2",
     "next": "15.5.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0"
+=======
+    "next": "15.5.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.9.4"
+>>>>>>> 933dff368be250ca0a0977d07388a7db8282daad
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
