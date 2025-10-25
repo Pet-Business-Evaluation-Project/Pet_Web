@@ -193,31 +193,22 @@ export default function SignupReviewer() {
       if (!res.ok) {
         let errorMessage = "회원가입 요청 실패 (서버 응답 오류)";
         
-        // 💡 서버에서 보낸 JSON 응답 본문을 읽기 시도
         try {
             const errorData = await res.json();
-            
-            // 백엔드에서 { "message": "..." } 형태로 보냈을 경우
             if (errorData && typeof errorData.message === 'string') { 
                 errorMessage = errorData.message;
             } else if (res.statusText) {
-                // JSON 메시지가 없을 경우 HTTP 상태 텍스트 사용 (예: Conflict)
                 errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
             }
         } catch (jsonError) {
-            // JSON 파싱 실패 시 일반 텍스트로 읽어옴 (Fallback)
             errorMessage = await res.text() || `서버 오류 발생: 상태 코드 ${res.status}`;
         }
-        
-        // 읽어온 구체적인 메시지를 담아 throw하여 catch 블록으로 이동
         throw new Error(errorMessage);
       }
 
-      // ✅ 성공 로직
       const data = await res.json();
       console.log("심사원 회원가입 성공:", data);
-
-      // ✅ 모달에 표시할 데이터 저장
+      
       setModalData({
         loginID: data.loginID || formData.loginID,
         name: data.name || formData.name,
