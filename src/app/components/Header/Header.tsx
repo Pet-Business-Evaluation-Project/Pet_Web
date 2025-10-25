@@ -17,7 +17,7 @@ export default function Header() {
     {/* 최상단: 로그인, 회원가입, 마이페이지 (작은 글씨, 오른쪽 정렬, 회색 배경) */}
       <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-6 py-1 pr-50">
         <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
-        <Link href="/signup">회원가입</Link>
+        <Link href="/signupagree">회원가입</Link>
         <Link href="/mypage">마이페이지</Link>
       </div>
 
