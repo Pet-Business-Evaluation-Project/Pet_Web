@@ -1,49 +1,54 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Button from "../components/Button/Button";
 
 export default function MyPage() {
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof window === "undefined") return; // SSR 방지
+
+    const userStr = localStorage.getItem("user");
+
+    if (!userStr) {
+      console.warn("로그인 정보가 없습니다. 로그인 페이지로 이동합니다.");
+      router.replace("/login"); // 로그인 페이지로 리다이렉트
+      return;
+    }
+
+    try {
+      const user = JSON.parse(userStr);
+      console.log("로그인 정보:", user);
+
+      const classification = user.classification; // "관리자" 또는 "심사원"
+      
+      if (!classification) {
+        console.warn("classification 값이 없습니다:", classification);
+        router.replace("/login");
+        return;
+      }
+
+      if (classification === "관리자") {
+        router.replace("/mypage/adminpage");
+      } else if (classification === "심사원") {
+        router.replace("/mypage/reviewerpage");
+      } else {
+        alert("기업 페이지는 없어용. 초기 페이지로 이동합니다.");
+        router.replace("/"); // 권한 이상 시 로그인 페이지
+      }
+    } catch (e) {
+      console.error("로그인 정보 파싱 실패:", e, "로그인 페이지로 이동합니다.");
+      router.replace("/"); // 파싱 실패 시 로그인 페이지
+    }
+  }, [router]);
+
+  // 잠시 로딩 화면
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 space-y-8">
-      <h1 className="text-3xl font-bold">권한 선택</h1>
-      <p className="text-gray-600 text-center">
-        테스트용으로 버튼을 클릭하면 각 페이지로 이동합니다.
-      </p>
-
-      <div className="flex flex-col md:flex-row gap-6 w-full justify-center">
-        {/* 관리자 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 w-full md:w-64 flex flex-col items-center space-y-4">
-          <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-lg font-bold">
-            A
-          </div>
-          <h2 className="text-xl font-bold">관리자</h2>
-          <p className="text-gray-500 text-center">
-            시스템 관리 및 통계 확인 가능
-          </p>
-          <Button
-            label="관리자 페이지로 이동"
-            onClick={() => router.push("/mypage/adminpage")}
-          />
-        </div>
-
-        {/* 리뷰어 카드 */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 w-full md:w-64 flex flex-col items-center space-y-4">
-          <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-500 text-lg font-bold">
-            R
-          </div>
-          <h2 className="text-xl font-bold">리뷰어</h2>
-          <p className="text-gray-500 text-center">
-            프로필 확인 및 나의 조직 관리 가능
-          </p>
-          <Button
-            label="리뷰어 페이지로 이동"
-            onClick={() => router.push("/mypage/reviewerpage")}
-          />
-        </div>
-      </div>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
+      <h1 className="text-3xl font-bold">권한 확인 중...</h1>
+      <p className="text-gray-600 mt-4">잠시만 기다려 주세요.</p>
     </main>
   );
 }
+

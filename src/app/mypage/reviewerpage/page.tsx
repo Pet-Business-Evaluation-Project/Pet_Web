@@ -1,139 +1,136 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { FaUserCircle, FaUsers } from "react-icons/fa";
 import Button from "../../components/Button/Button";
-import { useState } from "react";
-import { FaUserCircle, FaUsers, FaClipboardList } from "react-icons/fa";
 
-// 조직원 타입
-interface Member {
+interface ReviewerInfo {
+  loginID: string;
   name: string;
-  role: "심사원보" | "심사위원" | "수석심사위원";
-  leader?: string;
+  reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
 }
 
-// 테스트용 조직 데이터
-const allMembers: Member[] = [
-  { name: "김철수", role: "심사원보", leader: "홍길동" },
-  { name: "이영희", role: "심사원보", leader: "홍길동" },
-  { name: "홍길동", role: "심사위원", leader: "최수석" },
-  { name: "박민수", role: "심사위원", leader: "최수석" },
-  { name: "최수석", role: "수석심사위원" },
-];
+interface OrgMember {
+  name: string;
+  phnum: string;
+  reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
+}
 
 export default function ReviewerPage() {
-  const reviewer = {
-    name: "홍길동",
-    grade: "심사위원",
-    avatar: "/img/profile.png",
-  };
-
+  const [userId, setUserId] = useState<number | null>(null); // 로그인 후 userId
+  const [reviewer, setReviewer] = useState<ReviewerInfo | null>(null);
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
   const [showOrg, setShowOrg] = useState(false);
-  const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
-  const [highlighted, setHighlighted] = useState<string | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
 
-  // 특정 리더의 팀원 가져오기
-  const getTeam = (leaderName: string): Member[] =>
-    allMembers.filter((m) => m.leader === leaderName);
-
-  const toggleExpand = (name: string) => {
-    setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
+  const roleOrder: Record<OrgMember["reviewerGrade"], number> = {
+    "심사원보": 1,
+    "심사위원": 2,
+    "수석심사위원": 3,
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "심사원보":
-        return "text-blue-500";
-      case "심사위원":
-        return "text-green-500";
-      case "수석심사위원":
-        return "text-red-500";
-      default:
-        return "text-gray-700";
+  // 🔹 로그인 정보에서 userId 가져오기 (클라이언트 사이드)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          setUserId(user.userId);
+        } catch (e) {
+          console.error("localStorage user parsing error:", e);
+        }
+      } else {
+        setUserId(30); // 테스트용: 로그인 안 되어 있을 때
+      }
+    }
+  }, []);
+
+  // 🔹 DB에서 심사원 정보 불러오기
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchReviewer = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/mypage/reviewer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+
+        if (res.ok) {
+          const data: ReviewerInfo = await res.json();
+          setReviewer(data);
+        } else {
+          alert("심사원 정보를 불러오지 못했습니다.");
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+        alert("심사원 정보 불러오기 중 오류가 발생했습니다.");
+      }
+    };
+
+    fetchReviewer();
+  }, [userId]);
+
+  // 🔹 조직 구성원 가져오기 및 토글
+  const toggleOrgMembers = async () => {
+    if (!reviewer) return;
+
+    if (showOrg) {
+      setShowOrg(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/mypage/reviewer/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginID: reviewer.loginID }),
+      });
+
+      if (res.ok) {
+        const data: OrgMember[] = await res.json();
+        setOrgMembers(data);
+        setShowOrg(true);
+      } else {
+        alert("조직 구성원을 불러오지 못했습니다.");
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      alert("조직 구성원 불러오기 중 오류가 발생했습니다.");
     }
   };
 
-  // 하위 조직 수 계산
-  const countSubordinates = (leaderName: string): number => {
-    const team = getTeam(leaderName);
-    let count = team.length;
-    team.forEach((m) => {
-      count += countSubordinates(m.name);
-    });
-    return count;
-  };
+  if (!reviewer) return <div className="p-6">불러오는 중...</div>;
 
-  // 트리 렌더링
-  const renderTeam = (leaderName: string) => {
-    const team = getTeam(leaderName);
-    if (team.length === 0) return null;
-
-    return (
-      <ul className="pl-4">
-        {team.map((member) => (
-          <li key={member.name} className="py-1">
-            <div
-              className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer ${
-                highlighted === member.name ? "bg-yellow-200" : ""
-              }`}
-              onClick={() => setHighlighted(member.name)}
-            >
-              <div
-                className={`font-medium ${getRoleColor(member.role)}`}
-                onClick={() =>
-                  getTeam(member.name).length && toggleExpand(member.name)
-                }
-              >
-                {member.name} ({member.role})
-              </div>
-              {getTeam(member.name).length > 0 && (
-                <div
-                  className="ml-2 text-gray-400"
-                  onClick={() => toggleExpand(member.name)}
-                >
-                  {expanded[member.name] ? "▼" : "▶"} ({countSubordinates(member.name)})
-                </div>
-              )}
-            </div>
-            {expanded[member.name] && renderTeam(member.name)}
-          </li>
-        ))}
-      </ul>
-    );
-  };
+  const sortedOrgMembers = [...orgMembers].sort((a, b) =>
+    sortAsc
+      ? roleOrder[a.reviewerGrade] - roleOrder[b.reviewerGrade]
+      : roleOrder[b.reviewerGrade] - roleOrder[a.reviewerGrade]
+  );
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-gray-100 p-6 gap-6">
       {/* 좌측 프로필 */}
       <div className="flex flex-col items-center md:items-start w-full md:w-64 bg-yellow-100 rounded-2xl shadow-lg p-6 space-y-4 flex-shrink-0">
         <div className="w-24 h-24 rounded-full border-4 border-yellow-500 relative overflow-hidden">
-          {reviewer.avatar ? (
-            <img
-              src={reviewer.avatar}
-              alt="리뷰어 프로필"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <FaUserCircle className="w-full h-full text-gray-400" />
-          )}
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-25 rounded-full">
-            <span className="text-white text-xs font-semibold text-center px-1">
-              리뷰어 프로필
-            </span>
-          </div>
+          <FaUserCircle className="w-full h-full text-gray-400" />
         </div>
         <p className="text-lg font-semibold text-center md:text-left">{reviewer.name}</p>
-        <p className="text-gray-600 text-center md:text-left">{reviewer.grade} 등급</p>
+        <p className="text-gray-600 text-center md:text-left">{reviewer.reviewerGrade}</p>
 
         <div className="flex flex-col gap-3 w-full mt-4">
           <Button label="개인정보 수정" onClick={() => alert("개인정보 수정 테스트")} />
-          <Button label="나의 조직 관리" onClick={() => setShowOrg(!showOrg)} />
         </div>
       </div>
 
-      {/* 우측 기능 + 조직 트리 */}
+      {/* 우측 기능: 조직 관리 */}
       <div className="flex-1 flex flex-col gap-6">
-        <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
+        <div
+          className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 cursor-pointer"
+          onClick={toggleOrgMembers}
+        >
           <FaUsers className="text-yellow-500 w-6 h-6 flex-shrink-0" />
           <div>
             <h2 className="text-xl font-bold mb-1">조직 관리</h2>
@@ -141,24 +138,46 @@ export default function ReviewerPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4">
-          <FaClipboardList className="text-yellow-500 w-6 h-6 flex-shrink-0" />
-          <div>
-            <h2 className="text-xl font-bold mb-1">리뷰 현황</h2>
-            <p className="text-gray-500">리뷰 진행 상태 및 통계 확인</p>
-          </div>
-        </div>
-
-        {/* 조직 트리 */}
         {showOrg && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4">내 조직 구성원</h2>
-            {renderTeam(reviewer.name) || (
-              <p className="text-gray-500">속한 조직원이 없습니다.</p>
-            )}
+          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-6 overflow-x-auto mt-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <FaUsers className="text-yellow-500 w-6 h-6" /> 나의 조직 구성원
+            </h2>
+            <table className="w-full min-w-[500px] border-collapse table-auto">
+              <thead>
+                <tr className="text-left border-b border-gray-300">
+                  <th className="py-2 px-3">이름</th>
+                  <th className="py-2 px-3">전화번호</th>
+                  <th
+                    className="py-2 px-3 cursor-pointer"
+                    onClick={() => setSortAsc(!sortAsc)}
+                  >
+                    직책 {sortAsc ? "▲" : "▼"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedOrgMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-2 px-3 text-gray-500 text-center">
+                      조직 구성원이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  sortedOrgMembers.map((m, idx) => (
+                    <tr key={idx} className="border-b border-gray-200">
+                      <td className="py-2 px-3">{m.name}</td>
+                      <td className="py-2 px-3">{m.phnum}</td>
+                      <td className="py-2 px-3">{m.reviewerGrade}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
     </main>
   );
 }
+
