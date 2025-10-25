@@ -2,39 +2,67 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "../Modal/Modal";
 import LoginForm from "../LoginForm/LoginForm";
 import Button from "../Button/Button";
+import axios from "axios";
 
 export default function Header() {
-
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [count, setCount] = useState(0);  // Recoverable Error 뜨길래 추가
+  const [user, setUser] = useState<any>(null);
+
+  // ✅ 페이지가 로드될 때 localStorage에서 로그인 정보 복원
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  // ✅ 로그아웃 처리 함수
+  const handleLogout = async () => {
+    try {
+      await axios.post("http://localhost:8080/api/auth/logout", {}, { withCredentials: true });
+      localStorage.removeItem("user");
+      setUser(null);
+      alert("로그아웃 완료!");
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+      alert("로그아웃 중 오류가 발생했습니다.");
+    }
+  };
 
   return (
     <header className="w-full shadow-md px-6 py-0">
-    {/* 최상단: 로그인, 회원가입, 마이페이지 (작은 글씨, 오른쪽 정렬, 회색 배경) */}
+      {/* 최상단: 로그인/회원가입 or 사용자정보 */}
       <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-6 py-1 pr-50">
-        <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
-        <Link href="/signupagree">회원가입</Link>
-        <Link href="/mypage">마이페이지</Link>
+        {!user ? (
+          <>
+            <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
+            <Link href="/signupagree">회원가입</Link>
+          </>
+        ) : (
+          <>
+            <span>{user.name} 님</span>
+            <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
+            <Link href="/mypage">마이페이지</Link>
+          </>
+        )}
       </div>
 
-      {/* 두 번째 줄: 로고 좌측, 네비게이션 우측 */}
+      {/* 두 번째 줄: 로고 + 네비게이션 */}
       <div className="flex justify-between items-center px-6 pr-50 py-0 bg-white">
-        {/* 왼쪽: 로고 */}
         <Link href="/">
           <Image
-          src="/img/logopettype3.png"
-          alt="로고"
-          width={250}
-          height={90}
-          className="cursor-pointer ml-50"
-        />
+            src="/img/logopettype3.png"
+            alt="로고"
+            width={250}
+            height={90}
+            className="cursor-pointer ml-50"
+          />
         </Link>
 
-        {/* 오른쪽: 네비게이션 */}
         <nav className="flex items-center space-x-12 text-lg md:text-xl lg:text-2xl font-medium">
           <Link href="/home" className="hover:text-red-900">Home</Link>
           <Link href="/about" className="hover:text-red-900">협회 소개</Link>
@@ -46,7 +74,11 @@ export default function Header() {
 
       {/* 로그인 모달 */}
       <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-        <LoginForm />
+        <LoginForm onLoginSuccess={(userData: any) => {
+          localStorage.setItem("user", JSON.stringify(userData));
+          setUser(userData);
+          setIsLoginOpen(false);
+        }} />
       </Modal>
     </header>
   );
