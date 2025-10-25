@@ -16,7 +16,7 @@ export default function LoginForm() {
       <h2 className="text-xl font-bold text-center">로그인</h2>
       <input
         type="email"
-        placeholder="이메일"
+        placeholder="아이디"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
