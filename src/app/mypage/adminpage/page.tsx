@@ -38,7 +38,7 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const res = await fetch("http://petback.hysu.kr/mypage/admin", {
+        const res = await fetch("http://petback.hysu.kr/back/mypage/admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ classification: "관리자" }),
@@ -80,7 +80,7 @@ export default function AdminPage() {
         reviewergrade: r.reviewerGrade,
       }));
 
-      const res = await fetch("http://petback.hysu.kr/mypage/admin/update", {
+      const res = await fetch("http://petback.hysu.kr/back/mypage/admin/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates: payload }),

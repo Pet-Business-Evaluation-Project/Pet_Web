@@ -52,7 +52,7 @@ export default function ReviewerPage() {
 
     const fetchReviewer = async () => {
       try {
-        const res = await fetch("http://localhost:8080/mypage/reviewer", {
+        const res = await fetch("http://petback.hysu.kr/back/mypage/reviewer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
@@ -83,7 +83,7 @@ export default function ReviewerPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/mypage/reviewer/invite", {
+      const res = await fetch("http://petback.hysu.kr/back/mypage/reviewer/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loginID: reviewer.loginID }),

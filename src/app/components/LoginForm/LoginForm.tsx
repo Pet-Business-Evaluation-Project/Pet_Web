@@ -29,7 +29,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
     try {
       const response = await axios.post(
-        "http://petback.hysu.kr/api/auth/login",
+        "http://petback.hysu.kr/back/api/auth/login",
         {
           loginID: email,
           password,
