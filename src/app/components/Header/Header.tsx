@@ -7,8 +7,10 @@ import Modal from "../Modal/Modal";
 import LoginForm from "../LoginForm/LoginForm";
 import Button from "../Button/Button";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+  const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
@@ -27,6 +29,10 @@ export default function Header() {
       localStorage.removeItem("user");
       setUser(null);
       alert("로그아웃 완료!");
+      
+      // 로그아웃 후 홈으로 이동
+      router.push("/");
+
     } catch (error) {
       console.error("로그아웃 실패:", error);
       alert("로그아웃 중 오류가 발생했습니다.");
