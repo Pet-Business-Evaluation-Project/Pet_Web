@@ -1,9 +1,6 @@
-import type { Metadata } from "next";
 import "./globals.css";
 import Header from "./components/Header/Header";
 import Footer from "./components/Footer/Footer";
-import Button from "./components/Button/Button";
-import Modal from "./components/Modal/Modal";
 import { ReactNode } from "react";
 
 

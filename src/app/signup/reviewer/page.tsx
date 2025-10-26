@@ -223,7 +223,7 @@ export default function SignupReviewer() {
           } else if (res.statusText) {
             errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
           }
-        } catch (jsonError) {
+        } catch (_) {
           errorMessage = await res.text() || `서버 오류 발생: 상태 코드 ${res.status}`;
         }
         throw new Error(errorMessage);

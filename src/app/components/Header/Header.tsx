@@ -9,23 +9,33 @@ import Button from "../Button/Button";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
+// 사용자 데이터 타입 정의 (백엔드 응답에 맞게 조정 필요)
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  // 필요한 다른 속성 추가
+}
+
 export default function Header() {
   const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  // 💡 수정: any -> User | null
+  const [user, setUser] = useState<User | null>(null); 
 
   // ✅ 페이지가 로드될 때 localStorage에서 로그인 정보 복원
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      // JSON.parse의 결과는 User 타입으로 단언(assertion)
+      setUser(JSON.parse(storedUser) as User); 
     }
   }, []);
 
   // ✅ 로그아웃 처리 함수
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:8080/api/auth/logout", {}, { withCredentials: true });
+      await axios.post("http://petback.hysu.kr/api/auth/logout", {}, { withCredentials: true });
       localStorage.removeItem("user");
       setUser(null);
       alert("로그아웃 완료!");
@@ -50,7 +60,8 @@ export default function Header() {
           </>
         ) : (
           <>
-            <span>{user.name} 님</span>
+            {/* user가 null이 아님을 보장하므로 user.name 접근 가능 */}
+            <span>{user.name} 님</span> 
             <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
             <Link href="/mypage">마이페이지</Link>
           </>
@@ -80,7 +91,8 @@ export default function Header() {
 
       {/* 로그인 모달 */}
       <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-        <LoginForm onLoginSuccess={(userData: any) => {
+        {/* 💡 수정: any -> User */}
+        <LoginForm onLoginSuccess={(userData: User) => {
           localStorage.setItem("user", JSON.stringify(userData));
           setUser(userData);
           setIsLoginOpen(false);
