@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { data } from "react-router-dom"; // Note: This import seems unused/incorrect for Next.js
+
+interface ModalData {
+  loginID: string;
+  name: string;
+  phnum: string;
+  referralID: string;
+  classification: string;
+}
 
 export default function SignupReviewer() {
   const router = useRouter();
@@ -30,9 +37,24 @@ export default function SignupReviewer() {
   const [passwordcheck, setPasswordcheck] = useState("");
   const [ssnRaw, setSsnRaw] = useState("");
   const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
 
-  // ✅ 모달 상태
-  const [modalData, setModalData] = useState<any>(null);
+  // ✅ 비밀번호 일치 검증 - useEffect로 자동 처리
+  useEffect(() => {
+    if (passwordcheck) {
+      const errorMsg = passwordcheck !== formData.password ? "비밀번호가 일치하지 않습니다." : "";
+      setErrors((prev) => ({ ...prev, verifyPassword: errorMsg }));
+    }
+  }, [formData.password, passwordcheck]);
+
+  // ✅ cleanup - 메모리 누수 방지
+  useEffect(() => {
+    return () => {
+      if (referralCheckTimer) {
+        clearTimeout(referralCheckTimer);
+      }
+    };
+  }, [referralCheckTimer]);
 
   // ✅ 추천인 검증 함수
   const validateReferralID = async (referralID: string) => {
@@ -76,9 +98,6 @@ export default function SignupReviewer() {
         )
           errorMsg = "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
         break;
-      case "verifyPassword":
-        if (value !== formData.password) errorMsg = "비밀번호가 일치하지 않습니다.";
-        break;
       case "phnum":
         if (!/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(value))
           errorMsg = "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)";
@@ -98,10 +117,11 @@ export default function SignupReviewer() {
     return errorMsg === "";
   };
 
-  // ✅ 입력 핸들러
+  // ✅ 입력 핸들러 - 개선됨
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
+    // 주민번호 특수 처리
     if (name === "Classifnumber") {
       let digits = value.replace(/[^0-9]/g, "");
       if (digits.length > 7) digits = digits.slice(0, 7);
@@ -116,16 +136,17 @@ export default function SignupReviewer() {
       return;
     }
 
+    // 비밀번호 확인 처리 (useEffect가 자동 검증)
     if (name === "verifyPassword") {
       setPasswordcheck(value);
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      return;
     }
 
+    // 일반 필드 처리
+    setFormData((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
-    validateField("verifyPassword", passwordcheck); // 비밀번호 확인 필드도 같이 검증
 
-    // ✅ 추천인 디바운스 검증
+    // 추천인 디바운스 검증
     if (name === "referralID") {
       if (referralCheckTimer) clearTimeout(referralCheckTimer);
       const timer = setTimeout(() => {
@@ -158,29 +179,31 @@ export default function SignupReviewer() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 최종 유효성 검사를 위해 verifyPassword도 포함
-    let isValid = validateField("loginID", formData.loginID);
-    isValid = validateField("password", formData.password) && isValid;
-    isValid = validateField("verifyPassword", passwordcheck) && isValid;
-    isValid = validateField("name", formData.name) && isValid;
-    isValid = validateField("phnum", formData.phnum) && isValid;
-    isValid = validateField("Classifnumber", ssnRaw) && isValid; // ssnRaw 사용
+    // 모든 필드 검증
+    const validations = {
+      loginID: validateField("loginID", formData.loginID),
+      password: validateField("password", formData.password),
+      name: validateField("name", formData.name),
+      phnum: validateField("phnum", formData.phnum),
+      Classifnumber: validateField("Classifnumber", ssnRaw),
+    };
 
-    if (errors.referralID) {
-      alert("추천인 정보를 확인해주세요.");
+    // 비밀번호 확인 검증
+    const passwordMatch = passwordcheck === formData.password;
+    if (!passwordMatch) {
+      setErrors((prev) => ({ ...prev, verifyPassword: "비밀번호가 일치하지 않습니다." }));
+    }
+
+    const isValid = Object.values(validations).every(v => v === true) && passwordMatch;
+
+    if (!isValid || errors.referralID) {
+      alert("입력값을 확인해주세요.");
       return;
     }
 
-    // 모든 필드 검사 후 에러가 있으면 중단
-    if (Object.values(errors).some(msg => msg !== "")) {
-        alert("입력값을 확인해주세요.");
-        return;
-    }
-
-
     const payload = {
       ...formData,
-      Classifnumber: ssnRaw, // 백엔드에는 Raw 데이터를 전송
+      Classifnumber: ssnRaw,
     };
 
     try {
@@ -194,14 +217,14 @@ export default function SignupReviewer() {
         let errorMessage = "회원가입 요청 실패 (서버 응답 오류)";
         
         try {
-            const errorData = await res.json();
-            if (errorData && typeof errorData.message === 'string') { 
-                errorMessage = errorData.message;
-            } else if (res.statusText) {
-                errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
-            }
+          const errorData = await res.json();
+          if (errorData && typeof errorData.message === 'string') { 
+            errorMessage = errorData.message;
+          } else if (res.statusText) {
+            errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
+          }
         } catch (jsonError) {
-            errorMessage = await res.text() || `서버 오류 발생: 상태 코드 ${res.status}`;
+          errorMessage = await res.text() || `서버 오류 발생: 상태 코드 ${res.status}`;
         }
         throw new Error(errorMessage);
       }
@@ -217,15 +240,9 @@ export default function SignupReviewer() {
         classification: data.classification || "심사원",
       });
     } catch (e) {
-      // 💡 catch 블록에서 던져진 Error의 message를 사용
       const message = (e instanceof Error) ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
-      
-      // 사용자에게 구체적인 메시지를 alert로 보여줍니다.
       alert(message);
-      
       console.error("회원가입 에러:", e);
-      // console.log(formData) // 디버깅용 로그는 주석 처리
-      // console.log(modalData) // 디버깅용 로그는 주석 처리
     }
   };
 
@@ -235,11 +252,9 @@ export default function SignupReviewer() {
     router.push("/");
   };
 
-  // ✅ UI
   return (
     <div className="flex justify-center bg-gradient-to-b from-gray-100 to-gray-200 px-4 py-10 sm:py-16 min-h-screen items-start">
       <div className="relative bg-white w-full max-w-lg p-8 sm:p-10 rounded-2xl shadow-lg">
-        {/* X 버튼 */}
         <button
           type="button"
           onClick={() => window.history.back()}
@@ -265,7 +280,7 @@ export default function SignupReviewer() {
               placeholder="이름을 입력하세요"
               required
             />
-            {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
+            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
           </div>
 
           {/* 아이디 */}
@@ -280,7 +295,7 @@ export default function SignupReviewer() {
               placeholder="아이디를 입력하세요"
               required
             />
-            {errors.loginID && <p className="text-red-500 text-sm">{errors.loginID}</p>}
+            {errors.loginID && <p className="text-red-500 text-sm mt-1">{errors.loginID}</p>}
           </div>
 
           {/* 비밀번호 */}
@@ -295,7 +310,7 @@ export default function SignupReviewer() {
               placeholder="비밀번호를 입력하세요"
               required
             />
-            {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
           </div>
 
           {/* 비밀번호 확인 */}
@@ -311,7 +326,7 @@ export default function SignupReviewer() {
               required
             />
             {errors.verifyPassword && (
-              <p className="text-red-500 text-sm">{errors.verifyPassword}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.verifyPassword}</p>
             )}
           </div>
 
@@ -327,7 +342,7 @@ export default function SignupReviewer() {
               placeholder="01012345678 또는 010-1234-5678"
               required
             />
-            {errors.phnum && <p className="text-red-500 text-sm">{errors.phnum}</p>}
+            {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}
           </div>
 
           {/* 주민등록번호 */}
@@ -345,7 +360,7 @@ export default function SignupReviewer() {
               required
             />
             {errors.Classifnumber && (
-              <p className="text-red-500 text-sm">{errors.Classifnumber}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.Classifnumber}</p>
             )}
           </div>
 
@@ -363,7 +378,7 @@ export default function SignupReviewer() {
               placeholder="추천할 심사원의 ID를 입력하세요 (없으면 공백)"
             />
             {errors.referralID && (
-              <p className="text-red-500 text-sm">{errors.referralID}</p>
+              <p className="text-red-500 text-sm mt-1">{errors.referralID}</p>
             )}
           </div>
 
@@ -375,11 +390,12 @@ export default function SignupReviewer() {
           </button>
         </form>
       </div>
-{/* ✅ 회원가입 성공 모달 */}
+
+      {/* 회원가입 성공 모달 */}
 {modalData && (
   <div
     className="fixed inset-0 flex items-center justify-center z-50
-                   bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300"
+                   bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300"
   >
     <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 정보</h2>
