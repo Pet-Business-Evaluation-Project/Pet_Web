@@ -39,9 +39,13 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         setErrorMessage(response.data.message || "로그인 실패");
       }
     } catch (error: any) {
-      console.error("로그인 오류:", error);
+      if (error.response?.status === 401) {
+        alert("아이디 또는 비밀번호가 올바르지 않습니다.");
       setErrorMessage("아이디 또는 비밀번호가 올바르지 않습니다.");
-    }
+      }else {
+         alert("로그인 중 오류가 발생했습니다.");
+        }
+      }
   };
 
   return (
