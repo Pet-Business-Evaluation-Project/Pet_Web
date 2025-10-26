@@ -64,11 +64,11 @@ export default function Header() {
         </Link>
 
         <nav className="flex items-center space-x-12 text-lg md:text-xl lg:text-2xl font-medium">
-          <Link href="/home" className="hover:text-red-900">Home</Link>
-          <Link href="/about" className="hover:text-red-900">협회 소개</Link>
-          <Link href="/members" className="hover:text-red-900">회원사 소개</Link>
-          <Link href="/register" className="hover:text-red-900">회원사 등록</Link>
-          <Link href="/community" className="hover:text-red-900">커뮤니티</Link>
+          <Link href="/" className="hover:text-red-900">Home</Link>
+          <Link href="/" className="hover:text-red-900">협회 소개</Link>
+          <Link href="/" className="hover:text-red-900">회원사 소개</Link>
+          <Link href="/" className="hover:text-red-900">회원사 등록</Link>
+          <Link href="/" className="hover:text-red-900">커뮤니티</Link>
         </nav>
       </div>
 
