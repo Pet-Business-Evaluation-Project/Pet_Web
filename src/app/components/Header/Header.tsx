@@ -50,9 +50,9 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full shadow-md px-6 py-0">
+    <header className="w-full shadow-md">
       {/* 최상단: 로그인/회원가입 or 사용자정보 */}
-      <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-6 py-1 pr-50">
+      <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-4 md:px-8 py-1 w-full">
         {!user ? (
           <>
             <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
@@ -69,7 +69,7 @@ export default function Header() {
       </div>
 
       {/* 두 번째 줄: 로고 + 네비게이션 */}
-      <div className="flex justify-between items-center px-6 pr-50 py-0 bg-white">
+      <div className="flex justify-between items-center px-6 lg:px-16 py-2 bg-white w-full">
         <Link href="/">
           <Image
             src="/img/logopettype3.png"
