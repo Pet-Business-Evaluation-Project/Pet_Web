@@ -60,7 +60,7 @@ export default function Header() {
       </div>
 
       {/* 두 번째 줄: 로고 + 네비게이션 */}
-      <div className="flex justify-between items-center px-4 lg:px-16 xl:px-70 py-4 bg-white">
+      <div className="flex justify-between items-center px-4 lg:px-16 py-4 bg-white">
         <Link href="/">
           <Image
             src="/img/kcci.svg"
@@ -93,47 +93,25 @@ export default function Header() {
       </div>
 
       {/* 모바일 드롭다운 메뉴 */}
-      {isMobileMenuOpen && (
-        <nav className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
-          <div className="flex flex-col px-4 py-2">
-            <Link 
-              href="/" 
+            <nav
+        className={`lg:hidden bg-white border-t border-gray-200 shadow-lg transform transition-all duration-300 overflow-hidden ${
+          isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="flex flex-col px-4 py-2">
+          {['Home', '심사원 소개', '회원사 소개', '회원사 등록', '커뮤니티'].map((item, idx) => (
+            <Link
+              key={idx}
+              href="/"
               className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Home
+              {item}
             </Link>
-            <Link 
-              href="/" 
-              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              심사원 소개
-            </Link>
-            <Link 
-              href="/" 
-              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              회원사 소개
-            </Link>
-            <Link 
-              href="/" 
-              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              회원사 등록
-            </Link>
-            <Link 
-              href="/" 
-              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              커뮤니티
-            </Link>
-          </div>
-        </nav>
-      )}
+          ))}
+        </div>
+      </nav>
+
 
       {/* 로그인 모달 */}
       <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
