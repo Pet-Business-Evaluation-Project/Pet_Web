@@ -9,40 +9,32 @@ import Button from "../Button/Button";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
-// 사용자 데이터 타입 정의 (백엔드 응답에 맞게 조정 필요)
 interface User {
   id: number;
   name: string;
   email: string;
-  // 필요한 다른 속성 추가
 }
 
 export default function Header() {
   const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  // 💡 수정: any -> User | null
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // 🆕 모바일 메뉴 상태
   const [user, setUser] = useState<User | null>(null); 
 
-  // ✅ 페이지가 로드될 때 localStorage에서 로그인 정보 복원
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      // JSON.parse의 결과는 User 타입으로 단언(assertion)
       setUser(JSON.parse(storedUser) as User); 
     }
   }, []);
 
-  // ✅ 로그아웃 처리 함수
   const handleLogout = async () => {
     try {
       await axios.post("http://petback.hysu.kr/back/api/auth/logout", {}, { withCredentials: true });
       localStorage.removeItem("user");
       setUser(null);
       alert("로그아웃 완료!");
-      
-      // 로그아웃 후 홈으로 이동
       router.push("/");
-
     } catch (error) {
       console.error("로그아웃 실패:", error);
       alert("로그아웃 중 오류가 발생했습니다.");
@@ -50,48 +42,101 @@ export default function Header() {
   };
 
   return (
-    <header className="w-full shadow-md px-6 py-0">
+    <header className="w-full shadow-md">
       {/* 최상단: 로그인/회원가입 or 사용자정보 */}
-      <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-6 py-1 pr-50">
+      <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-4 lg:px-16 xl:px-70 py-2">
         {!user ? (
           <>
             <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
-            <Link href="/signupagree">회원가입</Link>
+            <Link href="/signupagree" className="hover:underline">회원가입</Link>
           </>
         ) : (
           <>
-            {/* user가 null이 아님을 보장하므로 user.name 접근 가능 */}
             <span>{user.name} 님</span> 
             <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
-            <Link href="/mypage">마이페이지</Link>
+            <Link href="/mypage" className="hover:underline">마이페이지</Link>
           </>
         )}
       </div>
 
       {/* 두 번째 줄: 로고 + 네비게이션 */}
-      <div className="flex justify-between items-center px-6 pr-50 py-0 bg-white">
+      <div className="flex justify-between items-center px-4 lg:px-16 xl:px-70 py-4 bg-white">
         <Link href="/">
           <Image
-            src="/img/logopettype3.png"
+            src="/img/kcci.svg"
             alt="로고"
-            width={250}
-            height={90}
-            className="cursor-pointer ml-50"
+            width={200}
+            height={72}
+            className="cursor-pointer"
           />
         </Link>
 
-        <nav className="flex items-center space-x-12 text-lg md:text-xl lg:text-2xl font-medium">
-          <Link href="/" className="hover:text-red-900">Home</Link>
-          <Link href="/" className="hover:text-red-900">협회 소개</Link>
-          <Link href="/" className="hover:text-red-900">회원사 소개</Link>
-          <Link href="/" className="hover:text-red-900">회원사 등록</Link>
-          <Link href="/" className="hover:text-red-900">커뮤니티</Link>
+        {/* 🆕 데스크톱 네비게이션 (lg 이상에서만 표시) */}
+        <nav className="hidden lg:flex items-center space-x-8 xl:space-x-12 text-lg xl:text-2xl font-bold">
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">Home</Link>
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap">협회 소개</Link>
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 소개</Link>
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 등록</Link>
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap">커뮤니티</Link>
         </nav>
+
+        {/* 🆕 모바일 햄버거 버튼 (lg 미만에서만 표시) */}
+        <button 
+          className="lg:hidden flex flex-col space-y-1.5 p-2"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="메뉴"
+        >
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-opacity ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+        </button>
       </div>
+
+      {/* 🆕 모바일 드롭다운 메뉴 */}
+      {isMobileMenuOpen && (
+        <nav className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="flex flex-col px-4 py-2">
+            <Link 
+              href="/" 
+              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link 
+              href="/" 
+              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              협회 소개
+            </Link>
+            <Link 
+              href="/" 
+              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              회원사 소개
+            </Link>
+            <Link 
+              href="/" 
+              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              회원사 등록
+            </Link>
+            <Link 
+              href="/" 
+              className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              커뮤니티
+            </Link>
+          </div>
+        </nav>
+      )}
 
       {/* 로그인 모달 */}
       <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-        {/* 💡 수정: any -> User */}
         <LoginForm onLoginSuccess={(userData: User) => {
           localStorage.setItem("user", JSON.stringify(userData));
           setUser(userData);
