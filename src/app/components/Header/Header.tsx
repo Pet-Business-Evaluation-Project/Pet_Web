@@ -18,7 +18,7 @@ interface User {
 export default function Header() {
   const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // 🆕 모바일 메뉴 상태
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   const [user, setUser] = useState<User | null>(null); 
 
   useEffect(() => {
@@ -71,16 +71,16 @@ export default function Header() {
           />
         </Link>
 
-        {/* 🆕 데스크톱 네비게이션 (lg 이상에서만 표시) */}
+        {/*데스크톱 네비게이션 (lg 이상에서만 표시) */}
         <nav className="hidden lg:flex items-center space-x-8 xl:space-x-12 text-lg xl:text-2xl font-bold">
           <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">Home</Link>
-          <Link href="/" className="hover:text-red-900 whitespace-nowrap">협회 소개</Link>
+          <Link href="/" className="hover:text-red-900 whitespace-nowrap">심사원 소개</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 소개</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 등록</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">커뮤니티</Link>
         </nav>
 
-        {/* 🆕 모바일 햄버거 버튼 (lg 미만에서만 표시) */}
+        {/* 모바일 햄버거 버튼 (lg 미만에서만 표시) */}
         <button 
           className="lg:hidden flex flex-col space-y-1.5 p-2"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -92,7 +92,7 @@ export default function Header() {
         </button>
       </div>
 
-      {/* 🆕 모바일 드롭다운 메뉴 */}
+      {/* 모바일 드롭다운 메뉴 */}
       {isMobileMenuOpen && (
         <nav className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
           <div className="flex flex-col px-4 py-2">
@@ -108,7 +108,7 @@ export default function Header() {
               className="py-3 px-4 hover:bg-gray-100 hover:text-red-900 rounded transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              협회 소개
+              심사원 소개
             </Link>
             <Link 
               href="/" 

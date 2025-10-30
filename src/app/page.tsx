@@ -11,8 +11,8 @@ export default function HomePage() {
 
 <div className="flex flex-row">
   <section className="flex-1 bg-white py-10 text-center">
-    <h2 className="text-2xl font-semibold mb-6">협회 소개</h2>
-    <p>협회에 대한 간단한 소개 문구가 들어갑니다.</p>
+    <h2 className="text-2xl font-semibold mb-6">심사원 소개</h2>
+    <p>심사원에 대한 간단한 소개 문구가 들어갑니다.</p>
   </section>
 
   <section className="flex-1 bg-blue-50 py-10 text-center">
