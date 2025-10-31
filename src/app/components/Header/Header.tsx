@@ -60,19 +60,18 @@ export default function Header() {
       </div>
 
       {/* 두 번째 줄: 로고 + 네비게이션 */}
-      <div className="flex justify-between items-center px-4 lg:px-16 py-4 bg-white">
-        <Link href="/">
+      <div className="flex justify-between items-center px-4 lg:px-70 py-4 bg-white">
+        <Link href="/" className="flex-shrink-0">
           <Image
             src="/img/kcci.svg"
             alt="로고"
             width={200}
             height={72}
-            className="cursor-pointer"
+            className="cursor-pointer w-auto h-30 sm:h-32 md:h-34 lg:h-36 xl:h-38"
           />
         </Link>
-
         {/*데스크톱 네비게이션 (lg 이상에서만 표시) */}
-        <nav className="hidden lg:flex items-center space-x-8 xl:space-x-12 text-lg xl:text-2xl font-bold">
+        <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 text-lg xl:text-2xl font-bold">
           <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">Home</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">심사원 소개</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 소개</Link>
