@@ -7,6 +7,7 @@ import Button from "../../components/Button/Button";
 interface ReviewerInfo {
   loginID: string;
   name: string;
+  phnum: string;
   reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
 }
 
@@ -17,11 +18,17 @@ interface OrgMember {
 }
 
 export default function ReviewerPage() {
-  const [userId, setUserId] = useState<number | null>(null); // 로그인 후 userId
+  const [userId, setUserId] = useState<number | null>(null);
   const [reviewer, setReviewer] = useState<ReviewerInfo | null>(null);
   const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
   const [showOrg, setShowOrg] = useState(false);
   const [sortAsc, setSortAsc] = useState(true);
+
+  // 개인정보 모달 관련 상태
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhnum, setEditPhnum] = useState("");
+  const [editingField, setEditingField] = useState<"name" | "phnum" | null>(null);
 
   const roleOrder: Record<OrgMember["reviewerGrade"], number> = {
     "심사원보": 1,
@@ -29,7 +36,6 @@ export default function ReviewerPage() {
     "수석심사위원": 3,
   };
 
-  // 🔹 로그인 정보에서 userId 가져오기 (클라이언트 사이드)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const userStr = localStorage.getItem("user");
@@ -41,18 +47,17 @@ export default function ReviewerPage() {
           console.error("localStorage user parsing error:", e);
         }
       } else {
-        setUserId(30); // 테스트용: 로그인 안 되어 있을 때
+        setUserId(30); // 테스트용
       }
     }
   }, []);
 
-  // 🔹 DB에서 심사원 정보 불러오기
   useEffect(() => {
     if (!userId) return;
 
     const fetchReviewer = async () => {
       try {
-        const res = await fetch("http://petback.hysu.kr/back/mypage/reviewer", {
+        const res = await fetch("http://localhost:8080/mypage/reviewer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
@@ -73,7 +78,6 @@ export default function ReviewerPage() {
     fetchReviewer();
   }, [userId]);
 
-  // 🔹 조직 구성원 가져오기 및 토글
   const toggleOrgMembers = async () => {
     if (!reviewer) return;
 
@@ -83,7 +87,7 @@ export default function ReviewerPage() {
     }
 
     try {
-      const res = await fetch("http://petback.hysu.kr/back/mypage/reviewer/invite", {
+      const res = await fetch("http://localhost:8080/mypage/reviewer/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loginID: reviewer.loginID }),
@@ -99,6 +103,44 @@ export default function ReviewerPage() {
     } catch (error) {
       console.error("Fetch error:", error);
       alert("조직 구성원 불러오기 중 오류가 발생했습니다.");
+    }
+  };
+
+  const openEditModal = () => {
+    if (!reviewer) return;
+    setEditName(reviewer.name);
+    setEditPhnum(reviewer.phnum || "");
+    setEditingField(null);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await fetch("http://localhost:8080/mypage/reviewer/infoUpdate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          name: editName,
+          phnum: editPhnum,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReviewer((prev) =>
+          prev ? { ...prev, name: data.name, phnum: data.phnum } : prev
+        );
+        alert("개인정보가 성공적으로 수정되었습니다!");
+        setShowEditModal(false);
+      } else {
+        alert("수정에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Edit error:", error);
+      alert("정보 수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -121,11 +163,11 @@ export default function ReviewerPage() {
         <p className="text-gray-600 text-center md:text-left">{reviewer.reviewerGrade}</p>
 
         <div className="flex flex-col gap-3 w-full mt-4">
-          <Button label="개인정보 수정" onClick={() => alert("개인정보 수정 테스트")} />
+          <Button label="개인정보 수정" onClick={openEditModal} />
         </div>
       </div>
 
-      {/* 우측 기능: 조직 관리 */}
+      {/* 우측 조직 관리 */}
       <div className="flex-1 flex flex-col gap-6">
         <div
           className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 cursor-pointer"
@@ -177,6 +219,63 @@ export default function ReviewerPage() {
           </div>
         )}
       </div>
+
+      {/* 개인정보 수정 모달 */}
+      {showEditModal && reviewer && (
+        <div className="fixed inset-0 flex items-center justify-center z-50
+                            bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-96">
+            <h2 className="text-xl font-bold mb-6 border-b pb-2">회원 정보</h2>
+
+            {/* 이름 */}
+            <div className="flex items-center justify-between mb-4">
+              {editingField === "name" ? (
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="border rounded-lg p-2 w-full mr-2"
+                />
+              ) : (
+                <span className="text-gray-700 font-medium">{editName}</span>
+              )}
+              <Button
+                label={editingField === "name" ? "완료" : "수정"}
+                onClick={() =>
+                  setEditingField(editingField === "name" ? null : "name")
+                }
+                className="text-sm px-3 py-1"
+              />
+            </div>
+
+            {/* 전화번호 */}
+            <div className="flex items-center justify-between mb-6">
+              {editingField === "phnum" ? (
+                <input
+                  type="text"
+                  value={editPhnum}
+                  onChange={(e) => setEditPhnum(e.target.value)}
+                  className="border rounded-lg p-2 w-full mr-2"
+                />
+              ) : (
+                <span className="text-gray-700 font-medium">{editPhnum}</span>
+              )}
+              <Button
+                label={editingField === "phnum" ? "완료" : "수정"}
+                onClick={() =>
+                  setEditingField(editingField === "phnum" ? null : "phnum")
+                }
+                className="text-sm px-3 py-1"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button label="취소" onClick={() => setShowEditModal(false)} />
+              <Button label="저장" onClick={handleSaveEdit} />
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
