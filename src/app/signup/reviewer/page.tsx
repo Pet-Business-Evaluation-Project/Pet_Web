@@ -64,7 +64,7 @@ export default function SignupReviewer() {
     }
 
     try {
-      const res = await fetch("http://petback.hysu.kr/user/loginInfo");
+      const res = await fetch("http://petback.hysu.kr/back/user/loginInfo");
       if (!res.ok) throw new Error("유저 조회 실패");
 
       const data = await res.json();
@@ -207,7 +207,7 @@ export default function SignupReviewer() {
     };
 
     try {
-      const res = await fetch("http://petback.hysu.kr/user/signup", {
+      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
