@@ -10,7 +10,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ko">
       <body className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 bg-green-50">{children}</main>
+        <main className="flex-1 bg-white-20">{children}</main>
         <Footer />
       </body>
     </html>
