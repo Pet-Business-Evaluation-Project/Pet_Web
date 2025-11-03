@@ -5,7 +5,7 @@ export default function HomePage() {
     <div className="flex flex-col items-center justify-center py-12 md:py-20">
       {/* 메인 이미지 섹션 */}
       <section className="w-full flex flex-col items-center text-center px-4 mb-16">
-        {/* 이미지 컨테이너 - 배경 그라데이션 추가 */}
+
         <div className="relative w-full max-w-5xl bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden shadow-lg">
           <Image
             src="/img/Mainpagelogo.png"
@@ -18,7 +18,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3개 카드 섹션 */}
+
       <div className="flex flex-col md:flex-row w-full gap-8 px-4 max-w-7xl mx-auto">
         {/* 심사원 소개 카드 */}
         <section className="flex-1 bg-white py-12 px-8 text-center rounded-xl shadow-md border border-gray-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
