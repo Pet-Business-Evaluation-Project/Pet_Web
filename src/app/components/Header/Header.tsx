@@ -73,7 +73,7 @@ export default function Header() {
         {/*데스크톱 네비게이션 (lg 이상에서만 표시) */}
         <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 text-lg xl:text-2xl font-bold">
           <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">Home</Link>
-          <Link href="/" className="hover:text-red-900 whitespace-nowrap">심사원 소개</Link>
+          <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">심사원 소개</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 소개</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">회원사 등록</Link>
           <Link href="/" className="hover:text-red-900 whitespace-nowrap">커뮤니티</Link>
