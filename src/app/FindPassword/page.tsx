@@ -44,7 +44,7 @@ export default function FindPassword() {
     // 🚨 수정된 부분: URL 중복 문제를 피하기 위해 window.location.href 사용 및 절대 경로 지정
     // URL을 http://localhost:3000/components/LoginForm/FindPassword/FindmemberPassword 로 이동시키려면
     // 단순히 '/components/LoginForm/FindPassword/FindmemberPassword'로 절대 경로를 지정해야 합니다.
-    window.location.href = "/components/LoginForm/FindPassword/FindmemberPassword";
+    window.location.href = "/FindPassword/FindmemberPassword";
   };
 
 
