@@ -82,23 +82,24 @@ export default function Header() {
           <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">
             심사원 소개
           </Link>
-          <Link href="/community" className="hover:text-red-900 whitespace-nowrap">
+
+          {/* ✅ 여기만 변경됨 */}
+          <Link href="/memberinfo" className="hover:text-red-900 whitespace-nowrap">
             회원사 소개
           </Link>
-          <Link href="/community" className="hover:text-red-900 whitespace-nowrap">
+
+          <Link href="/memberregister" className="hover:text-red-900 whitespace-nowrap">
             회원사 등록
           </Link>
 
-          {/* 🔽 커뮤니티 hover 드롭다운 (사라지지 않게 hitbox 추가) */}
+          {/* 🔽 커뮤니티 hover 드롭다운 */}
           <div className="relative group">
             <span className="hover:text-red-900 cursor-pointer whitespace-nowrap">
               커뮤니티
             </span>
 
-            {/* hover 시 투명 hitbox 영역 */}
             <div className="absolute left-0 top-full w-full h-4 bg-transparent"></div>
 
-            {/* 드롭다운 메뉴 */}
             <div className="absolute left-0 mt-6 w-40 bg-white border border-gray-200 rounded-lg shadow-md opacity-0 group-hover:opacity-100 group-hover:visible invisible transition-all duration-200 z-50">
               <Link
                 href="/notice"
@@ -118,16 +119,16 @@ export default function Header() {
       </div>
 
       {/* 로그인 모달 */}
-    <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-  <LoginForm
-    onLoginSuccess={(userData: User) => {
-      localStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
-      setIsLoginOpen(false);
-    }}
-    onClose={() => setIsLoginOpen(false)} // ✅ 이 한 줄만 추가!
-  />
-</Modal>
+      <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
+        <LoginForm
+          onLoginSuccess={(userData: User) => {
+            localStorage.setItem("user", JSON.stringify(userData));
+            setUser(userData);
+            setIsLoginOpen(false);
+          }}
+          onClose={() => setIsLoginOpen(false)}
+        />
+      </Modal>
     </header>
   );
 }
