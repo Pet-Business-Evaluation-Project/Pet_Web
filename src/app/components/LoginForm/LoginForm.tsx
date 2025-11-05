@@ -15,10 +15,11 @@ interface User {
 
 interface LoginFormProps {
   // onLoginSuccess의 인자가 User 타입이 됩니다.
-  onLoginSuccess?: (userData: User) => void; 
+  onLoginSuccess?: (userData: User) => void;
+  onClose?: () => void; // ✅ 모달 닫기 함수 추가
 }
 
-export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -68,6 +69,11 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     }
   };
 
+  // ✅ 비밀번호 찾기 링크 클릭 시 모달 닫기
+  const handleForgotPasswordClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
       <h2 className="text-xl font-bold text-center">로그인</h2>
@@ -91,11 +97,12 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         <p className="text-red-500 text-sm text-center">{errorMessage}</p>
       )}
 
-      {/* 🔑 비밀번호 찾기 링크: /forgot-password 경로로 이동합니다. */}
+      {/* 🔑 비밀번호 찾기 링크: 클릭 시 모달 닫기 */}
       <div className="flex justify-end mt-[-8px]">
         <Link 
-          href="components/LoginForm/FindPassword" 
+          href="/FindPassword" 
           className="text-sm text-gray-500 hover:text-blue-600 transition duration-150"
+          onClick={handleForgotPasswordClick} // ✅ 클릭 시 모달 닫기
         >
           비밀번호를 잊어버리셨나요?
         </Link>

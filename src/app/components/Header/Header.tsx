@@ -118,15 +118,16 @@ export default function Header() {
       </div>
 
       {/* 로그인 모달 */}
-      <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-        <LoginForm
-          onLoginSuccess={(userData: User) => {
-            localStorage.setItem("user", JSON.stringify(userData));
-            setUser(userData);
-            setIsLoginOpen(false);
-          }}
-        />
-      </Modal>
+    <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
+  <LoginForm
+    onLoginSuccess={(userData: User) => {
+      localStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
+      setIsLoginOpen(false);
+    }}
+    onClose={() => setIsLoginOpen(false)} // ✅ 이 한 줄만 추가!
+  />
+</Modal>
     </header>
   );
 }
