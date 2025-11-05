@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import axios, { AxiosError } from "axios"; // AxiosError 타입을 import
 import Button from "../Button/Button";
-import { AxiosError } from "axios"; // AxiosError 타입을 import
+import Link from "next/link"; // ✅ Next.js의 Link 컴포넌트 임포트
 
 // User 인터페이스 (Header.tsx에서 사용한 것과 일치해야 합니다)
 interface User {
@@ -14,7 +14,7 @@ interface User {
 }
 
 interface LoginFormProps {
-  // 💡 수정: any -> User
+  // onLoginSuccess의 인자가 User 타입이 됩니다.
   onLoginSuccess?: (userData: User) => void; 
 }
 
@@ -44,15 +44,13 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         // ✅ 로그인 성공 시 로컬스토리지 저장
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // ✅ 부모 컴포넌트(Header)에 로그인 성공 알림
-        // onLoginSuccess의 인자가 User 타입이 됩니다.
+        // ✅ 부모 컴포넌트에 로그인 성공 알림
         if (onLoginSuccess) onLoginSuccess(userData); 
         console.log(localStorage.getItem);
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
       } else {
         setErrorMessage(response.data.message || "로그인 실패");
       }
-    // 💡 수정: any -> unknown 및 타입 가드 사용
     } catch (error: unknown) { 
       if (axios.isAxiosError(error)) { // AxiosError인지 확인
         const axiosError = error as AxiosError;
@@ -92,6 +90,17 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       {errorMessage && (
         <p className="text-red-500 text-sm text-center">{errorMessage}</p>
       )}
+
+      {/* 🔑 비밀번호 찾기 링크: /forgot-password 경로로 이동합니다. */}
+      <div className="flex justify-end mt-[-8px]">
+        <Link 
+          href="components/LoginForm/FindPassword" 
+          className="text-sm text-gray-500 hover:text-blue-600 transition duration-150"
+        >
+          비밀번호를 잊어버리셨나요?
+        </Link>
+      </div>
+
       <Button type="submit" label="로그인" />
     </form>
   );
