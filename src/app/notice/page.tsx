@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Button from "../components/Button/Button";
 
 interface Notice {
   id: number;
@@ -15,8 +14,17 @@ interface Notice {
 interface User {
   name: string;
   loginID: string;
-  classification: string; // 관리자 / 심사원 / 기업
+  classification: string;
 }
+
+const Button = ({ label, onClick, className = "" }: any) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition ${className}`}
+  >
+    {label}
+  </button>
+);
 
 export default function NoticePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -27,7 +35,6 @@ export default function NoticePage() {
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
 
-  // ✅ localStorage에서 유저정보 + 공지 불러오기
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedNotices = localStorage.getItem("notices");
@@ -36,14 +43,12 @@ export default function NoticePage() {
     if (storedNotices) setNotices(JSON.parse(storedNotices));
   }, []);
 
-  // ✅ 공지 변경 시 localStorage 저장
   useEffect(() => {
     localStorage.setItem("notices", JSON.stringify(notices));
   }, [notices]);
 
   const canWrite = user?.classification === "관리자";
 
-  // ✅ 글 등록
   const handleSubmit = () => {
     if (!title.trim() || !content.trim()) {
       alert("제목과 내용을 입력해주세요.");
@@ -64,7 +69,6 @@ export default function NoticePage() {
     setIsWriting(false);
   };
 
-  // ✅ 글 삭제
   const handleDelete = (id: number) => {
     if (confirm("정말 삭제하시겠습니까?")) {
       const updated = notices.filter((n) => n.id !== id);
@@ -73,7 +77,6 @@ export default function NoticePage() {
     }
   };
 
-  // ✅ 글 수정 완료
   const handleUpdate = () => {
     if (!editingNotice) return;
     const updated = notices.map((n) =>
@@ -90,7 +93,6 @@ export default function NoticePage() {
         📢 공지사항
       </h1>
 
-      {/* ✅ 관리자만 글쓰기 가능 */}
       {canWrite && !isWriting && !selectedNotice && (
         <div className="flex justify-end mb-4">
           <Button
@@ -101,7 +103,6 @@ export default function NoticePage() {
         </div>
       )}
 
-      {/* ✅ 글쓰기 모달 */}
       <AnimatePresence>
         {isWriting && (
           <motion.div
@@ -153,23 +154,136 @@ export default function NoticePage() {
         )}
       </AnimatePresence>
 
-      {/* ✅ 상세보기 */}
       {selectedNotice && !editingNotice && (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-xl shadow-lg"
+          className="bg-white rounded-xl shadow-lg overflow-hidden max-w-4xl mx-auto"
         >
-          <h2 className="text-2xl font-bold mb-2 text-gray-800">{selectedNotice.title}</h2>
-          <p className="text-gray-600 text-sm mb-4">
-            {selectedNotice.author} • {selectedNotice.date}
-          </p>
-          <p className="whitespace-pre-line text-gray-800 mb-6">
-            {selectedNotice.content}
-          </p>
-          <div className="flex justify-end gap-3">
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+            <h2 className="text-2xl font-bold mb-2">{selectedNotice.title}</h2>
+            <p className="text-blue-100 text-sm">
+              {selectedNotice.author} • {selectedNotice.date}
+            </p>
+          </div>
+          
+          {/* 내용 영역 */}
+          <div className="p-8">     
+            {/* 본문 */}
+            <div className="prose max-w-none">
+       
+              {/* 추가 섹션 (고정 공지에만 표시) */}
+              {selectedNotice.id === 0 && (
+                <div className="space-y-8">
+                  {/* Step 1 */}
+                  <div className="border-l-4 border-blue-500 pl-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-blue-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                      우측 상단 회원가입 클릭
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
+                      <img 
+                        src="/img/notice1.png" 
+                        alt="회원가입 버튼"
+                        className="max-w-2xl w-full rounded-lg shadow-md"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="border-l-4 border-indigo-500 pl-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-indigo-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                      동의 약관 읽은 후 동의 약관 체크 후 넘어가기
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
+                      <img 
+                        src="/img/notice2.png" 
+                        alt="약관 동의"
+                        className="max-w-2xl w-full rounded-lg shadow-md"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="border-l-4 border-purple-500 pl-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-purple-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+                      심사원 가입 클릭
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
+                      <img 
+                        src="/img/notice3.png" 
+                        alt="심사원 가입"
+                        className="max-w-md w-full rounded-lg shadow-md"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Step 4 - 입력 정보 */}
+                  <div className="border-l-4 border-green-500 pl-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">4</span>
+                      회원 정보 입력
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
+                      <img 
+                        src="/img/notice4.png" 
+                        alt="회원 정보 입력"
+                        className="max-w-md w-full rounded-lg shadow-md"
+                      />
+                    </div>
+                    
+                    <div className="bg-blue-50 p-6 rounded-lg mt-4">
+                      <h4 className="font-bold text-gray-800 mb-3 text-lg">📝 입력 정보 안내</h4>
+                      <ul className="space-y-3 text-gray-700">
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>이름:</strong> 3글자 이상 이름</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>아이디:</strong> 중복 불가, 4자 이상</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>비밀번호:</strong> 영문, 숫자, 특수문자를 포함한 8자 이상</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>휴대폰:</strong> 010-1234-5678 (01012345678)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>주민등록번호:</strong> 앞6자리 + 뒷1자리</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span><strong>추천인ID:</strong> 회원가입된 회원의 ID</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* 추가 안내 */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 rounded-lg">
+                    <h4 className="font-bold text-gray-800 mb-3 text-lg flex items-center gap-2">
+                      💡 추가 안내사항
+                    </h4>
+                    <p className="text-gray-700 leading-relaxed">
+                        회원가입 최초시 심사원 등급은 자동으로 심사원보가 됩니다.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* 버튼 영역 */}
+          <div className="px-8 pb-8 flex justify-end gap-3">
             <Button label="뒤로가기" onClick={() => setSelectedNotice(null)} />
-            {canWrite && (
+            {canWrite && selectedNotice.id !== 0 && (
               <>
                 <Button label="수정" onClick={() => setEditingNotice(selectedNotice)} />
                 <Button label="삭제" onClick={() => handleDelete(selectedNotice.id)} />
@@ -179,9 +293,8 @@ export default function NoticePage() {
         </motion.div>
       )}
 
-      {/* ✅ 수정 모드 */}
       {editingNotice && (
-        <div className="bg-white p-8 rounded-xl shadow-lg">
+        <div className="bg-white p-8 rounded-xl shadow-lg max-w-3xl mx-auto">
           <h2 className="text-xl font-semibold mb-4">공지 수정</h2>
           <input
             type="text"
@@ -206,59 +319,50 @@ export default function NoticePage() {
         </div>
       )}
 
-      {/* ✅ 기본 고정 공지 (KCCI 심사원 소개) */}
       {!isWriting && !selectedNotice && !editingNotice && (
-        <section className="bg-white rounded-3xl shadow-2xl overflow-hidden transform transition duration-500 hover:shadow-3xl hover:scale-[1.01] border border-blue-100 mb-10">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 md:p-10 text-white border-b-4 border-blue-800">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-center tracking-tight">
-              KCCI 심사원 회원가입 방법
-            </h2>
-          </div>
-          <div className="p-8 md:p-12 lg:p-16 space-y-8 text-gray-700 text-lg leading-relaxed">
-            <p className="border-l-4 border-blue-500 pl-4">
-              반려동물 산업의 지속적인 성장에 발맞춰, 기업과 제품의 수준을 체계적으로 평가할 수 있는 
-              <span className="font-bold text-blue-600 ml-1">전문 심사원 양성 과정</span>입니다.
-            </p>
-            <div className="bg-blue-50/70 rounded-xl p-6 lg:p-8 shadow-inner">
-              <p className="font-semibold text-gray-800 mb-3 text-xl">
-                💡 KCCI 한국기업인증원이 추구하는 인재상:
-              </p>
-              <p className="text-gray-800 text-xl font-medium">
-                단순한 '심사원'을 넘어, 기업의 가치를 발굴하고 성공을 함께 설계하는 
-                <span className="font-extrabold text-indigo-600 block mt-1">
-                  '가치 순환 전문가'
-                </span>를 양성합니다.
-              </p>
+        <>
+          <motion.div
+            onClick={() =>
+              setSelectedNotice({
+                id: 0,
+                title: "📌 KCCI 심사원 회원가입 방법",
+                content: `심사원 회원가입 절차를 안내드립니다.`,
+                author: "KCCI 관리자",
+                date: "2025. 11. 06.",
+              })
+            }
+            whileHover={{ scale: 1.02 }}
+            className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition border-2 border-blue-200 mb-4"
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📌</span>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-800">KCCI 심사원 회원가입 방법</h3>
+                <p className="text-gray-500 text-sm mt-1">KCCI 관리자 • 2025. 11. 06.</p>
+              </div>
             </div>
-            <p className="text-center text-xl font-bold text-gray-900 pt-4 border-t border-gray-200">
-              시장의 트렌드를 읽는 <span className="text-indigo-600">통찰력</span>과 KCCI의 인증 시스템을 마스터하여,
-              <br className="hidden sm:inline" /> 반려동물 산업을 이끌어 나갈 <span className="text-blue-600">차세대 전문가</span>로 도약하십시오.
-            </p>
-          </div>
-        </section>
-      )}
+          </motion.div>
 
-      {/* ✅ 공지 목록 */}
-      {!isWriting && !selectedNotice && !editingNotice && (
-        <div className="space-y-4">
-          {notices.length > 0 ? (
-            notices.map((n) => (
-              <motion.div
-                key={n.id}
-                onClick={() => setSelectedNotice(n)}
-                whileHover={{ scale: 1.02 }}
-                className="bg-white p-5 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition"
-              >
-                <h3 className="text-lg font-semibold text-gray-800">{n.title}</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  {n.author} • {n.date}
-                </p>
-              </motion.div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500">등록된 공지가 없습니다.</p>
-          )}
-        </div>
+          <div className="space-y-4">
+            {notices.length > 0 ? (
+              notices.map((n) => (
+                <motion.div
+                  key={n.id}
+                  onClick={() => setSelectedNotice(n)}
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white p-5 rounded-xl shadow-md cursor-pointer hover:shadow-lg transition"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">{n.title}</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {n.author} • {n.date}
+                  </p>
+                </motion.div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500">등록된 공지가 없습니다.</p>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

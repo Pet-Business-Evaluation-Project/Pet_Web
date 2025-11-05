@@ -107,7 +107,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="flex flex-col items-center justify-center py-12 md:py-20 bg-white"> {/* 전체 배경을 흰색으로 통일하여 깔끔하게 */}
+      <div className="flex flex-col items-center justify-center py-12 md:py-20 bg-white border-t border-gray-200">
         <section className="w-full flex flex-col items-center text-center px-4 mb-16">
           <div className="relative w-full max-w-5xl bg-gray-50 rounded-xl overflow-hidden shadow-lg border border-gray-100">
             <Image
