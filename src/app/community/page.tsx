@@ -200,7 +200,7 @@ export default function CommunityPage() {
             ))
           ) : (
             <p className="text-center text-gray-500">
-              게시글 쓰기는 되지만 저장은 아직 구현되지않았습니다. 회원사 페이지도 구현되지않았습니다.
+             게시글이 없습니다.
             </p>
           )}
         </div>
