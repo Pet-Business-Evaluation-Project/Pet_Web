@@ -82,10 +82,10 @@ export default function Header() {
           <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">
             심사원 소개
           </Link>
-          <Link href="/" className="hover:text-red-900 whitespace-nowrap">
+          <Link href="/community" className="hover:text-red-900 whitespace-nowrap">
             회원사 소개
           </Link>
-          <Link href="/" className="hover:text-red-900 whitespace-nowrap">
+          <Link href="/community" className="hover:text-red-900 whitespace-nowrap">
             회원사 등록
           </Link>
 
