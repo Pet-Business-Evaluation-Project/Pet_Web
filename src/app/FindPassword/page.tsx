@@ -1,10 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import FindreviewerPassword from "./FindreviewerPassword/page";
 import ChangeReviewerPassword from "./FindreviewerPassword/ChangeReviewerPassword/page";
-import FindmemberPassword from "./FindmemberPassword/page";
 
 export default function FindPassword() {
   
@@ -21,9 +19,8 @@ export default function FindPassword() {
 
   // 심사원 비밀번호 변경 완료 시
   const handleReviewerPasswordChangeSuccess = () => {
-    // 🚨 수정된 부분: URL 중복 문제를 피하기 위해 window.location.href 사용 및 '/home'으로 절대 경로 지정
     alert('비밀번호가 성공적으로 변경되었습니다. 홈 페이지로 이동합니다.');
-    window.location.href = '/'; // 홈 페이지로 이동
+    window.location.href = '/';
   };
 
   // 심사원 플로우 닫기
@@ -41,12 +38,8 @@ export default function FindPassword() {
 
   // 기업 비밀번호 찾기 버튼 클릭 시
   const handleMemberFlowClick = () => {
-    // 🚨 수정된 부분: URL 중복 문제를 피하기 위해 window.location.href 사용 및 절대 경로 지정
-    // URL을 http://localhost:3000/components/LoginForm/FindPassword/FindmemberPassword 로 이동시키려면
-    // 단순히 '/components/LoginForm/FindPassword/FindmemberPassword'로 절대 경로를 지정해야 합니다.
     window.location.href = "/FindPassword/FindmemberPassword";
   };
-
 
   // 메인 화면 렌더링
   if (!showReviewerFlow) {
@@ -65,7 +58,7 @@ export default function FindPassword() {
 
           {/* 2. 판매 기업 비밀번호 찾기 버튼 */}
           <button
-            onClick={handleMemberFlowClick} // 수정된 핸들러 사용
+            onClick={handleMemberFlowClick}
             className="bg-gray-300 hover:bg-gray-400 text-lg font-medium px-12 py-6 rounded shadow transition duration-150"
           >
             기업 비밀번호 찾기

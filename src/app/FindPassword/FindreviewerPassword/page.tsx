@@ -52,7 +52,7 @@ function FindreviewerPassword({ onAuthSuccess }: FindPasswordProps) {
         const cursorPosition = e.target.selectionStart || 0;
         const prevLength = getDisplayValue().length;
         
-        let input = e.target.value.replace(/[^0-9]/g, '');
+        const input = e.target.value.replace(/[^0-9]/g, '');
 
         // 이전 입력보다 길이가 늘어난 경우에만 새 입력 추가
         if (input.length > ssnInput.length) {
