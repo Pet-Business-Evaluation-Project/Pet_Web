@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface Notice {
   id: number;
@@ -17,7 +18,13 @@ interface User {
   classification: string;
 }
 
-const Button = ({ label, onClick, className = "" }: any) => (
+interface ButtonProps {
+  label: string;
+  onClick: () => void;
+  className?: string;
+}
+
+const Button = ({ label, onClick, className = "" }: ButtonProps) => (
   <button
     onClick={onClick}
     className={`px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition ${className}`}
@@ -183,9 +190,11 @@ export default function NoticePage() {
                       우측 상단 회원가입 클릭
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
-                      <img 
+                      <Image 
                         src="/img/notice1.png" 
                         alt="회원가입 버튼"
+                        width={800}
+                        height={400}
                         className="max-w-2xl w-full rounded-lg shadow-md"
                       />
                     </div>
@@ -198,9 +207,11 @@ export default function NoticePage() {
                       동의 약관 읽은 후 동의 약관 체크 후 넘어가기
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
-                      <img 
+                      <Image 
                         src="/img/notice2.png" 
                         alt="약관 동의"
+                        width={800}
+                        height={400}
                         className="max-w-2xl w-full rounded-lg shadow-md"
                       />
                     </div>
@@ -213,9 +224,11 @@ export default function NoticePage() {
                       심사원 가입 클릭
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
-                      <img 
+                      <Image 
                         src="/img/notice3.png" 
                         alt="심사원 가입"
+                        width={600}
+                        height={400}
                         className="max-w-md w-full rounded-lg shadow-md"
                       />
                     </div>
@@ -228,9 +241,11 @@ export default function NoticePage() {
                       회원 정보 입력
                     </h3>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4 flex justify-center">
-                      <img 
+                      <Image 
                         src="/img/notice4.png" 
                         alt="회원 정보 입력"
+                        width={600}
+                        height={800}
                         className="max-w-md w-full rounded-lg shadow-md"
                       />
                     </div>

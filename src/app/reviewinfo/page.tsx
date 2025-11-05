@@ -39,9 +39,9 @@ export default function ReviewInfo() {
                   💡 KCCI 한국기업인증원이 추구하는 인재상:
                 </p>
                 <p className="text-gray-800 text-xl font-medium">
-                  단순한 '심사원'을 넘어, 기업의 가치를 발굴하고 성공을 함께 설계하는 
+                  단순한 &apos;심사원&apos;을 넘어, 기업의 가치를 발굴하고 성공을 함께 설계하는 
                    <span className="font-extrabold text-indigo-600 block mt-1">
-                    '가치 순환 전문가'
+                    &apos;가치 순환 전문가&apos;
                   </span>를 양성합니다.
                 </p>
               </div>

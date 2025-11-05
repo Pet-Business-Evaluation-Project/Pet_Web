@@ -1,8 +1,8 @@
 'use client';
 
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation"; // ✅ 라우터 훅
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
   const [showPopup, setShowPopup] = useState(false);
@@ -11,7 +11,7 @@ export default function HomePage() {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const router = useRouter(); // ✅ Next.js 라우터
+  const router = useRouter();
 
   useEffect(() => {
     setShowPopup(true);
@@ -31,15 +31,17 @@ export default function HomePage() {
     });
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     setPosition({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y
     });
-  };
+  }, [isDragging, dragStart]);
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
@@ -50,11 +52,11 @@ export default function HomePage() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragStart]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <>
-      {/* ✅ 팝업 */}
+      {/* 팝업 */}
       {showPopup && (
         <div
           ref={popupRef}
@@ -99,7 +101,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ✅ 메인 콘텐츠 */}
+      {/* 메인 콘텐츠 */}
       <div className="flex flex-col items-center justify-center py-12 md:py-20 bg-white border-t border-gray-200">
         {/* 로고 섹션 */}
         <section className="w-full flex flex-col items-center text-center px-4 mb-16">
@@ -115,7 +117,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ✅ 버튼 영역 */}
+        {/* 버튼 영역 */}
         <div className="flex flex-col md:flex-row w-full gap-8 px-4 max-w-7xl mx-auto mb-16">
           {/* 심사원 소개 */}
           <section
@@ -137,7 +139,7 @@ export default function HomePage() {
             </h2>
           </section>
 
-          {/* ✅ 회원사 등록 (이동 추가됨) */}
+          {/* 회원사 등록 */}
           <section
             onClick={() => router.push("/memberregister")}
             className="flex-1 bg-gradient-to-br from-indigo-50 to-indigo-100 py-12 px-8 text-center rounded-xl shadow-lg border border-indigo-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
@@ -159,7 +161,7 @@ export default function HomePage() {
 
                 <div className="space-y-4 leading-relaxed text-base md:text-lg">
                   <p className="text-center font-semibold text-xl text-gray-900">
-                    대표님의 <span className="text-blue-600">'진심'</span>을 어떻게 증명하시겠습니까?
+                    대표님의 <span className="text-blue-600">&apos;진심&apos;</span>을 어떻게 증명하시겠습니까?
                   </p>
 
                   <p className="text-gray-700">
@@ -168,7 +170,7 @@ export default function HomePage() {
                   </p>
 
                   <p className="text-gray-700">
-                    "우리는 다릅니다"라고 백 번 말해도, 소비자를 설득시키기는 어렵습니다.
+                    &quot;우리는 다릅니다&quot;라고 백 번 말해도, 소비자를 설득시키기는 어렵습니다.
                   </p>
 
                   <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 my-6 border-l-4 border-blue-500">
