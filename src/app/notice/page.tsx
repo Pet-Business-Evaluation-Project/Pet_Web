@@ -267,7 +267,7 @@ export default function NoticePage() {
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-blue-600 font-bold">•</span>
-                          <span><strong>휴대폰:</strong> 010-1234-5678 (01012345678)</span>
+                          <span><strong>휴대폰:</strong> 01012345678</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-blue-600 font-bold">•</span>

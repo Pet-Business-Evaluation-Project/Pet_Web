@@ -168,7 +168,7 @@ export default function Signupmember() {
     };
 
     try {
-      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
+      const res = await fetch("https://test.kcci.co.kr/back/user/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -225,7 +225,7 @@ export default function Signupmember() {
         </button>
 
         <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          판매 기업 회원가입
+         기업 회원가입
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -300,7 +300,7 @@ export default function Signupmember() {
               value={formData.phnum}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400"
-              placeholder="01012345678 또는 010-1234-5678"
+              placeholder="01012345678"
               required
             />
             {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}
