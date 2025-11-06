@@ -42,6 +42,7 @@ export default function AdminPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ classification: "관리자" }),
+          credentials: "include",
         });
 
         if (res.ok) {
@@ -84,6 +85,7 @@ export default function AdminPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates: payload }),
+        credentials: "include",
       });
 
       if (res.ok) {
