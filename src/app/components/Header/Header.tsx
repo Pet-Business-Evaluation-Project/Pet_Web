@@ -18,13 +18,35 @@ interface User {
 export default function Header() {
   const router = useRouter();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
+  // ✅ localStorage에서 사용자 정보 읽어오는 함수
+  const loadUser = () => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser) as User);
+    } else {
+      setUser(null);
     }
+  };
+
+  useEffect(() => {
+    // 초기 로드
+    loadUser();
+
+    // ✅ 사용자 정보 업데이트 이벤트 리스너 등록
+    const handleUserUpdate = () => {
+      loadUser();
+    };
+
+    window.addEventListener("userUpdated", handleUserUpdate);
+
+    // 클린업
+    return () => {
+      window.removeEventListener("userUpdated", handleUserUpdate);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -38,6 +60,11 @@ export default function Header() {
       console.error("로그아웃 실패:", error);
       alert("로그아웃 중 오류가 발생했습니다.");
     }
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setIsCommunityOpen(false);
   };
 
   return (
@@ -74,6 +101,17 @@ export default function Header() {
           />
         </Link>
 
+        {/* 🍔 햄버거 버튼 (모바일/태블릿) */}
+        <button
+          className="lg:hidden flex flex-col space-y-1.5 p-2 focus:outline-none"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="메뉴"
+        >
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-opacity ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
+          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+        </button>
+
         {/* 데스크톱 네비게이션 */}
         <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 text-lg xl:text-2xl font-bold relative">
           <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">
@@ -82,17 +120,14 @@ export default function Header() {
           <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">
             심사원 소개
           </Link>
-
-          {/* ✅ 여기만 변경됨 */}
           <Link href="/memberinfo" className="hover:text-red-900 whitespace-nowrap">
             회원사 소개
           </Link>
-
           <Link href="/memberregister" className="hover:text-red-900 whitespace-nowrap">
             회원사 등록
           </Link>
 
-          {/* 🔽 커뮤니티 hover 드롭다운 */}
+          {/* 🔽 커뮤니티 hover 드롭다운 (데스크톱) */}
           <div className="relative group">
             <span className="hover:text-red-900 cursor-pointer whitespace-nowrap">
               커뮤니티
@@ -117,6 +152,73 @@ export default function Header() {
           </div>
         </nav>
       </div>
+
+      {/* 📱 모바일 메뉴 드롭다운 */}
+      {isMobileMenuOpen && (
+        <nav className="lg:hidden bg-white border-t border-gray-200 shadow-lg">
+          <div className="flex flex-col py-2">
+            <Link
+              href="/"
+              className="px-6 py-3 hover:bg-gray-100 text-gray-800 font-medium"
+              onClick={closeMobileMenu}
+            >
+              KCCI
+            </Link>
+            <Link
+              href="/reviewinfo"
+              className="px-6 py-3 hover:bg-gray-100 text-gray-800"
+              onClick={closeMobileMenu}
+            >
+              심사원 소개
+            </Link>
+            <Link
+              href="/memberinfo"
+              className="px-6 py-3 hover:bg-gray-100 text-gray-800"
+              onClick={closeMobileMenu}
+            >
+              회원사 소개
+            </Link>
+            <Link
+              href="/memberregister"
+              className="px-6 py-3 hover:bg-gray-100 text-gray-800"
+              onClick={closeMobileMenu}
+            >
+              회원사 등록
+            </Link>
+
+            {/* 🔽 커뮤니티 드롭다운 (모바일) */}
+            <div>
+              <button
+                className="w-full text-left px-6 py-3 hover:bg-gray-100 text-gray-800 flex justify-between items-center"
+                onClick={() => setIsCommunityOpen(!isCommunityOpen)}
+              >
+                커뮤니티
+                <span className={`transform transition-transform ${isCommunityOpen ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              {isCommunityOpen && (
+                <div className="bg-gray-50">
+                  <Link
+                    href="/notice"
+                    className="block px-10 py-2 hover:bg-gray-100 text-gray-700"
+                    onClick={closeMobileMenu}
+                  >
+                    공지사항
+                  </Link>
+                  <Link
+                    href="/community"
+                    className="block px-10 py-2 hover:bg-gray-100 text-gray-700"
+                    onClick={closeMobileMenu}
+                  >
+                    게시판
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </nav>
+      )}
 
       {/* 로그인 모달 */}
       <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)}>

@@ -47,7 +47,7 @@ export default function ReviewerPage() {
           console.error("localStorage user parsing error:", e);
         }
       } else {
-        setUserId(30); // 테스트용
+        setUserId(30); 
       }
     }
   }, []);
@@ -133,6 +133,10 @@ export default function ReviewerPage() {
         setReviewer((prev) =>
           prev ? { ...prev, name: data.name, phnum: data.phnum } : prev
         );
+        
+        // ✅ 이 한 줄만 추가! Header가 자동으로 업데이트됨
+        window.dispatchEvent(new Event("userUpdated"));
+        
         alert("개인정보가 성공적으로 수정되었습니다!");
         setShowEditModal(false);
       } else {
@@ -279,4 +283,3 @@ export default function ReviewerPage() {
     </main>
   );
 }
-
