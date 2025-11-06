@@ -61,6 +61,7 @@ export default function ReviewerPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
+          credentials: "include",
         });
 
         if (res.ok) {
@@ -91,6 +92,7 @@ export default function ReviewerPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loginID: reviewer.loginID }),
+        credentials: "include",
       });
 
       if (res.ok) {
@@ -126,6 +128,7 @@ export default function ReviewerPage() {
           name: editName,
           phnum: editPhnum,
         }),
+        credentials: "include",
       });
 
       if (res.ok) {
