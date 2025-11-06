@@ -29,7 +29,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://petback.hysu.kr/back/api/auth/logout", {}, { withCredentials: true });
+      await axios.post("https://test.kcci.co.kr/back/api/auth/logout", {}, { withCredentials: true });
       localStorage.removeItem("user");
       setUser(null);
       alert("로그아웃 완료!");
