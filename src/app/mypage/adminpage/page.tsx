@@ -38,7 +38,7 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const res = await fetch("https://test.kcci.co.kr/back/mypage/admin", {
+        const res = await fetch("https://www.kcci.co.kr/back/mypage/admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ classification: "관리자" }),
@@ -81,7 +81,7 @@ export default function AdminPage() {
         reviewergrade: r.reviewerGrade,
       }));
 
-      const res = await fetch("https://test.kcci.co.kr/back/mypage/admin/update", {
+      const res = await fetch("https://www.kcci.co.kr/back/mypage/admin/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ updates: payload }),
