@@ -57,7 +57,7 @@ export default function ReviewerPage() {
 
     const fetchReviewer = async () => {
       try {
-        const res = await fetch("https://test.kcci.co.kr/back/mypage/reviewer", {
+        const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId }),
@@ -88,7 +88,7 @@ export default function ReviewerPage() {
     }
 
     try {
-      const res = await fetch("https://test.kcci.co.kr/back/mypage/reviewer/invite", {
+      const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ loginID: reviewer.loginID }),
@@ -120,7 +120,7 @@ export default function ReviewerPage() {
     if (!userId) return;
 
     try {
-      const res = await fetch("https://test.kcci.co.kr/back/mypage/reviewer/infoUpdate", {
+      const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer/infoUpdate", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
