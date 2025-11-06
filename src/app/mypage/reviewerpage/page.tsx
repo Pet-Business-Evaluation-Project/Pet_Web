@@ -47,7 +47,7 @@ export default function ReviewerPage() {
           console.error("localStorage user parsing error:", e);
         }
       } else {
-        setUserId(30); 
+        setUserId(30); // 테스트용
       }
     }
   }, []);
@@ -134,7 +134,15 @@ export default function ReviewerPage() {
           prev ? { ...prev, name: data.name, phnum: data.phnum } : prev
         );
         
-        // ✅ 이 한 줄만 추가! Header가 자동으로 업데이트됨
+        // ✅ localStorage도 업데이트
+        const currentUser = localStorage.getItem("user");
+        if (currentUser) {
+          const userObj = JSON.parse(currentUser);
+          userObj.name = data.name;
+          localStorage.setItem("user", JSON.stringify(userObj));
+        }
+        
+        // ✅ 이벤트 발생 - Header가 자동으로 업데이트됨
         window.dispatchEvent(new Event("userUpdated"));
         
         alert("개인정보가 성공적으로 수정되었습니다!");
