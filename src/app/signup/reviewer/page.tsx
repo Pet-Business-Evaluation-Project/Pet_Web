@@ -339,7 +339,7 @@ export default function SignupReviewer() {
               value={formData.phnum}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
-              placeholder="01012345678 또는 010-1234-5678"
+              placeholder="01012345678 "
               required
             />
             {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}

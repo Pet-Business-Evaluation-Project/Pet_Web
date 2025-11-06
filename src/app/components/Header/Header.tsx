@@ -77,7 +77,7 @@ export default function Header() {
         {/* 데스크톱 네비게이션 */}
         <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 text-lg xl:text-2xl font-bold relative">
           <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">
-            Home
+            KCCI
           </Link>
           <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">
             심사원 소개
