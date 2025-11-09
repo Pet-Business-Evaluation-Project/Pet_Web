@@ -1,210 +1,436 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Button from "../components/Button/Button";
+import React, { useEffect, useState } from "react";
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
+const BASE_URL = "http://petback.hysu.kr/back/community/board";
 
-interface Post {
+interface CommunityPost {
   id: number;
   title: string;
   content: string;
   author: string;
-  date: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function CommunityPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [isWriting, setIsWriting] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [user, setUser] = useState<User | null>(null); // ✅ 로그인 사용자
+interface CommunityRequestDto {
+  loginID: string;
+  title: string;
+  content: string;
+}
 
-  // ✅ 페이지 로드시 localStorage에서 게시글 + 로그인 정보 불러오기
+export default function BoardPage() {
+  /** 로그인 정보 가져오기 */
+  let storedLoginID = "";
+  let storedUserName = "";
+  if (typeof window !== "undefined") {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+        storedLoginID = parsed.loginID || "";
+        storedUserName = parsed.name || "";
+      } catch (e) {
+        console.error("localStorage parsing error:", e);
+      }
+    }
+  }
+
+  const [loginID, setLoginID] = useState(storedLoginID);
+  const [userName, setUserName] = useState(storedUserName);
+  const [boards, setBoards] = useState<CommunityPost[]>([]);
+  const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [newPost, setNewPost] = useState<CommunityRequestDto>({
+    loginID: storedLoginID,
+    title: "",
+    content: "",
+  });
+
+  // 수정 상태
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editData, setEditData] = useState<{ title: string; content: string }>({
+    title: "",
+    content: "",
+  });
+
+  /** 전체 게시글 가져오기 */
+  const fetchAllBoards = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(BASE_URL);
+      if (!res.ok) throw new Error("게시글 목록 조회 실패");
+      const data: CommunityPost[] = await res.json();
+      setBoards(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** 게시글 작성 */
+  const createBoard = async () => {
+    if (!loginID) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/create/${loginID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPost),
+      });
+      if (!res.ok) throw new Error("게시글 작성 실패");
+
+      await fetchAllBoards();
+      setNewPost({ loginID, title: "", content: "" });
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  /** 게시글 삭제 */
+  const deleteBoard = async (id: number) => {
+    if (!loginID) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/${id}/${loginID}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("게시글 삭제 실패");
+
+      await fetchAllBoards();
+      setSelectedPost(null);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  /** 게시글 수정 */
+  const updateBoard = async (id: number) => {
+    try {
+      const res = await fetch(`${BASE_URL}/${id}/${loginID}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editData.title,
+          content: editData.content,
+        }),
+      });
+
+      if (!res.ok) throw new Error("게시글 수정 실패");
+
+      // 서버에서 갱신된 게시글 받아오기
+      const updatedPost: CommunityPost = await res.json();
+
+      // boards와 selectedPost 업데이트
+      setBoards((prev) => prev.map((b) => (b.id === id ? updatedPost : b)));
+      setSelectedPost(updatedPost);
+
+      setEditingPostId(null);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   useEffect(() => {
-    const storedPosts = localStorage.getItem("communityPosts");
-    const storedUser = localStorage.getItem("user");
-
-    if (storedPosts) setPosts(JSON.parse(storedPosts));
-    if (storedUser) setUser(JSON.parse(storedUser));
+    fetchAllBoards();
   }, []);
 
-  // ✅ 게시글 변경 시 localStorage에 저장
-  useEffect(() => {
-    localStorage.setItem("communityPosts", JSON.stringify(posts));
-  }, [posts]);
-
-  // ✅ 글쓰기 버튼 클릭 (로그인 확인)
-  const handleWriteClick = () => {
-    if (!user) {
-      alert("로그인 후 글을 작성할 수 있습니다.");
-      return;
-    }
-    setIsWriting(true);
-  };
-
-  // ✅ 글 등록
-  const handleSubmit = () => {
-    if (!title.trim() || !content.trim()) {
-      alert("제목과 내용을 입력해주세요.");
-      return;
-    }
-
-    if (!user) {
-      alert("로그인 후 글을 작성할 수 있습니다.");
-      return;
-    }
-
-    const newPost: Post = {
-      id: Date.now(),
-      title,
-      content,
-      author: user.name, // ✅ 로그인 사용자 이름 자동 입력
-      date: new Date().toLocaleString(),
-    };
-
-    setPosts([newPost, ...posts]);
-    setTitle("");
-    setContent("");
-    setIsWriting(false);
-  };
-
-  // ✅ 글 삭제
-  const handleDelete = (id: number) => {
-    if (confirm("정말 삭제하시겠습니까?")) {
-      const updatedPosts = posts.filter((post) => post.id !== id);
-      setPosts(updatedPosts);
-      localStorage.setItem("communityPosts", JSON.stringify(updatedPosts));
-      setSelectedPost(null);
-    }
-  };
-
-  // ✅ 글 수정
-  const handleUpdate = () => {
-    if (!editingPost) return;
-    const updatedPosts = posts.map((p) =>
-      p.id === editingPost.id ? editingPost : p
-    );
-    setPosts(updatedPosts);
-    setEditingPost(null);
-    setSelectedPost(editingPost);
+  /** 날짜를 한국 시간으로 변환 */
+  const formatToKST = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return new Date(date.getTime() + 9 * 60 * 60 * 1000).toLocaleString();
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-10 px-6 lg:px-32">
-      <h1 className="text-3xl font-bold mb-6 text-center">커뮤니티 게시판</h1>
+    <div
+      style={{
+        backgroundColor: "#f8f9fa",
+        color: "#222",
+        minHeight: "100vh",
+        padding: "30px",
+        fontFamily: "Arial, sans-serif",
+        position: "relative",
+      }}
+    >
+      <h1 style={{ textAlign: "center", color: "#333" }}>🐾 커뮤니티 게시판</h1>
 
-      {/* ✅ 로그인한 사용자만 글쓰기 가능 */}
-      {!isWriting && !selectedPost && (
-        <div className="flex justify-end mb-4">
-          <Button label="글쓰기" onClick={handleWriteClick} />
-        </div>
-      )}
+      {loading && <p>로딩 중...</p>}
+      {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {/* ✅ 글쓰기 폼 */}
-      {isWriting && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">새 게시글 작성</h2>
-
-          <p className="text-gray-600 mb-2">
-            작성자: <span className="font-semibold">{user?.name ?? "익명"}</span>
-          </p>
-
-          <input
-            type="text"
-            placeholder="제목을 입력하세요"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border rounded-md p-2 mb-3"
-          />
-          <textarea
-            placeholder="내용을 입력하세요"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={6}
-            className="w-full border rounded-md p-2 mb-4 resize-none"
-          />
-          <div className="flex justify-end gap-3">
-            <Button label="취소" onClick={() => setIsWriting(false)} />
-            <Button label="등록" onClick={handleSubmit} />
-          </div>
-        </div>
-      )}
-
-      {/* ✅ 게시글 상세보기 */}
-      {selectedPost && !editingPost && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-2">{selectedPost.title}</h2>
-          <p className="text-gray-600 mb-4">
-            {selectedPost.author} • {selectedPost.date}
-          </p>
-          <p className="whitespace-pre-line text-gray-800 mb-6">
-            {selectedPost.content}
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button label="뒤로가기" onClick={() => setSelectedPost(null)} />
-            <Button label="수정" onClick={() => setEditingPost(selectedPost)} />
-            <Button label="삭제" onClick={() => handleDelete(selectedPost.id)} />
-          </div>
-        </div>
-      )}
-
-      {/* ✅ 게시글 수정 모드 */}
-      {editingPost && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">게시글 수정</h2>
-          <input
-            type="text"
-            value={editingPost.title}
-            onChange={(e) =>
-              setEditingPost({ ...editingPost, title: e.target.value })
-            }
-            className="w-full border rounded-md p-2 mb-3"
-          />
-          <textarea
-            value={editingPost.content}
-            onChange={(e) =>
-              setEditingPost({ ...editingPost, content: e.target.value })
-            }
-            rows={6}
-            className="w-full border rounded-md p-2 mb-4 resize-none"
-          />
-          <div className="flex justify-end gap-3">
-            <Button label="취소" onClick={() => setEditingPost(null)} />
-            <Button label="완료" onClick={handleUpdate} />
-          </div>
-        </div>
-      )}
-
-      {/* ✅ 게시글 목록 */}
-      {!isWriting && !selectedPost && (
-        <div className="space-y-4">
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <div
-                key={post.id}
-                onClick={() => setSelectedPost(post)}
-                className="bg-white p-5 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+      {/* 게시글 목록 */}
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "20px",
+          borderRadius: "10px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+          maxWidth: "800px",
+          margin: "0 auto",
+        }}
+      >
+        <h2>전체 게시글</h2>
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {boards.map((b) => (
+            <React.Fragment key={b.id}>
+              <li
+                onClick={() =>
+                  setSelectedPost((prev) => (prev?.id === b.id ? null : b))
+                }
+                style={{
+                  borderBottom: "1px solid #eee",
+                  padding: "10px 0",
+                  cursor: "pointer",
+                }}
               >
-                <h3 className="text-xl font-bold">{post.title}</h3>
-                <p className="text-gray-600 text-sm mt-1">
-                  {post.author} • {post.date}
-                </p>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500">
-             게시글이 없습니다.
-            </p>
-          )}
+                <strong style={{ color: "#007bff" }}>{b.title}</strong>{" "}
+                <span style={{ color: "#555" }}>
+                  — {b.author} ({formatToKST(b.createdAt)})
+                  {b.updatedAt !== b.createdAt && (
+                    <> | 수정됨: {formatToKST(b.updatedAt)}</>
+                  )}
+                </span>
+              </li>
+
+              {selectedPost?.id === b.id && (
+                <div
+                  style={{
+                    backgroundColor: "#fafafa",
+                    border: "1px solid #ddd",
+                    borderRadius: "6px",
+                    padding: "10px",
+                    margin: "10px 0 20px 0",
+                  }}
+                >
+                  {/* 수정 모드 */}
+                  {editingPostId === b.id ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editData.title}
+                        onChange={(e) =>
+                          setEditData({ ...editData, title: e.target.value })
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                          marginBottom: "8px",
+                        }}
+                      />
+                      <textarea
+                        value={editData.content}
+                        onChange={(e) =>
+                          setEditData({ ...editData, content: e.target.value })
+                        }
+                        style={{
+                          width: "100%",
+                          height: "100px",
+                          padding: "8px",
+                          borderRadius: "5px",
+                          border: "1px solid #ccc",
+                        }}
+                      />
+                      <div style={{ marginTop: "10px", textAlign: "right" }}>
+                        <button
+                          onClick={() => updateBoard(b.id)}
+                          style={{
+                            backgroundColor: "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "5px",
+                            padding: "5px 10px",
+                            marginRight: "8px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          저장
+                        </button>
+                        <button
+                          onClick={() => setEditingPostId(null)}
+                          style={{
+                            backgroundColor: "#6c757d",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "5px",
+                            padding: "5px 10px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          취소
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p style={{ whiteSpace: "pre-wrap" }}>{b.content}</p>
+                      {userName === b.author && (
+                        <div style={{ marginTop: "10px", textAlign: "right" }}>
+                          <button
+                            onClick={() => {
+                              setEditingPostId(b.id);
+                              setEditData({ title: b.title, content: b.content });
+                            }}
+                            style={{
+                              backgroundColor: "#ffc107",
+                              border: "none",
+                              borderRadius: "5px",
+                              padding: "5px 10px",
+                              color: "white",
+                              cursor: "pointer",
+                              marginRight: "10px",
+                            }}
+                          >
+                            ✏️ 수정
+                          </button>
+                          <button
+                            onClick={() => deleteBoard(b.id)}
+                            style={{
+                              backgroundColor: "#dc3545",
+                              border: "none",
+                              borderRadius: "5px",
+                              padding: "5px 10px",
+                              color: "white",
+                              cursor: "pointer",
+                            }}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </ul>
+      </div>
+
+      {/* 오른쪽 아래 + 버튼 */}
+      <button
+        onClick={() => {
+          const modal = document.getElementById("writeModal");
+          if (modal) modal.style.display = "flex";
+        }}
+        style={{
+          position: "fixed",
+          bottom: "30px",
+          right: "30px",
+          backgroundColor: "#007bff",
+          color: "white",
+          border: "none",
+          borderRadius: "50%",
+          width: "60px",
+          height: "60px",
+          fontSize: "30px",
+          boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
+          cursor: "pointer",
+        }}
+      >
+        +
+      </button>
+
+      {/* 작성 모달 */}
+      <div
+        id="writeModal"
+        style={{
+          display: "none",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0,0,0,0.4)",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: "white",
+            padding: "20px",
+            borderRadius: "10px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            maxWidth: "600px",
+            width: "90%",
+          }}
+        >
+          <h2>게시글 작성</h2>
+          <input
+            type="text"
+            placeholder="제목"
+            value={newPost.title}
+            onChange={(e) =>
+              setNewPost({ ...newPost, title: e.target.value })
+            }
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginBottom: "10px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+          />
+          <textarea
+            placeholder="내용"
+            value={newPost.content}
+            onChange={(e) =>
+              setNewPost({ ...newPost, content: e.target.value })
+            }
+            style={{
+              width: "100%",
+              height: "100px",
+              padding: "10px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+            }}
+          />
+          <div style={{ textAlign: "right", marginTop: "10px" }}>
+            <button
+              onClick={() => {
+                createBoard();
+                document.getElementById("writeModal")!.style.display = "none";
+              }}
+              style={{
+                backgroundColor: "#007bff",
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                marginRight: "10px",
+              }}
+            >
+              작성
+            </button>
+            <button
+              onClick={() =>
+                (document.getElementById("writeModal")!.style.display = "none")
+              }
+              style={{
+                backgroundColor: "#6c757d",
+                color: "white",
+                padding: "8px 16px",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
+              닫기
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
