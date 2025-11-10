@@ -442,7 +442,7 @@ export default function NoticePage() {
                             alt="약관 동의"
                             width={1000}
                             height={500}
-                            style={{ maxWidth: "100%", width: "100%", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{ maxWidth: "50%", width: "50%", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
                           />
                         </div>
                       </div>
@@ -496,7 +496,7 @@ export default function NoticePage() {
                             alt="심사원 가입"
                             width={800}
                             height={600}
-                            style={{ maxWidth: "100%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{ maxWidth: "50%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
                           />
                         </div>
                       </div>
@@ -551,7 +551,7 @@ export default function NoticePage() {
                             alt="회원 정보 입력"
                             width={700}
                             height={900}
-                            style={{ maxWidth: "100%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{ maxWidth: "50%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
                           />
                         </div>
 
