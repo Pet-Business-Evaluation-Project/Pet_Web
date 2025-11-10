@@ -24,6 +24,7 @@ export default function BoardPage() {
   /** 로그인 정보 가져오기 */
   let storedLoginID = "";
   let storedUserName = "";
+  let storedClassification = "";
   if (typeof window !== "undefined") {
     const userStr = localStorage.getItem("user");
     if (userStr) {
@@ -31,6 +32,7 @@ export default function BoardPage() {
         const parsed = JSON.parse(userStr);
         storedLoginID = parsed.email || "";
         storedUserName = parsed.name || "";
+        storedClassification = parsed.classification || "";
       } catch (e) {
         console.error("localStorage parsing error:", e);
       }
@@ -39,6 +41,7 @@ export default function BoardPage() {
 
   const [loginID] = useState(storedLoginID);
   const [userName] = useState(storedUserName);
+  const [userClassification] = useState(storedClassification);
   const [boards, setBoards] = useState<CommunityPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,13 +51,13 @@ export default function BoardPage() {
     title: "",
     content: "",
   });
-
-  // 수정 상태
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editData, setEditData] = useState<{ title: string; content: string }>({
     title: "",
     content: "",
   });
+  const [showWriteModal, setShowWriteModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<CommunityPost | null>(null);
 
   /** 전체 게시글 가져오기 */
   const fetchAllBoards = async () => {
@@ -78,13 +81,29 @@ export default function BoardPage() {
       return;
     }
 
+    // 권한 체크: 심사원 or 관리자
+    if (userClassification !== "심사원" && userClassification !== "관리자") {
+      alert("글 작성 권한이 없습니다.");
+      return;
+    }
+
+    const payload: CommunityRequestDto = {
+      loginID: loginID.toLowerCase(), // admin도 소문자로 통일
+      title: newPost.title,
+      content: newPost.content,
+    };
+
     try {
-      const res = await fetch(`${BASE_URL}/create/${loginID}`, {
+      const res = await fetch(`${BASE_URL}/create/${payload.loginID}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newPost),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("게시글 작성 실패");
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`게시글 작성 실패: ${text}`);
+      }
 
       await fetchAllBoards();
       setNewPost({ loginID, title: "", content: "" });
@@ -108,6 +127,7 @@ export default function BoardPage() {
 
       await fetchAllBoards();
       setSelectedPost(null);
+      setConfirmDelete(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "게시글 삭제 중 오류가 발생했습니다.");
     }
@@ -127,13 +147,9 @@ export default function BoardPage() {
 
       if (!res.ok) throw new Error("게시글 수정 실패");
 
-      // 서버에서 갱신된 게시글 받아오기
       const updatedPost: CommunityPost = await res.json();
-
-      // boards와 selectedPost 업데이트
       setBoards((prev) => prev.map((b) => (b.id === id ? updatedPost : b)));
       setSelectedPost(updatedPost);
-
       setEditingPostId(null);
     } catch (err) {
       alert(err instanceof Error ? err.message : "게시글 수정 중 오류가 발생했습니다.");
@@ -144,293 +160,150 @@ export default function BoardPage() {
     fetchAllBoards();
   }, []);
 
-  /** 날짜를 한국 시간으로 변환 */
-  const formatToKST = (dateStr: string) => {
+  /** 날짜 포맷팅 (UTC -> KST) */
+  const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return new Date(date.getTime() + 9 * 60 * 60 * 1000).toLocaleString();
+    date.setHours(date.getHours() + 9);
+    const MM = String(date.getMonth() + 1).padStart(2, "0");
+    const DD = String(date.getDate()).padStart(2, "0");
+    const HH = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    return `${MM}/${DD} ${HH}:${mm}`;
   };
 
   return (
-    <div
-      style={{
-        backgroundColor: "#f8f9fa",
-        color: "#222",
-        minHeight: "100vh",
-        padding: "30px",
-        fontFamily: "Arial, sans-serif",
-        position: "relative",
-      }}
-    >
+    <div style={{ backgroundColor: "#f0f2f5", color: "#222", minHeight: "100vh", padding: "30px", fontFamily: "Pretendard, Arial, sans-serif" }}>
       <h1 style={{ textAlign: "center", color: "#333" }}>🐾 커뮤니티 게시판</h1>
 
       {loading && <p>로딩 중...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       {/* 게시글 목록 */}
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "20px",
-          borderRadius: "10px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-          maxWidth: "800px",
-          margin: "0 auto",
-        }}
-      >
-        <h2>전체 게시글</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {boards.map((b) => (
-            <React.Fragment key={b.id}>
-              <li
-                onClick={() =>
-                  setSelectedPost((prev) => (prev?.id === b.id ? null : b))
-                }
-                style={{
-                  borderBottom: "1px solid #eee",
-                  padding: "10px 0",
-                  cursor: "pointer",
-                }}
+      <div style={{ backgroundColor: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 2px 6px rgba(0,0,0,0.1)", maxWidth: "1500px", margin: "20px auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #ccc" }}>
+              <th style={{ textAlign: "left", padding: "10px" }}>제목</th>
+              <th style={{ textAlign: "right", padding: "10px" }}>작성자</th>
+            </tr>
+          </thead>
+          <tbody>
+            {boards.map((b) => (
+              <tr
+                key={b.id}
+                onClick={() => setSelectedPost(b)}
+                style={{ borderBottom: "1px solid #eee", cursor: "pointer", transition: "background-color 0.2s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9f9f9")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
-                <strong style={{ color: "#007bff" }}>{b.title}</strong>{" "}
-                <span style={{ color: "#555" }}>
-                  — {b.author} ({formatToKST(b.createdAt)})
-                  {b.updatedAt !== b.createdAt && (
-                    <> | 수정됨: {formatToKST(b.updatedAt)}</>
-                  )}
-                </span>
-              </li>
-
-              {selectedPost?.id === b.id && (
-                <div
-                  style={{
-                    backgroundColor: "#fafafa",
-                    border: "1px solid #ddd",
-                    borderRadius: "6px",
-                    padding: "10px",
-                    margin: "10px 0 20px 0",
-                  }}
-                >
-                  {/* 수정 모드 */}
-                  {editingPostId === b.id ? (
-                    <div>
-                      <input
-                        type="text"
-                        value={editData.title}
-                        onChange={(e) =>
-                          setEditData({ ...editData, title: e.target.value })
-                        }
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          borderRadius: "5px",
-                          border: "1px solid #ccc",
-                          marginBottom: "8px",
-                        }}
-                      />
-                      <textarea
-                        value={editData.content}
-                        onChange={(e) =>
-                          setEditData({ ...editData, content: e.target.value })
-                        }
-                        style={{
-                          width: "100%",
-                          height: "100px",
-                          padding: "8px",
-                          borderRadius: "5px",
-                          border: "1px solid #ccc",
-                        }}
-                      />
-                      <div style={{ marginTop: "10px", textAlign: "right" }}>
-                        <button
-                          onClick={() => updateBoard(b.id)}
-                          style={{
-                            backgroundColor: "#28a745",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "5px",
-                            padding: "5px 10px",
-                            marginRight: "8px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          저장
-                        </button>
-                        <button
-                          onClick={() => setEditingPostId(null)}
-                          style={{
-                            backgroundColor: "#6c757d",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "5px",
-                            padding: "5px 10px",
-                            cursor: "pointer",
-                          }}
-                        >
-                          취소
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <p style={{ whiteSpace: "pre-wrap" }}>{b.content}</p>
-                      {userName === b.author && (
-                        <div style={{ marginTop: "10px", textAlign: "right" }}>
-                          <button
-                            onClick={() => {
-                              setEditingPostId(b.id);
-                              setEditData({ title: b.title, content: b.content });
-                            }}
-                            style={{
-                              backgroundColor: "#ffc107",
-                              border: "none",
-                              borderRadius: "5px",
-                              padding: "5px 10px",
-                              color: "white",
-                              cursor: "pointer",
-                              marginRight: "10px",
-                            }}
-                          >
-                            ✏️ 수정
-                          </button>
-                          <button
-                            onClick={() => deleteBoard(b.id)}
-                            style={{
-                              backgroundColor: "#dc3545",
-                              border: "none",
-                              borderRadius: "5px",
-                              padding: "5px 10px",
-                              color: "white",
-                              cursor: "pointer",
-                            }}
-                          >
-                            삭제
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </React.Fragment>
-          ))}
-        </ul>
+                <td style={{ padding: "10px" }}>{b.title}</td>
+                <td style={{ textAlign: "right", padding: "10px" }}>{b.author}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* 오른쪽 아래 + 버튼 */}
-      <button
-        onClick={() => {
-          const modal = document.getElementById("writeModal");
-          if (modal) modal.style.display = "flex";
-        }}
-        style={{
-          position: "fixed",
-          bottom: "30px",
-          right: "30px",
-          backgroundColor: "#007bff",
-          color: "white",
-          border: "none",
-          borderRadius: "50%",
-          width: "60px",
-          height: "60px",
-          fontSize: "30px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.2)",
-          cursor: "pointer",
-        }}
-      >
-        +
-      </button>
-
-      {/* 작성 모달 */}
-      <div
-        id="writeModal"
-        style={{
-          display: "none",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(0,0,0,0.4)",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      {/* 상세/수정 모달 */}
+      {selectedPost && (
         <div
-          style={{
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "10px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            maxWidth: "600px",
-            width: "90%",
+          onClick={() => {
+            setSelectedPost(null);
+            setEditingPostId(null);
           }}
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
         >
-          <h2>게시글 작성</h2>
-          <input
-            type="text"
-            placeholder="제목"
-            value={newPost.title}
-            onChange={(e) =>
-              setNewPost({ ...newPost, title: e.target.value })
-            }
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginBottom: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-            }}
-          />
-          <textarea
-            placeholder="내용"
-            value={newPost.content}
-            onChange={(e) =>
-              setNewPost({ ...newPost, content: e.target.value })
-            }
-            style={{
-              width: "100%",
-              height: "100px",
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-            }}
-          />
-          <div style={{ textAlign: "right", marginTop: "10px" }}>
-            <button
-              onClick={() => {
-                createBoard();
-                document.getElementById("writeModal")!.style.display = "none";
-              }}
-              style={{
-                backgroundColor: "#007bff",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                marginRight: "10px",
-              }}
-            >
-              작성
-            </button>
-            <button
-              onClick={() =>
-                (document.getElementById("writeModal")!.style.display = "none")
-              }
-              style={{
-                backgroundColor: "#6c757d",
-                color: "white",
-                padding: "8px 16px",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            >
-              닫기
-            </button>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: "white", padding: "30px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", maxWidth: "1200px", width: "90%", maxHeight: "85vh", overflowY: "auto", position: "relative" }}
+          >
+            {editingPostId === selectedPost.id ? (
+              <>
+                <input type="text" value={editData.title} onChange={(e) => setEditData({ ...editData, title: e.target.value })} style={{ width: "100%", padding: "10px", marginBottom: "20px", borderRadius: "6px", border: "1px solid #ccc" }} />
+                <textarea value={editData.content} onChange={(e) => setEditData({ ...editData, content: e.target.value })} style={{ width: "100%", height: "200px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", marginBottom: "20px" }} />
+                <div style={{ textAlign: "right" }}>
+                  <button onClick={() => updateBoard(selectedPost.id)} style={{ backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "5px", padding: "6px 12px", marginRight: "8px" }}>
+                    저장
+                  </button>
+                  <button onClick={() => setEditingPostId(null)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "6px 12px" }}>
+                    닫기
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 style={{ color: "#007bff", marginBottom: "10px" }}>{selectedPost.title}</h2>
+                <p style={{ color: "#666", marginBottom: "4px" }}>{selectedPost.author}</p>
+                <p style={{ color: "#999", marginBottom: "15px" }}>
+                  작성일: {formatDate(selectedPost.createdAt)}
+                  {selectedPost.updatedAt !== selectedPost.createdAt && ` | 수정일: ${formatDate(selectedPost.updatedAt)}`}
+                </p>
+                <hr />
+                <p style={{ whiteSpace: "pre-wrap", marginTop: "20px" }}>{selectedPost.content}</p>
+
+                {(userName === selectedPost.author || userClassification === "관리자") && (
+                  <>
+                    <button onClick={() => setConfirmDelete(selectedPost)} style={{ position: "absolute", top: "10px", right: "10px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "5px", padding: "6px 12px" }}>
+                      삭제
+                    </button>
+                    <div style={{ textAlign: "right", marginTop: "15px" }}>
+                      <button onClick={() => { setEditingPostId(selectedPost.id); setEditData({ title: selectedPost.title, content: selectedPost.content }); }} style={{ backgroundColor: "#ffc107", border: "none", borderRadius: "5px", padding: "6px 12px", color: "white", marginRight: "10px" }}>
+                        ✏️ 수정
+                      </button>
+                      <button onClick={() => setSelectedPost(null)} style={{ backgroundColor: "#6c757d", border: "none", borderRadius: "5px", padding: "6px 12px", color: "white" }}>
+                        닫기
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* 삭제 확인 모달 */}
+      {confirmDelete && (
+        <div onClick={() => setConfirmDelete(null)} style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", maxWidth: "400px", width: "90%" }}>
+            <p>정말 삭제하시겠습니까?</p>
+            <div style={{ textAlign: "right", marginTop: "15px" }}>
+              <button onClick={() => deleteBoard(confirmDelete.id)} style={{ backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "5px", padding: "6px 12px", marginRight: "8px" }}>
+                예
+              </button>
+              <button onClick={() => setConfirmDelete(null)} style={{ backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "5px", padding: "6px 12px" }}>
+                아니오
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 작성 모달 */}
+      {showWriteModal && (
+        <div onClick={() => setShowWriteModal(false)} style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: "white", padding: "20px", borderRadius: "10px", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", maxWidth: "600px", width: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+            <h2>게시글 작성</h2>
+            <input type="text" placeholder="제목" value={newPost.title} onChange={(e) => setNewPost({ ...newPost, title: e.target.value })} style={{ width: "100%", padding: "10px", marginBottom: "10px", borderRadius: "6px", border: "1px solid #ccc" }} />
+            <textarea placeholder="내용" value={newPost.content} onChange={(e) => setNewPost({ ...newPost, content: e.target.value })} style={{ width: "100%", height: "150px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc" }} />
+            <div style={{ textAlign: "right", marginTop: "10px" }}>
+              <button onClick={() => { createBoard(); setShowWriteModal(false); }} style={{ backgroundColor: "#007bff", color: "white", padding: "8px 16px", border: "none", borderRadius: "6px", cursor: "pointer", marginRight: "10px" }}>
+                작성
+              </button>
+              <button onClick={() => setShowWriteModal(false)} style={{ backgroundColor: "#6c757d", color: "white", padding: "8px 16px", border: "none", borderRadius: "6px", cursor: "pointer" }}>
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 오른쪽 아래 + 버튼 */}
+      {(userClassification === "심사원" || userClassification === "관리자") && (
+        <button onClick={() => setShowWriteModal(true)} style={{ position: "fixed", bottom: "30px", right: "30px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "50%", width: "60px", height: "60px", fontSize: "30px", boxShadow: "0 4px 6px rgba(0,0,0,0.2)", cursor: "pointer" }}>
+          +
+        </button>
+      )}
     </div>
   );
 }
