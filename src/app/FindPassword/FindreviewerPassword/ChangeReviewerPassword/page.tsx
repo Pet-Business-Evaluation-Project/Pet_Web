@@ -49,7 +49,7 @@ function ChangeReviewerPassword({ userId, onPasswordChangeSuccess }: ChangePassw
 
         try {
             // 🚨 2단계 API 호출: 비밀번호 변경
-            const response = await fetch('https://www.kcci.co.kr/back/findpassword/changepassword', {
+            const response = await fetch('http://petback.hysu.kr/back/findpassword/changepassword', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)

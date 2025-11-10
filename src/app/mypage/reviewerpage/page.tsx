@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FaUserCircle, FaUsers } from "react-icons/fa";
 import Button from "../../components/Button/Button";
+import axios from "axios"; // ✅ axios import
 
 interface ReviewerInfo {
   loginID: string;
@@ -24,7 +25,6 @@ export default function ReviewerPage() {
   const [showOrg, setShowOrg] = useState(false);
   const [sortAsc, setSortAsc] = useState(true);
 
-  // 개인정보 모달 관련 상태
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhnum, setEditPhnum] = useState("");
@@ -42,12 +42,11 @@ export default function ReviewerPage() {
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          setUserId(user.userId);
+          setUserId(user.id); // ✅ userId가 아니라 id일 수도 있음
+          console.log("User from localStorage:", user);
         } catch (e) {
           console.error("localStorage user parsing error:", e);
         }
-      } else {
-        setUserId(30); // 테스트용
       }
     }
   }, []);
@@ -57,22 +56,20 @@ export default function ReviewerPage() {
 
     const fetchReviewer = async () => {
       try {
-        const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId }),
-          credentials: "include",
-        });
+        // ✅ axios 사용
+        const response = await axios.post(
+          "http://petback.hysu.kr/back/mypage/reviewer",
+          { userId },
+          { withCredentials: true }
+        );
 
-        if (res.ok) {
-          const data: ReviewerInfo = await res.json();
-          setReviewer(data);
-        } else {
-          alert("심사원 정보를 불러오지 못했습니다.");
+        if (response.data) {
+          setReviewer(response.data);
+          console.log("Reviewer data:", response.data);
         }
       } catch (error) {
         console.error("Fetch error:", error);
-        alert("심사원 정보 불러오기 중 오류가 발생했습니다.");
+        alert("심사원 정보를 불러오지 못했습니다.");
       }
     };
 
@@ -88,23 +85,20 @@ export default function ReviewerPage() {
     }
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginID: reviewer.loginID }),
-        credentials: "include",
-      });
+      // ✅ axios 사용
+      const response = await axios.post(
+        "http://petback.hysu.kr/back/mypage/reviewer/invite",
+        { loginID: reviewer.loginID },
+        { withCredentials: true }
+      );
 
-      if (res.ok) {
-        const data: OrgMember[] = await res.json();
-        setOrgMembers(data);
+      if (response.data) {
+        setOrgMembers(response.data);
         setShowOrg(true);
-      } else {
-        alert("조직 구성원을 불러오지 못했습니다.");
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      alert("조직 구성원 불러오기 중 오류가 발생했습니다.");
+      alert("조직 구성원을 불러오지 못했습니다.");
     }
   };
 
@@ -120,38 +114,35 @@ export default function ReviewerPage() {
     if (!userId) return;
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer/infoUpdate", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // ✅ axios 사용
+      const response = await axios.put(
+        "http://petback.hysu.kr/back/mypage/reviewer/infoUpdate",
+        {
           userId,
           name: editName,
           phnum: editPhnum,
-        }),
-        credentials: "include",
-      });
+        },
+        { withCredentials: true }
+      );
 
-      if (res.ok) {
-        const data = await res.json();
+      if (response.data) {
         setReviewer((prev) =>
-          prev ? { ...prev, name: data.name, phnum: data.phnum } : prev
+          prev ? { ...prev, name: response.data.name, phnum: response.data.phnum } : prev
         );
         
-        // ✅ localStorage도 업데이트
+        // localStorage 업데이트
         const currentUser = localStorage.getItem("user");
         if (currentUser) {
           const userObj = JSON.parse(currentUser);
-          userObj.name = data.name;
+          userObj.name = response.data.name;
           localStorage.setItem("user", JSON.stringify(userObj));
         }
         
-        // ✅ 이벤트 발생 - Header가 자동으로 업데이트됨
+        // Header 업데이트 이벤트
         window.dispatchEvent(new Event("userUpdated"));
         
         alert("개인정보가 성공적으로 수정되었습니다!");
         setShowEditModal(false);
-      } else {
-        alert("수정에 실패했습니다.");
       }
     } catch (error) {
       console.error("Edit error:", error);

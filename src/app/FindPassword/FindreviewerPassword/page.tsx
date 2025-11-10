@@ -81,7 +81,7 @@ function FindreviewerPassword({ onAuthSuccess }: FindPasswordProps) {
         };
         
         try {
-            const response = await fetch(`https://www.kcci.co.kr/back/findpassword/check`, { 
+            const response = await fetch(`http://petback.hysu.kr/back/findpassword/check`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData),
