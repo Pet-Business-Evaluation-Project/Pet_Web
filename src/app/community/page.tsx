@@ -29,7 +29,7 @@ export default function BoardPage() {
     if (userStr) {
       try {
         const parsed = JSON.parse(userStr);
-        storedLoginID = parsed.loginID || "";
+        storedLoginID = parsed.email || "";
         storedUserName = parsed.name || "";
       } catch (e) {
         console.error("localStorage parsing error:", e);
@@ -37,8 +37,8 @@ export default function BoardPage() {
     }
   }
 
-  const [loginID, setLoginID] = useState(storedLoginID);
-  const [userName, setUserName] = useState(storedUserName);
+  const [loginID] = useState(storedLoginID);
+  const [userName] = useState(storedUserName);
   const [boards, setBoards] = useState<CommunityPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<CommunityPost | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,8 +64,8 @@ export default function BoardPage() {
       if (!res.ok) throw new Error("게시글 목록 조회 실패");
       const data: CommunityPost[] = await res.json();
       setBoards(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -88,8 +88,8 @@ export default function BoardPage() {
 
       await fetchAllBoards();
       setNewPost({ loginID, title: "", content: "" });
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "게시글 작성 중 오류가 발생했습니다.");
     }
   };
 
@@ -108,8 +108,8 @@ export default function BoardPage() {
 
       await fetchAllBoards();
       setSelectedPost(null);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "게시글 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -135,8 +135,8 @@ export default function BoardPage() {
       setSelectedPost(updatedPost);
 
       setEditingPostId(null);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "게시글 수정 중 오류가 발생했습니다.");
     }
   };
 
