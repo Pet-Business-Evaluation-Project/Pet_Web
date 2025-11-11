@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Modal from "../Modal/Modal";
 import LoginForm from "../LoginForm/LoginForm";
 import Button from "../Button/Button";
@@ -13,6 +13,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  expiresAt?: number;
 }
 
 export default function Header() {
@@ -21,22 +22,70 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommunityOpen, setIsCommunityOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [remainingTime, setRemainingTime] = useState<string>("");
 
-  // ✅ localStorage에서 사용자 정보 읽어오는 함수
-  const loadUser = () => {
+  // 남은 시간 포맷팅 함수
+  const formatRemainingTime = useCallback((expiresAt: number): string => {
+    const now = Date.now();
+    const diff = expiresAt - now;
+
+    if (diff <= 0) {
+      return "세션 만료";
+    }
+
+    const minutes = Math.floor(diff / 1000 / 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }, []);
+
+  // 세션 만료 체크 및 자동 로그아웃
+  const checkSessionExpiry = useCallback(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser) as User);
+      const userData = JSON.parse(storedUser) as User;
+      
+      if (userData.expiresAt && Date.now() >= userData.expiresAt) {
+        // 세션 만료
+        localStorage.removeItem("user");
+        setUser(null);
+        setRemainingTime("");
+        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        router.push("/");
+        return false;
+      }
+      return true;
+    }
+    return false;
+  }, [router]);
+
+  // localStorage에서 사용자 정보 읽어오는 함수
+  const loadUser = useCallback(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const userData = JSON.parse(storedUser) as User;
+      
+      // 세션 만료 체크
+      if (userData.expiresAt && Date.now() >= userData.expiresAt) {
+        localStorage.removeItem("user");
+        setUser(null);
+        setRemainingTime("");
+        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        router.push("/");
+      } else {
+        setUser(userData);
+      }
     } else {
       setUser(null);
+      setRemainingTime("");
     }
-  };
+  }, [router]);
 
   useEffect(() => {
     // 초기 로드
     loadUser();
 
-    // ✅ 사용자 정보 업데이트 이벤트 리스너 등록
+    // 사용자 정보 업데이트 이벤트 리스너 등록
     const handleUserUpdate = () => {
       loadUser();
     };
@@ -47,13 +96,46 @@ export default function Header() {
     return () => {
       window.removeEventListener("userUpdated", handleUserUpdate);
     };
-  }, []);
+  }, [loadUser]);
+
+  // 남은 시간 업데이트 타이머
+  useEffect(() => {
+    if (user?.expiresAt) {
+      // 즉시 한 번 실행
+      setRemainingTime(formatRemainingTime(user.expiresAt));
+
+      // 1초마다 업데이트
+      const timer = setInterval(() => {
+        if (!checkSessionExpiry()) {
+          clearInterval(timer);
+          return;
+        }
+
+        const newRemainingTime = formatRemainingTime(user.expiresAt!);
+        setRemainingTime(newRemainingTime);
+
+        // 세션 만료 시 타이머 정리
+        if (newRemainingTime === "세션 만료") {
+          clearInterval(timer);
+          localStorage.removeItem("user");
+          setUser(null);
+          alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+          router.push("/");
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else {
+      setRemainingTime("");
+    }
+  }, [user, formatRemainingTime, checkSessionExpiry, router]);
 
   const handleLogout = async () => {
     try {
       await axios.post("https://www.kcci.co.kr/back/api/auth/logout", {}, { withCredentials: true });
       localStorage.removeItem("user");
       setUser(null);
+      setRemainingTime("");
       alert("로그아웃 완료!");
       router.push("/");
     } catch (error) {
@@ -81,6 +163,11 @@ export default function Header() {
         ) : (
           <>
             <span>{user.name} 님</span>
+            {remainingTime && (
+              <span className="text-xs text-gray-500 font-mono">
+                ({remainingTime})
+              </span>
+            )}
             <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
             <Link href="/mypage" className="hover:underline">
               마이페이지
@@ -227,6 +314,9 @@ export default function Header() {
             localStorage.setItem("user", JSON.stringify(userData));
             setUser(userData);
             setIsLoginOpen(false);
+            
+            // 사용자 정보 업데이트 이벤트 발생
+            window.dispatchEvent(new Event("userUpdated"));
           }}
           onClose={() => setIsLoginOpen(false)}
         />

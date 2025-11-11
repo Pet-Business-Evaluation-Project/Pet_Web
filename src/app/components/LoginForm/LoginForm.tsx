@@ -1,22 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import axios, { AxiosError } from "axios"; // AxiosError 타입을 import
+import axios, { AxiosError } from "axios";
 import Button from "../Button/Button";
-import Link from "next/link"; // ✅ Next.js의 Link 컴포넌트 임포트
+import Link from "next/link";
 
-// User 인터페이스 (Header.tsx에서 사용한 것과 일치해야 합니다)
 interface User {
   id: number;
   name: string;
   email: string;
-  // 기타 속성...
+  classification : string,
+  expiresAt?: number;
 }
 
 interface LoginFormProps {
-  // onLoginSuccess의 인자가 User 타입이 됩니다.
   onLoginSuccess?: (userData: User) => void;
-  onClose?: () => void; // ✅ 모달 닫기 함수 추가
+  onClose?: () => void;
 }
 
 export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
@@ -39,21 +38,26 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
       );
 
       if (response.data.success) {
-        // 응답 데이터는 User 타입으로 간주
-        const userData = response.data as User; 
+        const userData: User = {
+          id: response.data.userId,
+          name: response.data.name,
+          email: response.data.loginID,
+          classification: response.data.classification,
+          expiresAt: response.data.expiresAt, // 서버에서 받은 만료 시간
+        };
         
-        // ✅ 로그인 성공 시 로컬스토리지 저장
+        // 로컬스토리지 저장
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // ✅ 부모 컴포넌트에 로그인 성공 알림
-        if (onLoginSuccess) onLoginSuccess(userData); 
-        console.log(localStorage.getItem);
+        // 부모 컴포넌트에 로그인 성공 알림
+        if (onLoginSuccess) onLoginSuccess(userData);
+        
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
       } else {
         setErrorMessage(response.data.message || "로그인 실패");
       }
-    } catch (error: unknown) { 
-      if (axios.isAxiosError(error)) { // AxiosError인지 확인
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError;
         if (axiosError.response?.status === 401) {
           alert("아이디 또는 비밀번호가 올바르지 않습니다.");
@@ -69,7 +73,6 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
     }
   };
 
-  // ✅ 비밀번호 찾기 링크 클릭 시 모달 닫기
   const handleForgotPasswordClick = () => {
     if (onClose) onClose();
   };
@@ -97,12 +100,11 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
         <p className="text-red-500 text-sm text-center">{errorMessage}</p>
       )}
 
-      {/* 🔑 비밀번호 찾기 링크: 클릭 시 모달 닫기 */}
       <div className="flex justify-end mt-[-8px]">
         <Link 
           href="/FindPassword" 
           className="text-sm text-gray-500 hover:text-blue-600 transition duration-150"
-          onClick={handleForgotPasswordClick} // ✅ 클릭 시 모달 닫기
+          onClick={handleForgotPasswordClick}
         >
           비밀번호를 잊어버리셨나요?
         </Link>
