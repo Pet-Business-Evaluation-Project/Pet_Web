@@ -179,7 +179,7 @@ export default function ReviewerPage() {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
           alert("로그인이 필요합니다. 다시 로그인해주세요.");
-          window.location.href = "/login";
+          window.location.href = "/";
           return null;
         }
         if (error.response?.status === 403) {
