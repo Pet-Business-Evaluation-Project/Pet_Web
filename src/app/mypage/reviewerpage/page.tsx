@@ -165,10 +165,33 @@ export default function ReviewerPage() {
         }
       );
 
-      return response.data; // 파일명 반환
+      // ⭐ 응답 구조 변경에 맞춤
+      if (response.data.success === "true") {
+        return response.data.filename;
+      } else {
+        throw new Error(response.data.message || "업로드 실패");
+      }
+      
     } catch (error) {
       console.error("Image upload error:", error);
-      alert("프로필 이미지 업로드에 실패했습니다.");
+      
+      // ⭐ 에러 처리 개선
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          window.location.href = "/login";
+          return null;
+        }
+        if (error.response?.status === 403) {
+          alert("본인의 프로필만 수정할 수 있습니다.");
+          return null;
+        }
+        // 백엔드에서 보낸 에러 메시지 표시
+        const errorMessage = error.response?.data?.message || "프로필 이미지 업로드에 실패했습니다.";
+        alert(errorMessage);
+      } else {
+        alert("프로필 이미지 업로드에 실패했습니다.");
+      }
       return null;
     } finally {
       setIsUploadingImage(false);
@@ -186,6 +209,9 @@ export default function ReviewerPage() {
         const uploadedFilename = await uploadProfileImage();
         if (uploadedFilename) {
           profileImageFilename = uploadedFilename;
+        } else {
+          // 업로드 실패 시 저장 중단
+          return;
         }
       }
 
@@ -227,7 +253,19 @@ export default function ReviewerPage() {
       }
     } catch (error) {
       console.error("Edit error:", error);
-      alert("정보 수정 중 오류가 발생했습니다.");
+      
+      // ⭐ 에러 처리 개선
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          alert("로그인이 필요합니다. 다시 로그인해주세요.");
+          window.location.href = "/login";
+          return;
+        }
+        const errorMessage = error.response?.data?.message || "정보 수정 중 오류가 발생했습니다.";
+        alert(errorMessage);
+      } else {
+        alert("정보 수정 중 오류가 발생했습니다.");
+      }
     }
   };
 
