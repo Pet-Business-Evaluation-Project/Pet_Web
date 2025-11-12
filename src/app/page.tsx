@@ -15,8 +15,10 @@ export default function HomePage() {
 
   useEffect(() => {
     setShowPopup(true);
-    const leftX = window.innerWidth * 0.15;
-    const centerY = window.innerHeight / 2 - 300;
+    // 모바일과 데스크톱에서 다른 위치 설정
+    const isMobile = window.innerWidth < 768;
+    const leftX = isMobile ? window.innerWidth * 0.05 : window.innerWidth * 0.15;
+    const centerY = isMobile ? window.innerHeight * 0.1 : window.innerHeight / 2 - 300;
     setPosition({ x: leftX, y: centerY });
   }, []);
 
@@ -67,7 +69,7 @@ export default function HomePage() {
           }}
           onMouseDown={handleMouseDown}
         >
-          <div className="relative bg-white shadow-2xl w-[450px] border border-gray-300">
+          <div className="relative bg-white shadow-2xl w-[280px] md:w-[450px] border border-gray-300">
             <div className="bg-gray-200 px-4 py-2 flex items-center justify-between border-b border-gray-300">
               <span className="text-sm font-medium text-gray-700">알림</span>
               <button
