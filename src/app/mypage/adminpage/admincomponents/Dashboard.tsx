@@ -53,7 +53,7 @@ export default function Dashboard() {
     value,
     color,
   }: {
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     title: string;
     value: number;
     color: string;
