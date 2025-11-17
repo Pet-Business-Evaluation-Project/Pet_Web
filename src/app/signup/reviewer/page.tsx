@@ -16,6 +16,13 @@ interface ExpertiseCategories {
   [key: string]: string[];
 }
 
+interface DaumPostcodeData {
+  address: string;
+  addressType: string;
+  bname: string;
+  buildingName: string;
+}
+
 export default function SignupReviewer() {
   const router = useRouter();
 
@@ -101,8 +108,9 @@ export default function SignupReviewer() {
     document.head.appendChild(script);
 
     script.onload = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new (window as any).daum.Postcode({
-        oncomplete: function(data: any) {
+        oncomplete: function(data: DaumPostcodeData) {
           let fullAddress = data.address;
           let extraAddress = "";
 
@@ -334,7 +342,8 @@ export default function SignupReviewer() {
       ? `${formData.address} ${formData.addressDetail}` 
       : formData.address;
 
-    const payload = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload: any = {
       ...formData,
       address: fullAddress, // ✅ 합쳐진 주소
       Classifnumber: ssnRaw,
@@ -343,7 +352,7 @@ export default function SignupReviewer() {
     };
 
     // addressDetail은 payload에서 제거 (백엔드에 불필요)
-    delete (payload as any).addressDetail;
+    delete payload.addressDetail;
 
     try {
       const res = await fetch("http://petback.hysu.kr/back/user/signup", {

@@ -53,7 +53,7 @@ export default function Dashboard() {
     value,
     color,
   }: {
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     title: string;
     value: number;
     color: string;
@@ -133,8 +133,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-
-        {/* TODO: 차트 및 추가 통계 정보 추가 */}
+        
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <p className="text-sm text-blue-800">
             💡 이곳에 추가 통계 차트나 그래프를 추가할 수 있습니다.
