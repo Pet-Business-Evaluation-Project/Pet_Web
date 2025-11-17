@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface ModalData {
+  message: string;
   loginID: string;
   name: string;
   phnum: string;
@@ -265,53 +266,42 @@ export default function SignupReviewer() {
       return;
     }
 
-    const payload = {
-      ...formData,
-      Classifnumber: ssnRaw,
-      expertises: selectedExpertises,
-      customExpertise: showCustomInput ? customExpertise.trim() : null,
-    };
-
-    try {
-      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        let errorMessage = "회원가입 요청 실패 (서버 응답 오류)";
-
-        try {
-          const errorData = await res.json();
-          if (errorData && typeof errorData.message === "string") {
-            errorMessage = errorData.message;
-          } else if (res.statusText) {
-            errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
-          }
-        } catch (_) {
-          errorMessage = (await res.text()) || `서버 오류 발생: 상태 코드 ${res.status}`;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await res.json();
-      console.log("심사원 회원가입 성공:", data);
-
-      setModalData({
-        loginID: data.loginID || formData.loginID,
-        name: data.name || formData.name,
-        phnum: data.phnum || formData.phnum,
-        referralID: data.referralID || formData.referralID,
-        classification: data.classification || "심사원",
-      });
-    } catch (e) {
-      const message =
-        e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
-      alert(message);
-      console.error("회원가입 에러:", e);
-    }
+const payload = {
+    ...formData,
+    Classifnumber: ssnRaw,
+    expertises: selectedExpertises,
+    customExpertise: showCustomInput ? customExpertise.trim() : null,
   };
+
+  try {
+    const res = await fetch("http://petback.hysu.kr/back/user/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const responseText = await res.text();
+
+    if (!res.ok) {
+      throw new Error(responseText || "회원가입 요청 실패");
+    }
+
+    // ✅ 서버 메시지 포함
+    setModalData({
+      message: responseText,
+      loginID: formData.loginID,
+      name: formData.name,
+      phnum: formData.phnum,
+      referralID: formData.referralID || "없음",
+      classification: "심사원",
+    });
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
+    alert(message);
+    console.error("회원가입 에러:", e);
+  }
+};
 
   // ✅ 모달 닫기
   const handleModalClose = () => {
@@ -566,34 +556,40 @@ export default function SignupReviewer() {
       </div>
 
       {/* 회원가입 성공 모달 */}
-      {modalData && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 정보</h2>
-            <p className="text-gray-700 mb-2">
-              <b>이름:</b> {modalData.name}
-            </p>
-            <p className="text-gray-700 mb-2">
-              <b>아이디:</b> {modalData.loginID}
-            </p>
-            <p className="text-gray-700 mb-2">
-              <b>휴대폰:</b> {modalData.phnum}
-            </p>
-            <p className="text-gray-700 mb-4">
-              <b>추천인:</b> {modalData.referralID || "없음"}
-            </p>
-            <p className="text-gray-700 mb-4">
-              <b>직책:</b> 심사원보
-            </p>
-            <button
-              onClick={handleModalClose}
-              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
+{modalData && (
+  <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
+    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
+      
+      {/* ✅ 서버 메시지 표시 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+      </div>
+
+      <p className="text-gray-700 mb-2">
+        <b>이름:</b> {modalData.name}
+      </p>
+      <p className="text-gray-700 mb-2">
+        <b>아이디:</b> {modalData.loginID}
+      </p>
+      <p className="text-gray-700 mb-2">
+        <b>휴대폰:</b> {modalData.phnum}
+      </p>
+      <p className="text-gray-700 mb-4">
+        <b>추천인:</b> {modalData.referralID}
+      </p>
+      <p className="text-gray-700 mb-4">
+        <b>직책:</b> 심사원보 (승인 대기)
+      </p>
+      <button
+        onClick={handleModalClose}
+        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
+      >
+        확인
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }
