@@ -18,6 +18,17 @@ interface LoginFormProps {
   onClose?: () => void;
 }
 
+// ✅ 서버 응답 타입 정의
+interface LoginResponse {
+  success: boolean;
+  message?: string;
+  userId?: number;
+  loginID?: string;
+  name?: string;
+  classification?: string;
+  expiresAt?: number;
+}
+
 export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,22 +38,34 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
     e.preventDefault();
     setErrorMessage("");
 
+    console.log("🔐 로그인 시도:", email);
+
     try {
-      const response = await axios.post(
+      const response = await axios.post<LoginResponse>(
         "http://petback.hysu.kr/back/api/auth/login",
         {
           loginID: email,
           password,
         },
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
+      console.log("📥 서버 응답:", response);
+      console.log("📊 응답 데이터:", response.data);
+
       if (response.data.success) {
+        console.log("✅ 로그인 성공");
+        
         const userData: User = {
-          id: response.data.userId,
-          name: response.data.name,
-          email: response.data.loginID,
-          classification: response.data.classification,
+          id: response.data.userId!,
+          name: response.data.name!,
+          email: response.data.loginID!,
+          classification: response.data.classification!,
           expiresAt: response.data.expiresAt,
         };
         
@@ -52,28 +75,54 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
         
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
       } else {
-        setErrorMessage(response.data.message || "로그인 실패");
+        console.log("❌ 로그인 실패:", response.data.message);
+        const message = response.data.message || "로그인 실패";
+        setErrorMessage(message);
+        alert(message);
       }
     } catch (error: unknown) {
+      console.error("❌ 로그인 에러:", error);
+      
       if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<{ message?: string }>;
+        const axiosError = error as AxiosError<LoginResponse>;
         
-        if (axiosError.response) {
+        console.log("📡 Axios 에러 상세:");
+        console.log("- response:", axiosError.response);
+        console.log("- response.data:", axiosError.response?.data);
+        console.log("- response.status:", axiosError.response?.status);
+        
+        if (axiosError.response?.data) {
           // ✅ 서버에서 반환한 에러 메시지 사용
-          const serverMessage = axiosError.response.data?.message || 
-                               "로그인 중 오류가 발생했습니다.";
+          const serverMessage = axiosError.response.data.message || 
+                               "아이디 또는 비밀번호가 올바르지 않습니다.";
           
+          console.log("💬 표시할 메시지:", serverMessage);
           setErrorMessage(serverMessage);
           alert(serverMessage);
+        } else if (axiosError.response) {
+          // response는 있지만 data가 없는 경우
+          console.log("⚠️ 응답 데이터 없음");
+          const message = "서버 응답 오류가 발생했습니다.";
+          setErrorMessage(message);
+          alert(message);
+        } else if (axiosError.request) {
+          // 요청은 보냈지만 응답을 받지 못한 경우
+          console.error("🌐 네트워크 오류 - 응답 없음");
+          const message = "서버에 연결할 수 없습니다.";
+          setErrorMessage(message);
+          alert(message);
         } else {
-          console.error("로그인 중 네트워크 오류:", axiosError);
-          setErrorMessage("서버에 연결할 수 없습니다.");
-          alert("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
+          // 요청 설정 중 오류
+          console.error("⚙️ 요청 설정 오류:", axiosError.message);
+          const message = "로그인 요청 중 오류가 발생했습니다.";
+          setErrorMessage(message);
+          alert(message);
         }
       } else {
-        console.error("예상치 못한 오류:", error);
-        setErrorMessage("로그인 중 알 수 없는 오류가 발생했습니다.");
-        alert("로그인 중 알 수 없는 오류가 발생했습니다.");
+        console.error("⚠️ 알 수 없는 오류:", error);
+        const message = "로그인 중 알 수 없는 오류가 발생했습니다.";
+        setErrorMessage(message);
+        alert(message);
       }
     }
   };
@@ -102,7 +151,11 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
         required
       />
       {errorMessage && (
-        <p className="text-red-500 text-sm text-center">{errorMessage}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+          <p className="text-red-600 text-sm whitespace-pre-line text-center">
+            {errorMessage}
+          </p>
+        </div>
       )}
 
       <div className="flex justify-end mt-[-8px]">
