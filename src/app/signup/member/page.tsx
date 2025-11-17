@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface ModalData {
+  message: string;
   loginID: string;
   name: string;
   phnum: string;
   classifnumber: string;
   classification: string;
+  referralID: string;
 }
 
 export default function Signupmember() {
@@ -20,6 +22,7 @@ export default function Signupmember() {
     name: "",
     phnum: "",
     Classifnumber: "",
+    referralID: "",  // ✅ 추가
     classification: "기업",
     address: "",
     email: "",
@@ -36,11 +39,50 @@ export default function Signupmember() {
     phnum: "",
     Classifnumber: "",
     email: "",
+    referralID: "",  // ✅ 추가
   });
 
   const [passwordcheck, setPasswordcheck] = useState("");
   const [businessNumRaw, setBusinessNumRaw] = useState("");
+  const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
+
+  // ✅ cleanup
+  useEffect(() => {
+    return () => {
+      if (referralCheckTimer) {
+        clearTimeout(referralCheckTimer);
+      }
+    };
+  }, [referralCheckTimer]);
+
+  // ✅ 심사원 ID 검증
+  const validateReferralID = async (referralID: string) => {
+    if (!referralID) {
+      setErrors((prev) => ({ ...prev, referralID: "" }));
+      return;
+    }
+
+    try {
+      const res = await fetch("http://petback.hysu.kr/back/user/loginInfo");
+      if (!res.ok) throw new Error("유저 조회 실패");
+
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("잘못된 응답 형식");
+
+      const exists = data.includes(referralID);
+      setErrors((prev) => ({
+        ...prev,
+        referralID: exists ? "" : "해당 심사원이 존재하지 않습니다.",
+      }));
+    } catch (err) {
+      console.error("심사원 ID 조회 에러:", err);
+      setErrors((prev) => ({
+        ...prev,
+        referralID: "심사원 ID 확인 중 오류가 발생했습니다.",
+      }));
+    }
+  };
 
   // ✅ 비밀번호 일치 검증
   useEffect(() => {
@@ -117,6 +159,15 @@ export default function Signupmember() {
     // 일반 필드 처리
     setFormData((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
+
+    // 심사원 ID 디바운스 검증
+    if (name === "referralID") {
+      if (referralCheckTimer) clearTimeout(referralCheckTimer);
+      const timer = setTimeout(() => {
+        validateReferralID(value);
+      }, 500);
+      setReferralCheckTimer(timer);
+    }
   };
 
   // ✅ 백스페이스 사업자등록번호 처리
@@ -165,7 +216,7 @@ export default function Signupmember() {
 
     const isValid = Object.values(validations).every((v) => v === true) && passwordMatch;
 
-    if (!isValid) {
+    if (!isValid || errors.referralID) {
       alert("입력값을 확인해주세요.");
       return;
     }
@@ -173,7 +224,6 @@ export default function Signupmember() {
     const payload = {
       ...formData,
       Classifnumber: businessNumRaw,
-      referralID: "", // 기업은 추천인 없음
     };
 
     try {
@@ -183,31 +233,21 @@ export default function Signupmember() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        let errorMessage = "회원가입 요청 실패 (서버 응답 오류)";
+      const responseText = await res.text();
 
-        try {
-          const errorData = await res.json();
-          if (errorData && typeof errorData.message === "string") {
-            errorMessage = errorData.message;
-          } else if (res.statusText) {
-            errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
-          }
-        } catch (_) {
-          errorMessage = (await res.text()) || `서버 오류 발생: 상태 코드 ${res.status}`;
-        }
-        throw new Error(errorMessage);
+      if (!res.ok) {
+        throw new Error(responseText || "회원가입 요청 실패");
       }
 
-      const data = await res.json();
-      console.log("기업 회원가입 성공:", data);
-
+      // ✅ 서버 메시지 포함하여 모달 표시
       setModalData({
-        loginID: data.loginID || formData.loginID,
-        name: data.name || formData.name,
-        phnum: data.phnum || formData.phnum,
+        message: responseText,
+        loginID: formData.loginID,
+        name: formData.name,
+        phnum: formData.phnum,
         classifnumber: formData.Classifnumber,
-        classification: data.classification || "기업",
+        classification: "기업",
+        referralID: formData.referralID || "없음",
       });
     } catch (e) {
       const message =
@@ -346,6 +386,24 @@ export default function Signupmember() {
             />
           </div>
 
+          {/* ✅ 심사원 ID 추가 */}
+          <div>
+            <label className="block text-gray-700 mb-2">심사원 아이디</label>
+            <input
+              type="text"
+              name="referralID"
+              value={formData.referralID}
+              onChange={handleChange}
+              className={`w-full border ${
+                errors.referralID ? "border-red-400" : "border-gray-300"
+              } rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400`}
+              placeholder="담당 심사원의 ID를 입력하세요 (선택사항)"
+            />
+            {errors.referralID && (
+              <p className="text-red-500 text-sm mt-1">{errors.referralID}</p>
+            )}
+          </div>
+
           {/* 이메일 */}
           <div>
             <label className="block text-gray-700 mb-2">이메일</label>
@@ -408,11 +466,17 @@ export default function Signupmember() {
         </form>
       </div>
 
-      {/* 회원가입 성공 모달 */}
+      {/* ✅ 회원가입 성공 모달 - 메시지 추가 */}
       {modalData && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 정보</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
+            
+            {/* ✅ 서버 메시지 표시 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+            </div>
+
             <p className="text-gray-700 mb-2">
               <b>기업명:</b> {modalData.name}
             </p>
@@ -422,8 +486,11 @@ export default function Signupmember() {
             <p className="text-gray-700 mb-2">
               <b>휴대폰:</b> {modalData.phnum}
             </p>
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-700 mb-2">
               <b>사업자등록번호:</b> {modalData.classifnumber}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <b>심사원 ID:</b> {modalData.referralID}
             </p>
             <button
               onClick={handleModalClose}
