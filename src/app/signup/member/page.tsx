@@ -22,9 +22,10 @@ export default function Signupmember() {
     name: "",
     phnum: "",
     Classifnumber: "",
-    referralID: "",  // ✅ 추가
+    referralID: "",
     classification: "기업",
     address: "",
+    addressDetail: "", // ✅ 상세주소 추가
     email: "",
     companycls: "",
     introduction: "",
@@ -39,13 +40,44 @@ export default function Signupmember() {
     phnum: "",
     Classifnumber: "",
     email: "",
-    referralID: "",  // ✅ 추가
+    referralID: "",
   });
 
   const [passwordcheck, setPasswordcheck] = useState("");
   const [businessNumRaw, setBusinessNumRaw] = useState("");
   const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
+
+  // ✅ Daum 주소 검색 팝업 열기
+  const openAddressPopup = () => {
+    const script = document.createElement("script");
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      new (window as any).daum.Postcode({
+        oncomplete: function(data: any) {
+          let fullAddress = data.address;
+          let extraAddress = "";
+
+          if (data.addressType === "R") {
+            if (data.bname !== "") {
+              extraAddress += data.bname;
+            }
+            if (data.buildingName !== "") {
+              extraAddress += extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+            }
+            fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+          }
+
+          setFormData((prev) => ({ ...prev, address: fullAddress }));
+        },
+        width: "100%",
+        height: "100%"
+      }).open();
+    };
+  };
 
   // ✅ cleanup
   useEffect(() => {
@@ -221,10 +253,19 @@ export default function Signupmember() {
       return;
     }
 
+    // ✅ 주소와 상세주소를 합쳐서 전송
+    const fullAddress = formData.addressDetail 
+      ? `${formData.address} ${formData.addressDetail}` 
+      : formData.address;
+
     const payload = {
       ...formData,
+      address: fullAddress, // ✅ 합쳐진 주소
       Classifnumber: businessNumRaw,
     };
+
+    // addressDetail은 payload에서 제거 (백엔드에 불필요)
+    delete (payload as any).addressDetail;
 
     try {
       const res = await fetch("http://petback.hysu.kr/back/user/signup", {
@@ -373,18 +414,34 @@ export default function Signupmember() {
             )}
           </div>
 
-          {/* 주소 */}
+          {/* ✅ 주소 검색 - 클릭하면 팝업 */}
           <div>
             <label className="block text-gray-700 mb-2">주소</label>
             <input
               type="text"
               name="address"
               value={formData.address}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400"
-              placeholder="주소를 입력하세요"
+              onClick={openAddressPopup}
+              readOnly
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white cursor-pointer hover:border-green-400 focus:ring-2 focus:ring-green-400"
+              placeholder="클릭하여 주소를 검색하세요"
             />
           </div>
+
+          {/* ✅ 상세주소 */}
+          {formData.address && (
+            <div>
+              <label className="block text-gray-700 mb-2">상세주소</label>
+              <input
+                type="text"
+                name="addressDetail"
+                value={formData.addressDetail}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400"
+                placeholder="상세주소를 입력하세요 (예: 101동 202호)"
+              />
+            </div>
+          )}
 
           {/* ✅ 심사원 ID 추가 */}
           <div>
@@ -397,7 +454,7 @@ export default function Signupmember() {
               className={`w-full border ${
                 errors.referralID ? "border-red-400" : "border-gray-300"
               } rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400`}
-              placeholder="담당 심사원의 ID를 입력하세요 (선택사항)"
+              placeholder="담당 심사원의 ID를 입력하세요"
             />
             {errors.referralID && (
               <p className="text-red-500 text-sm mt-1">{errors.referralID}</p>
@@ -468,7 +525,7 @@ export default function Signupmember() {
 
       {/* ✅ 회원가입 성공 모달 - 메시지 추가 */}
       {modalData && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
             
