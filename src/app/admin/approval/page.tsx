@@ -600,70 +600,70 @@ export default function AdminApprovalPage() {
       </div>
 
       {/* 거부 사유 입력 모달 (승인대기 → 거절) */}
-      {showRejectModal && selectedUser && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">가입 거부</h2>
-            <p className="text-gray-700 mb-6">
-              <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 가입을 거부하시겠습니까?
-            </p>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              rows={4}
-              placeholder="거부 사유를 입력해주세요"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleReject}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                거부 확정
-              </button>
-              <button
-                onClick={() => setShowRejectModal(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     {showRejectModal && selectedUser && (
+  <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">가입 거부</h2>
+      <p className="text-gray-700 mb-6">
+        <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 가입을 거부하시겠습니까?
+      </p>
+      <textarea
+        value={rejectionReason}
+        onChange={(e) => setRejectionReason(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        rows={4}
+        placeholder="거부 사유를 입력해주세요"
+      />
+      <div className="flex gap-3">
+        <button
+          onClick={handleReject}
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
+        >
+          거부 확정
+        </button>
+        <button
+          onClick={() => setShowRejectModal(false)}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold transition-colors"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* 거부 사유 입력 모달 (승인 → 거절) */}
       {showRejectApprovedModal && selectedUser && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">승인 취소 및 거부</h2>
-            <p className="text-gray-700 mb-6">
-              <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 승인을 취소하고 거부하시겠습니까?
-            </p>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              rows={4}
-              placeholder="거부 사유를 입력해주세요"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleRejectApproved}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                거부 확정
-              </button>
-              <button
-                onClick={() => setShowRejectApprovedModal(false)}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold transition-colors"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">승인 취소 및 거부</h2>
+      <p className="text-gray-700 mb-6">
+        <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 승인을 취소하고 거부하시겠습니까?
+      </p>
+      <textarea
+        value={rejectionReason}
+        onChange={(e) => setRejectionReason(e.target.value)}
+        className="w-full border border-gray-300 rounded-lg p-3 mb-6 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+        rows={4}
+        placeholder="거부 사유를 입력해주세요"
+      />
+      <div className="flex gap-3">
+        <button
+          onClick={handleRejectApproved}
+          className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
+        >
+          거부 확정
+        </button>
+        <button
+          onClick={() => setShowRejectApprovedModal(false)}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold transition-colors"
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </main>
   );
 }
