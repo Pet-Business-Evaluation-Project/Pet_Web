@@ -7,10 +7,13 @@ import { FaUsers } from "react-icons/fa";
 interface Reviewer {
   user_id: number;
   reviewer_id: number;
-  loginID: string;
   name: string;
+  loginID: string;
   phnum: string;
   ssn: string;
+  address: string;
+  bankname: string;
+  account: string;
   reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
   referralID?: string;
 }
@@ -106,11 +109,13 @@ export default function ReviewerDashboard() {
 
         {/* 테이블 스크롤 */}
         <div className="overflow-x-auto overflow-y-auto max-h-[600px] border rounded">
-          <table className="w-full table-fixed border-collapse">
+          <table className="w-full table-fixed border-collapse table-auto">
             <thead>
               <tr className="text-left border-b border-gray-300">
                 <th className="py-2 px-3 min-w-[120px]">이름</th>
                 <th className="py-2 px-3 min-w-[120px]">전화번호</th>
+                <th className="py-2 px-3 min-w-[200px]">주소</th>
+                <th className="py-2 px-3 min-w-[160px]">은행/계좌</th>
                 <th className="py-2 px-3 min-w-[120px]">추천인</th>
                 <th className="py-2 px-3 min-w-[140px]">직책</th>
               </tr>
@@ -118,8 +123,13 @@ export default function ReviewerDashboard() {
             <tbody>
               {sortedReviewers.map((r) => (
                 <tr key={r.loginID} className="border-b border-gray-200">
-                  <td className="py-2 px-3">{r.name}</td>
+                  <td className="py-2 px-3">{r.name}</td> 
                   <td className="py-2 px-3">{r.phnum}</td>
+                  <td className="py-2 px-3 text-sm">{r.address || "-"}</td>
+                  <td className="py-2 px-3 text-sm">
+                    {r.bankname && r.account ? `${r.bankname || "(은행 미등록)"} / ${r.account || "(계좌 미등록)"}`
+                    : "-"}
+                  </td>
                   <td className="py-2 px-3">{r.referralID || "-"}</td>
                   <td className="py-2 px-3">
                     <select
