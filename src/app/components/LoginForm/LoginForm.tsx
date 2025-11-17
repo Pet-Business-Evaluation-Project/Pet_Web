@@ -9,7 +9,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  classification : string,
+  classification: string;
   expiresAt?: number;
 }
 
@@ -43,13 +43,11 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
           name: response.data.name,
           email: response.data.loginID,
           classification: response.data.classification,
-          expiresAt: response.data.expiresAt, // 서버에서 받은 만료 시간
+          expiresAt: response.data.expiresAt,
         };
         
-        // 로컬스토리지 저장
         localStorage.setItem("user", JSON.stringify(userData));
 
-        // 부모 컴포넌트에 로그인 성공 알림
         if (onLoginSuccess) onLoginSuccess(userData);
         
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
@@ -58,16 +56,23 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
       }
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status === 401) {
-          alert("아이디 또는 비밀번호가 올바르지 않습니다.");
-          setErrorMessage("아이디 또는 비밀번호가 올바르지 않습니다.");
+        const axiosError = error as AxiosError<{ message?: string }>;
+        
+        if (axiosError.response) {
+          // ✅ 서버에서 반환한 에러 메시지 사용
+          const serverMessage = axiosError.response.data?.message || 
+                               "로그인 중 오류가 발생했습니다.";
+          
+          setErrorMessage(serverMessage);
+          alert(serverMessage);
         } else {
-          console.error("로그인 중 서버 오류:", axiosError);
-          alert("로그인 중 서버 오류가 발생했습니다.");
+          console.error("로그인 중 네트워크 오류:", axiosError);
+          setErrorMessage("서버에 연결할 수 없습니다.");
+          alert("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
         }
       } else {
         console.error("예상치 못한 오류:", error);
+        setErrorMessage("로그인 중 알 수 없는 오류가 발생했습니다.");
         alert("로그인 중 알 수 없는 오류가 발생했습니다.");
       }
     }
