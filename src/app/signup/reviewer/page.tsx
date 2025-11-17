@@ -28,7 +28,9 @@ export default function SignupReviewer() {
     referralID: "",
     classification: "심사원",
     address: "",
+    addressDetail: "",
     account: "",
+    bankName: "",
     eduLocation: "본사",
     eduDate: "",
   });
@@ -43,6 +45,7 @@ export default function SignupReviewer() {
     referralID: "",
     address: "",
     account: "",
+    bankName: "",
     eduDate: "",
   });
 
@@ -57,6 +60,70 @@ export default function SignupReviewer() {
   const [customExpertise, setCustomExpertise] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
+  // ✅ 카테고리 영어 → 한글 매핑
+  const categoryNameMap: { [key: string]: string } = {
+    "Health Care": "헬스케어(Health Care)",
+    "Services": "서비스(Services)",
+    "Products & Industry": "제품 & 산업(Products & Industry)",
+    "Others": "기타(Others)"
+  };
+
+  // 한국 주요 은행 리스트
+  const bankList = [
+    "KB국민은행",
+    "신한은행",
+    "우리은행",
+    "하나은행",
+    "NH농협은행",
+    "IBK기업은행",
+    "SC제일은행",
+    "한국씨티은행",
+    "카카오뱅크",
+    "케이뱅크",
+    "토스뱅크",
+    "부산은행",
+    "대구은행",
+    "경남은행",
+    "광주은행",
+    "전북은행",
+    "제주은행",
+    "새마을금고",
+    "신협",
+    "우체국",
+    "기타"
+  ];
+
+  // ✅ Daum 주소 검색 팝업 열기
+  const openAddressPopup = () => {
+    const script = document.createElement("script");
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      new (window as any).daum.Postcode({
+        oncomplete: function(data: any) {
+          let fullAddress = data.address;
+          let extraAddress = "";
+
+          if (data.addressType === "R") {
+            if (data.bname !== "") {
+              extraAddress += data.bname;
+            }
+            if (data.buildingName !== "") {
+              extraAddress += extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+            }
+            fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+          }
+
+          setFormData((prev) => ({ ...prev, address: fullAddress }));
+        },
+        width: "100%",
+        height: "100%"
+      }).open();
+    };
+  };
+
   // ✅ 전문분야 목록 불러오기
   useEffect(() => {
     const fetchExpertises = async () => {
@@ -67,12 +134,11 @@ export default function SignupReviewer() {
         setExpertiseCategories(data);
       } catch (err) {
         console.error("전문분야 조회 에러:", err);
-        // 실패 시 기본값 설정
         setExpertiseCategories({
-          "헬스케어(Health Care)": ["수의학", "동물보건", "재활/피트니스", "마사지", "아로마", "기타 대체요법"],
-          "서비스(Services)": ["훈련", "미용", "호텔", "유치원", "펫택시", "장례"],
-          "제품산업(Products & Industry)": ["펫푸드", "반려동물 용품", "펫패션(의류)", "펫테크(기기)", "유통(도소매)", "산업(제조/설비)"],
-          "기타 전문 분야(Others)": ["미디어(콘텐츠/출판)", "법률(정책/행정)"]
+          "Health Care": ["수의학", "동물보건", "재활/피트니스", "마사지", "아로마", "기타 대체요법"],
+          "Services": ["훈련", "미용", "호텔", "유치원", "펫택시", "장례"],
+          "Products & Industry": ["펫푸드", "반려동물 용품", "펫패션(의류)", "펫테크(기기)", "유통(도소매)", "산업(제조/설비)"],
+          "Others": ["미디어(콘텐츠/출판)", "법률(정책/행정)"]
         });
       }
     };
@@ -162,6 +228,9 @@ export default function SignupReviewer() {
         if (value && !/^[\d-]+$/.test(value))
           errorMsg = "계좌번호는 숫자와 -만 입력 가능합니다.";
         break;
+      case "bankName":
+        if (!value) errorMsg = "은행을 선택해주세요.";
+        break;
       case "eduDate":
         if (value && new Date(value) > new Date())
           errorMsg = "교육 날짜는 미래일 수 없습니다.";
@@ -178,7 +247,6 @@ export default function SignupReviewer() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    // 주민번호 특수 처리
     if (name === "Classifnumber") {
       let digits = value.replace(/[^0-9]/g, "");
       if (digits.length > 7) digits = digits.slice(0, 7);
@@ -193,17 +261,14 @@ export default function SignupReviewer() {
       return;
     }
 
-    // 비밀번호 확인 처리
     if (name === "verifyPassword") {
       setPasswordcheck(value);
       return;
     }
 
-    // 일반 필드 처리
     setFormData((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
 
-    // 추천인 디바운스 검증
     if (name === "referralID") {
       if (referralCheckTimer) clearTimeout(referralCheckTimer);
       const timer = setTimeout(() => {
@@ -236,7 +301,6 @@ export default function SignupReviewer() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 모든 필드 검증
     const validations = {
       loginID: validateField("loginID", formData.loginID),
       password: validateField("password", formData.password),
@@ -244,16 +308,15 @@ export default function SignupReviewer() {
       phnum: validateField("phnum", formData.phnum),
       Classifnumber: validateField("Classifnumber", ssnRaw),
       account: validateField("account", formData.account),
+      bankName: validateField("bankName", formData.bankName),
       eduDate: validateField("eduDate", formData.eduDate),
     };
 
-    // 비밀번호 확인 검증
     const passwordMatch = passwordcheck === formData.password;
     if (!passwordMatch) {
       setErrors((prev) => ({ ...prev, verifyPassword: "비밀번호가 일치하지 않습니다." }));
     }
 
-    // 전문분야 검증
     if (selectedExpertises.length === 0 && !customExpertise.trim()) {
       alert("전문분야를 최소 1개 이상 선택해주세요.");
       return;
@@ -266,42 +329,50 @@ export default function SignupReviewer() {
       return;
     }
 
-const payload = {
-    ...formData,
-    Classifnumber: ssnRaw,
-    expertises: selectedExpertises,
-    customExpertise: showCustomInput ? customExpertise.trim() : null,
-  };
+    // ✅ 주소와 상세주소를 합쳐서 전송
+    const fullAddress = formData.addressDetail 
+      ? `${formData.address} ${formData.addressDetail}` 
+      : formData.address;
 
-  try {
-    const res = await fetch("http://petback.hysu.kr/back/user/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const payload = {
+      ...formData,
+      address: fullAddress, // ✅ 합쳐진 주소
+      Classifnumber: ssnRaw,
+      expertises: selectedExpertises,
+      customExpertise: showCustomInput ? customExpertise.trim() : null,
+    };
 
-    const responseText = await res.text();
+    // addressDetail은 payload에서 제거 (백엔드에 불필요)
+    delete (payload as any).addressDetail;
 
-    if (!res.ok) {
-      throw new Error(responseText || "회원가입 요청 실패");
+    try {
+      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const responseText = await res.text();
+
+      if (!res.ok) {
+        throw new Error(responseText || "회원가입 요청 실패");
+      }
+
+      setModalData({
+        message: responseText,
+        loginID: formData.loginID,
+        name: formData.name,
+        phnum: formData.phnum,
+        referralID: formData.referralID || "없음",
+        classification: "심사원",
+      });
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
+      alert(message);
+      console.error("회원가입 에러:", e);
     }
-
-    // ✅ 서버 메시지 포함
-    setModalData({
-      message: responseText,
-      loginID: formData.loginID,
-      name: formData.name,
-      phnum: formData.phnum,
-      referralID: formData.referralID || "없음",
-      classification: "심사원",
-    });
-  } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
-    alert(message);
-    console.error("회원가입 에러:", e);
-  }
-};
+  };
 
   // ✅ 모달 닫기
   const handleModalClose = () => {
@@ -419,22 +490,60 @@ const payload = {
             )}
           </div>
 
-          {/* 주소 */}
+          {/* 주소 검색 - 클릭하면 팝업 */}
           <div>
-            <label className="block text-gray-700 mb-2">주소</label>
+            <label className="block text-gray-700 mb-2">주소 *</label>
             <input
               type="text"
               name="address"
               value={formData.address}
+              onClick={openAddressPopup}
+              readOnly
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white cursor-pointer hover:border-blue-400 focus:ring-2 focus:ring-blue-400"
+              placeholder="클릭하여 주소를 검색하세요"
+              required
+            />
+            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+          </div>
+
+          {/* 상세주소 */}
+          {formData.address && (
+            <div>
+              <label className="block text-gray-700 mb-2">상세주소</label>
+              <input
+                type="text"
+                name="addressDetail"
+                value={formData.addressDetail}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                placeholder="상세주소를 입력하세요 (예: 101동 202호)"
+              />
+            </div>
+          )}
+
+          {/* 은행 선택 */}
+          <div>
+            <label className="block text-gray-700 mb-2">은행명 *</label>
+            <select
+              name="bankName"
+              value={formData.bankName}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
-              placeholder="주소를 입력하세요"
-            />
+              required
+            >
+              <option value="">은행을 선택하세요</option>
+              {bankList.map((bank) => (
+                <option key={bank} value={bank}>
+                  {bank}
+                </option>
+              ))}
+            </select>
+            {errors.bankName && <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>}
           </div>
 
           {/* 계좌번호 */}
           <div>
-            <label className="block text-gray-700 mb-2">계좌번호</label>
+            <label className="block text-gray-700 mb-2">계좌번호 *</label>
             <input
               type="text"
               name="account"
@@ -442,6 +551,7 @@ const payload = {
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
               placeholder="계좌번호를 입력하세요 (예: 110-123-456789)"
+              required
             />
             {errors.account && <p className="text-red-500 text-sm mt-1">{errors.account}</p>}
           </div>
@@ -452,7 +562,9 @@ const payload = {
             <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto">
               {Object.entries(expertiseCategories).map(([category, expertises]) => (
                 <div key={category} className="mb-4">
-                  <h3 className="font-semibold text-gray-800 mb-2">{category}</h3>
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {categoryNameMap[category] || category}
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {expertises.map((expertise) => (
                       <label key={expertise} className="flex items-center space-x-2 cursor-pointer">
@@ -556,40 +668,39 @@ const payload = {
       </div>
 
       {/* 회원가입 성공 모달 */}
-{modalData && (
-  <div className="fixed inset-0 flex items-center justify-center z-50 bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
-    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
-      
-      {/* ✅ 서버 메시지 표시 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
-      </div>
+      {modalData && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+            </div>
 
-      <p className="text-gray-700 mb-2">
-        <b>이름:</b> {modalData.name}
-      </p>
-      <p className="text-gray-700 mb-2">
-        <b>아이디:</b> {modalData.loginID}
-      </p>
-      <p className="text-gray-700 mb-2">
-        <b>휴대폰:</b> {modalData.phnum}
-      </p>
-      <p className="text-gray-700 mb-4">
-        <b>추천인:</b> {modalData.referralID}
-      </p>
-      <p className="text-gray-700 mb-4">
-        <b>직책:</b> 심사원보 (승인 대기)
-      </p>
-      <button
-        onClick={handleModalClose}
-        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
-      >
-        확인
-      </button>
-    </div>
-  </div>
-)}
+            <p className="text-gray-700 mb-2">
+              <b>이름:</b> {modalData.name}
+            </p>
+            <p className="text-gray-700 mb-2">
+              <b>아이디:</b> {modalData.loginID}
+            </p>
+            <p className="text-gray-700 mb-2">
+              <b>휴대폰:</b> {modalData.phnum}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <b>추천인:</b> {modalData.referralID}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <b>직책:</b> 심사원보 (승인 대기)
+            </p>
+            <button
+              onClick={handleModalClose}
+              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
