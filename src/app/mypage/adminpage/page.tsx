@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { FaUserCircle, FaTachometerAlt, FaUserTie, FaBuilding } from "react-icons/fa";
-import { Dashboard, ReviewerDashboard, MemberDashboard } from "./admincomponents";
+import { FaUserCircle, FaTachometerAlt, FaUserTie, FaBuilding, FaFileSignature } from "react-icons/fa";
+import { Dashboard, ReviewerDashboard, MemberDashboard, MemberSignDashboard } from "./admincomponents";
 
-type ViewType = "main" | "reviewer" | "member" | "dashboard";
+type ViewType = "main" | "reviewer" | "member" | "dashboard" | "memberSign";
 
 export default function AdminPage() {
   const [currentView, setCurrentView] = useState<ViewType>("main");
@@ -25,6 +25,8 @@ export default function AdminPage() {
         return <MemberDashboard />;
       case "dashboard":
         return <Dashboard />;
+      case "memberSign":
+        return <MemberSignDashboard />;
       default:
         return (
           <div className="flex-1 flex items-center justify-center">
@@ -99,6 +101,17 @@ export default function AdminPage() {
               >
                 <FaBuilding className="w-5 h-5" />
                 <span>기업 관리</span>
+              </button>
+              <button
+                onClick={() => setCurrentView("memberSign")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "memberSign"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <FaFileSignature className="w-5 h-5" />
+                <span>기업 가입 승인</span>
               </button>
             </div>
           </div>
