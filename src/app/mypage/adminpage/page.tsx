@@ -111,7 +111,7 @@ export default function AdminPage() {
                 }`}
               >
                 <FaFileSignature className="w-5 h-5" />
-                <span>기업 가입 승인</span>
+                <span>기업 인증 관리</span>
               </button>
             </div>
           </div>
