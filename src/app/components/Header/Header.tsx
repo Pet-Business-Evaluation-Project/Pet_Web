@@ -225,7 +225,7 @@ export default function Header() {
             회원사 소개
           </Link>
           <Link href="/memberregister" className="hover:text-red-900 whitespace-nowrap">
-            회원사 등록
+            인증 현황
           </Link>
 
           {/* 🔽 커뮤니티 hover 드롭다운 (데스크톱) */}
@@ -284,7 +284,7 @@ export default function Header() {
               className="px-6 py-3 hover:bg-gray-100 text-gray-800"
               onClick={closeMobileMenu}
             >
-              회원사 등록
+              인증 현황
             </Link>
 
             {/* 🔽 커뮤니티 드롭다운 (모바일) */}
