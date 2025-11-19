@@ -2,7 +2,8 @@
 
 import Button from "../../../components/Button/Button";
 import { useEffect, useState, useMemo } from "react";
-import { FaUsers, FaSearch } from "react-icons/fa";
+import { FaUsers, FaSearch, FaChevronDown, FaChevronRight } from "react-icons/fa";
+import React from "react";
 
 interface Reviewer {
   user_id: number;
@@ -16,28 +17,36 @@ interface Reviewer {
   account: string;
   reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
   referralID?: string;
-  created_at: string; 
+  referralGrade?: string; // 백엔드에서 CurrentRefferalGrade로 오는 값
+  created_at: string;
+}
+
+interface DownlineMember {
+  name: string;
+  loginID?: string;
+  phnum: string;
+  reviewerGrade: string;
+  referralGrade: string;
 }
 
 export default function ReviewerDashboard() {
   const [reviewers, setReviewers] = useState<Reviewer[]>([]);
   const [filteredReviewers, setFilteredReviewers] = useState<Reviewer[]>([]);
   const [sortAsc, setSortAsc] = useState(true);
-
-  // 검색 및 필터 상태
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGrade, setSelectedGrade] = useState<
-    "" | "심사원보" | "심사위원" | "수석심사위원"
-  >("");
+  const [selectedGrade, setSelectedGrade] = useState<"" | "심사원보" | "심사위원" | "수석심사위원">("");
 
-  // 직책 순서
+  const [openToggles, setOpenToggles] = useState<Set<string>>(new Set());
+  const [downlineData, setDownlineData] = useState<Record<string, DownlineMember[]>>({});
+  const [loadingDownline, setLoadingDownline] = useState<Set<string>>(new Set());
+
   const roleOrder: Record<Reviewer["reviewerGrade"], number> = {
     심사원보: 1,
     심사위원: 2,
     수석심사위원: 3,
   };
 
-  // 백엔드에서 심사원 목록 가져오기
+  // 데이터 로딩
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
@@ -47,23 +56,22 @@ export default function ReviewerDashboard() {
           body: JSON.stringify({ classification: "관리자" }),
           credentials: "include",
         });
-
         if (res.ok) {
-          const data = await res.json();
+          const data: Reviewer[] = await res.json();
           setReviewers(data);
           setFilteredReviewers(data);
         } else {
-          alert("데이터를 불러오지 못했습니다.");
+          alert("심사원 목록을 불러오지 못했습니다.");
         }
       } catch (error) {
         console.error("Fetch error:", error);
+        alert("서버 연결 오류");
       }
     };
-
     fetchReviewers();
   }, []);
 
-  // 검색 + 필터링 로직
+  // 검색 + 필터링
   useEffect(() => {
     let filtered = reviewers;
 
@@ -85,7 +93,6 @@ export default function ReviewerDashboard() {
     setFilteredReviewers(filtered);
   }, [searchTerm, selectedGrade, reviewers]);
 
-  // 정렬된 리스트
   const sortedReviewers = useMemo(() => {
     return [...filteredReviewers].sort((a, b) =>
       sortAsc
@@ -94,7 +101,6 @@ export default function ReviewerDashboard() {
     );
   }, [filteredReviewers, sortAsc]);
 
-  // 신규 심사원 계산 (이번 달 가입자)
   const { newReviewersCount, totalReviewersCount } = useMemo(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -102,204 +108,302 @@ export default function ReviewerDashboard() {
 
     const newCount = reviewers.filter((r) => {
       if (!r.created_at) return false;
-      const created = new Date(r.created_at + "T00:00:00"); // LocalDate → Date 변환 보장
-      return (
-        created.getFullYear() === currentYear &&
-        created.getMonth() === currentMonth
-      );
+      const created = new Date(r.created_at + "T00:00:00");
+      return created.getFullYear() === currentYear && created.getMonth() === currentMonth;
     }).length;
 
-    return {
-      newReviewersCount: newCount,
-      totalReviewersCount: reviewers.length,
-    };
+    return { newReviewersCount: newCount, totalReviewersCount: reviewers.length };
   }, [reviewers]);
 
-  // 직책 변경 핸들러
+  const findUplineName = (referralID?: string) => {
+    if (!referralID) return "-";
+    const upline = reviewers.find((r) => r.loginID === referralID);
+    return upline ? upline.name : "본사/관리자";
+  };
+
+  const toggleDownline = async (loginID: string) => {
+    if (openToggles.has(loginID)) {
+      setOpenToggles((prev) => {
+        const next = new Set(prev);
+        next.delete(loginID);
+        return next;
+      });
+      return;
+    }
+
+    if (downlineData[loginID]) {
+      setOpenToggles((prev) => new Set(prev).add(loginID));
+      return;
+    }
+
+    setLoadingDownline((prev) => new Set(prev).add(loginID));
+    try {
+      const res = await fetch("http://petback.hysu.kr/back/mypage/reviewer/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loginID }),
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDownlineData((prev) => ({ ...prev, [loginID]: data }));
+        setOpenToggles((prev) => new Set(prev).add(loginID));
+      }
+    } catch (error) {
+      console.error("하위 심사원 로드 실패:", error);
+    } finally {
+      setLoadingDownline((prev) => {
+        const next = new Set(prev);
+        next.delete(loginID);
+        return next;
+      });
+    }
+  };
+
   const handleRoleChange = (loginID: string, newRole: Reviewer["reviewerGrade"]) => {
     setReviewers((prev) =>
       prev.map((r) => (r.loginID === loginID ? { ...r, reviewerGrade: newRole } : r))
     );
   };
 
-  // 저장 버튼
+  // 핵심 수정: { updates } 형태로 정확히 전송
   const handleSave = async () => {
-    try {
-      const payload = reviewers.map((r) => ({
-        reviewer_id: r.reviewer_id,
-        reviewergrade: r.reviewerGrade,
-      }));
+    const updates = reviewers.map((r) => ({
+      reviewer_id: r.reviewer_id,
+      reviewergrade: r.reviewerGrade, // 한글 그대로 보내도 됨 (Enum이 한글이니까!)
+    }));
 
+    try {
       const res = await fetch("http://petback.hysu.kr/back/mypage/admin/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: payload }),
+        body: JSON.stringify({ updates }), // 이게 정답!
         credentials: "include",
       });
 
+      const text = await res.text();
+
       if (res.ok) {
-        alert("직책 변경이 성공적으로 저장되었습니다.");
+        alert("모든 변경사항이 성공적으로 저장되었습니다!");
       } else {
-        alert("직책 변경 저장에 실패했습니다.");
+        alert("저장 실패: " + text);
       }
     } catch (error) {
-      console.error("Save error:", error);
-      alert("저장 중 오류가 발생했습니다.");
+      console.error("저장 중 오류:", error);
+      alert("네트워크 오류가 발생했습니다.");
     }
   };
 
   return (
-    <div className="flex-1 max-w-full">
-      <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
-        {/* 헤더: 제목 + 신규/전체 카운트 + 정렬 버튼 */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-6">
-            <h2 className="text-2xl font-bold flex items-center gap-3">
-              <FaUsers className="text-blue-600 w-8 h-8" />
-              심사원 관리
-            </h2>
-
-            {/* 신규 / 전체 카운트 */}
-            <div className="flex items-center gap-3 text-sm font-semibold bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-3 rounded-xl border border-blue-200">
-              <span className="text-gray-600">신규</span>
-              <span className="text-2xl text-blue-600">{newReviewersCount}</span>
-              <span className="text-gray-400 mx-2">/</span>
-              <span className="text-gray-600">전체</span>
-              <span className="text-2xl text-indigo-600">{totalReviewersCount}</span>
-              {newReviewersCount > 0 && (
-                <span className="ml-3 text-xs bg-red-500 text-white px-3 py-1 rounded-full animate-pulse">
-                  {new Date().getMonth() + 1}월 신규
-                </span>
-              )}
+    <div className="flex-1 w-full max-w-[calc(100vw-2rem)] p-4 md:p-6">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm w-full">
+        {/* 헤더 */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <FaUsers className="text-indigo-600 w-7 h-7" />
+                심사원 관리
+              </h2>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">신규</span>
+                  <span className="font-bold text-xl text-red-600">{newReviewersCount}</span>
+                </div>
+                <span className="text-gray-400">/</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">전체</span>
+                  <span className="font-bold text-xl text-gray-900">{totalReviewersCount}</span>
+                </div>
+              </div>
             </div>
+            <Button label={`직책 ${sortAsc ? "오름차순" : "내림차순"}`} onClick={() => setSortAsc(!sortAsc)} />
           </div>
-
-          <Button
-            label={`직책 ${sortAsc ? "오름차순" : "내림차순"}`}
-            onClick={() => setSortAsc(!sortAsc)}
-          />
         </div>
 
         {/* 검색 + 필터 */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-5">
-          <div className="relative flex-1">
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="이름, 아이디, 주소, 추천인으로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="이름, 아이디, 주소, 추천인 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value as any)}
+              className="px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
+            >
+              <option value="">전체 직책</option>
+              <option value="심사원보">심사원보</option>
+              <option value="심사위원">심사위원</option>
+              <option value="수석심사위원">수석심사위원</option>
+            </select>
           </div>
-
-          <select
-            value={selectedGrade}
-            onChange={(e) =>
-              setSelectedGrade(
-                e.target.value as "" | "심사원보" | "심사위원" | "수석심사위원"
-              )
-            }
-            className="px-6 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">전체 직책</option>
-            <option value="심사원보">심사원보</option>
-            <option value="심사위원">심사위원</option>
-            <option value="수석심사위원">수석심사위원</option>
-          </select>
         </div>
 
-        {/* 검색 결과 안내 */}
-        {(searchTerm || selectedGrade) && (
-          <div className="text-sm text-gray-600 mb-4 bg-gray-50 px-4 py-2 rounded-lg">
-            검색 결과: <strong>{sortedReviewers.length}명</strong>
-            {searchTerm && ` (검색어: "${searchTerm}")`}
-            {selectedGrade && ` (직책: ${selectedGrade})`}
-          </div>
-        )}
-
-        {/* 테이블 */}
-        <div className="overflow-x-auto border rounded-xl shadow-sm">
-          <table className="w-full table-auto">
-            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0">
-              <tr className="text-left border-b-2 border-gray-300">
-                <th className="py-4 px-4 font-semibold text-gray-700">이름</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">아이디</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">전화번호</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">주소</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">은행/계좌</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">추천인</th>
-                <th className="py-4 px-4 font-semibold text-gray-700">직책</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedReviewers.length === 0 ? (
+        {/* 메인 테이블 */}
+        <div className="overflow-x-auto w-full">
+          <div className="inline-block min-w-full align-middle">
+            <table className="min-w-full w-max">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <td colSpan={7} className="text-center py-16 text-gray-500 text-lg">
-                    검색 결과가 없습니다.
-                  </td>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">이름</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">아이디</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">전화번호</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">주소</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">은행/계좌</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">추천인 ID</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">상위 심사원</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">직책</th>
                 </tr>
-              ) : (
-                sortedReviewers.map((r) => {
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {sortedReviewers.map((r) => {
                   const isNew =
                     r.created_at &&
-                    new Date(r.created_at + "T00:00:00").getFullYear() ===
-                      new Date().getFullYear() &&
-                    new Date(r.created_at + "T00:00:00").getMonth() ===
-                      new Date().getMonth();
+                    new Date(r.created_at + "T00:00:00").getMonth() === new Date().getMonth() &&
+                    new Date(r.created_at + "T00:00:00").getFullYear() === new Date().getFullYear();
+                  const isOpen = openToggles.has(r.loginID);
+                  const downline = downlineData[r.loginID] || [];
+                  const isLoading = loadingDownline.has(r.loginID);
 
                   return (
-                    <tr
-                      key={r.loginID}
-                      className="border-b border-gray-200 hover:bg-blue-50 transition-colors"
-                    >
-                      <td className="py-4 px-4 font-medium">
-                        <div className="flex items-center gap-2">
-                          {r.name}
-                          {isNew && (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold text-white bg-gradient-to-r from-red-500 to-pink-500 shadow-md animate-pulse">
-                              NEW
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600">{r.loginID}</td>
-                      <td className="py-4 px-4">{r.phnum}</td>
-                      <td className="py-4 px-4 text-sm text-gray-600">
-                        {r.address || "-"}
-                      </td>
-                      <td className="py-4 px-4 text-sm">
-                        {r.bankname && r.account
-                          ? `${r.bankname} / ${r.account}`
-                          : "-"}
-                      </td>
-                      <td className="py-4 px-4">{r.referralID || "-"}</td>
-                      <td className="py-4 px-4">
-                        <select
-                          value={r.reviewerGrade}
-                          onChange={(e) =>
-                            handleRoleChange(
-                              r.loginID,
-                              e.target.value as Reviewer["reviewerGrade"]
-                            )
-                          }
-                          className="border rounded-lg px-4 py-2 w-full text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-all"
-                        >
-                          <option value="심사원보">심사원보</option>
-                          <option value="심사위원">심사위원</option>
-                          <option value="수석심사위원">수석심사위원</option>
-                        </select>
-                      </td>
-                    </tr>
+                    <React.Fragment key={r.loginID}>
+                      <tr className="hover:bg-blue-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleDownline(r.loginID)}
+                              className="text-gray-500 hover:text-indigo-600 transition flex-shrink-0"
+                            >
+                              {isLoading ? (
+                                <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                              ) : isOpen ? (
+                                <FaChevronDown className="w-3 h-3" />
+                              ) : (
+                                <FaChevronRight className="w-3 h-3" />
+                              )}
+                            </button>
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <span className="font-semibold text-gray-900 whitespace-nowrap">{r.name}</span>
+                              {isNew && (
+                                <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-red-600 rounded whitespace-nowrap">
+                                  NEW
+                                </span>
+                              )}
+                              {downline.length > 0 && (
+                                <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded whitespace-nowrap">
+                                  리더
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.loginID}</td>
+                        <td className="py-3 px-4 text-xs text-gray-700 whitespace-nowrap">{r.phnum}</td>
+                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[200px] break-words">{r.address || "-"}</td>
+                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[180px] break-words">
+                          {r.bankname && r.account ? `${r.bankname} / ${r.account}` : "-"}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.referralID || "-"}</td>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          <span className={`font-medium ${findUplineName(r.referralID) === "-" ? "text-gray-400" : "text-indigo-700"}`}>
+                            {findUplineName(r.referralID)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={r.reviewerGrade}
+                            onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewerGrade"])}
+                            className="px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                          >
+                            <option value="심사원보">심사원보</option>
+                            <option value="심사위원">심사위원</option>
+                            <option value="수석심사위원">수석심사위원</option>
+                          </select>
+                        </td>
+                      </tr>
+
+                      {/* 하위 심사원 테이블 */}
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={8} className="p-0">
+                            <div className="border-t border-gray-200">
+                              <div className="bg-gray-50/50">
+                                <div className="p-6">
+                                  {downline.length === 0 ? (
+                                    <p className="text-center py-12 text-gray-500 italic text-lg">
+                                      아직 하위 심사원이 없습니다
+                                    </p>
+                                  ) : (
+                                    <div className="overflow-x-auto rounded-lg border border-gray-200">
+                                      <table className="w-full min-w-[900px] bg-white text-sm leading-tight">
+                                        <thead className="bg-gray-100">
+                                          <tr>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">이름</th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">아이디</th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">전화번호</th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">직책</th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">구분</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                          {downline.map((member, idx) => (
+                                            <tr key={idx} className="hover:bg-blue-50 transition">
+                                              <td className="py-4 px-6">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="font-semibold text-gray-900 whitespace-nowrap">
+                                                    {member.name}
+                                                  </span>
+                                                  <span className="px-2.5 py-1 text-xs font-bold text-white bg-gray-500 rounded flex-shrink-0">
+                                                    일반
+                                                  </span>
+                                                </div>
+                                              </td>
+                                              <td className="py-4 px-6 text-gray-600 whitespace-nowrap">
+                                                {member.loginID || "-"}
+                                              </td>
+                                              <td className="py-4 px-6 text-gray-700 whitespace-nowrap">
+                                                {member.phnum}
+                                              </td>
+                                              <td className="py-4 px-6">
+                                                <span className="px-3 py-1.5 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">
+                                                  {member.reviewerGrade}
+                                                </span>
+                                              </td>
+                                              <td className="py-4 px-6">
+                                                <span className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-full">
+                                                  하위 심사원
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* 저장 버튼 */}
-        <div className="mt-8 flex justify-end">
+        <div className="p-6 border-t border-gray-200 flex justify-end">
           <Button label="변경사항 저장" onClick={handleSave} />
         </div>
       </div>
