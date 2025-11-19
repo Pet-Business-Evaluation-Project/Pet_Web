@@ -15,9 +15,10 @@ interface Reviewer {
   address: string;
   bankname: string;
   account: string;
-  reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
+  // DB 업데이트 및 상태 관리용 필드
+  reviewergrade: "심사원보" | "심사위원" | "수석심사위원"; 
   referralID?: string;
-  referralGrade?: string; // 백엔드에서 CurrentRefferalGrade로 오는 값
+  referralGrade?: string;
   created_at: string;
 }
 
@@ -25,12 +26,13 @@ interface DownlineMember {
   name: string;
   loginID?: string;
   phnum: string;
-  reviewerGrade: string;
+  reviewerGrade: string; 
   referralGrade: string;
 }
 
 export default function ReviewerDashboard() {
   const [reviewers, setReviewers] = useState<Reviewer[]>([]);
+  const [originalReviewers, setOriginalReviewers] = useState<Reviewer[]>([]);
   const [filteredReviewers, setFilteredReviewers] = useState<Reviewer[]>([]);
   const [sortAsc, setSortAsc] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,7 +42,7 @@ export default function ReviewerDashboard() {
   const [downlineData, setDownlineData] = useState<Record<string, DownlineMember[]>>({});
   const [loadingDownline, setLoadingDownline] = useState<Set<string>>(new Set());
 
-  const roleOrder: Record<Reviewer["reviewerGrade"], number> = {
+  const roleOrder: Record<Reviewer["reviewergrade"], number> = {
     심사원보: 1,
     심사위원: 2,
     수석심사위원: 3,
@@ -57,8 +59,18 @@ export default function ReviewerDashboard() {
           credentials: "include",
         });
         if (res.ok) {
-          const data: Reviewer[] = await res.json();
+          const rawData: any[] = await res.json();
+          
+          // ⭐⭐ 수정 1: 초기 로딩 시 서버 필드(예: reviewerGrade)를 
+          // 상태 필드(reviewergrade)로 명시적 매핑하여 드롭다운 값 초기화 문제를 해결
+          const data: Reviewer[] = rawData.map(r => ({
+              ...r,
+              // 서버에서 어떤 이름으로 오든, 상태에는 'reviewergrade'로 저장
+              reviewergrade: r.reviewergrade || r.reviewerGrade || "심사원보",
+          })) as Reviewer[]; // 안전을 위해 타입 캐스팅
+          
           setReviewers(data);
+          setOriginalReviewers(data); // 원본 저장
           setFilteredReviewers(data);
         } else {
           alert("심사원 목록을 불러오지 못했습니다.");
@@ -87,7 +99,7 @@ export default function ReviewerDashboard() {
     }
 
     if (selectedGrade) {
-      filtered = filtered.filter((r) => r.reviewerGrade === selectedGrade);
+      filtered = filtered.filter((r) => r.reviewergrade === selectedGrade);
     }
 
     setFilteredReviewers(filtered);
@@ -96,8 +108,8 @@ export default function ReviewerDashboard() {
   const sortedReviewers = useMemo(() => {
     return [...filteredReviewers].sort((a, b) =>
       sortAsc
-        ? roleOrder[a.reviewerGrade] - roleOrder[b.reviewerGrade]
-        : roleOrder[b.reviewerGrade] - roleOrder[a.reviewerGrade]
+        ? roleOrder[a.reviewergrade] - roleOrder[b.reviewergrade]
+        : roleOrder[b.reviewergrade] - roleOrder[a.reviewergrade]
     );
   }, [filteredReviewers, sortAsc]);
 
@@ -160,31 +172,52 @@ export default function ReviewerDashboard() {
     }
   };
 
-  const handleRoleChange = (loginID: string, newRole: Reviewer["reviewerGrade"]) => {
+  const handleRoleChange = (loginID: string, newRole: Reviewer["reviewergrade"]) => {
     setReviewers((prev) =>
-      prev.map((r) => (r.loginID === loginID ? { ...r, reviewerGrade: newRole } : r))
+      // 이전 수정: reviewerGrade (대문자 G) 대신 reviewergrade (소문자 g)를 사용하여 상태를 업데이트
+      prev.map((r) => (r.loginID === loginID ? { ...r, reviewergrade: newRole } : r))
     );
   };
 
-  // 핵심 수정: { updates } 형태로 정확히 전송
+  // 변경된 것만 저장
   const handleSave = async () => {
-    const updates = reviewers.map((r) => ({
-      reviewer_id: r.reviewer_id,
-      reviewergrade: r.reviewerGrade, // 한글 그대로 보내도 됨 (Enum이 한글이니까!)
-    }));
+    const updates = reviewers
+      .filter((r) => {
+        const original = originalReviewers.find((o) => o.reviewer_id === r.reviewer_id);
+        // 원본과 현재 상태의 'reviewergrade' (소문자 g) 필드를 비교
+        return original && original.reviewergrade !== r.reviewergrade;
+      })
+      .map((r) => ({
+        reviewer_id: r.reviewer_id,
+        // 백엔드로 전송 시 'reviewergrade' (소문자 g)를 사용
+        reviewergrade: r.reviewergrade,
+      }));
+
+    if (updates.length === 0) {
+      alert("변경된 내용이 없습니다.");
+      return;
+    }
+
+    console.log("전송할 데이터:", JSON.stringify({ updates }, null, 2));
 
     try {
       const res = await fetch("http://petback.hysu.kr/back/mypage/admin/update", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }), // 이게 정답!
+        body: JSON.stringify({ updates }),
         credentials: "include",
       });
 
       const text = await res.text();
+      console.log("응답 상태:", res.status);
+      console.log("응답 내용:", text);
 
       if (res.ok) {
         alert("모든 변경사항이 성공적으로 저장되었습니다!");
+        
+        // 이전 수정: 새로고침 대신 상태를 업데이트하여 즉시 반영
+        setOriginalReviewers(reviewers);
+        setFilteredReviewers(reviewers); // 필터링된 목록도 최신으로 업데이트
       } else {
         alert("저장 실패: " + text);
       }
@@ -319,8 +352,8 @@ export default function ReviewerDashboard() {
                         </td>
                         <td className="py-3 px-4">
                           <select
-                            value={r.reviewerGrade}
-                            onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewerGrade"])}
+                            value={r.reviewergrade}
+                            onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewergrade"])}
                             className="px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
                           >
                             <option value="심사원보">심사원보</option>
@@ -330,7 +363,6 @@ export default function ReviewerDashboard() {
                         </td>
                       </tr>
 
-                      {/* 하위 심사원 테이블 */}
                       {isOpen && (
                         <tr>
                           <td colSpan={8} className="p-0">
