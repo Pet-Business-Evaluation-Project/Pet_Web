@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import axios, { AxiosError } from "axios";
 import Button from "../Button/Button";
 import Link from "next/link";
+import { useRouter } from "next/navigation"; // ✅ 추가
 
 interface User {
   id: number;
@@ -18,7 +19,6 @@ interface LoginFormProps {
   onClose?: () => void;
 }
 
-// ✅ 서버 응답 타입 정의
 interface LoginResponse {
   success: boolean;
   message?: string;
@@ -33,6 +33,7 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter(); // ✅ 추가
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,8 +73,9 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
         localStorage.setItem("user", JSON.stringify(userData));
 
         if (onLoginSuccess) onLoginSuccess(userData);
-        
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
+        
+        router.push("/"); // ✅ 홈화면으로 이동
       } else {
         console.log("❌ 로그인 실패:", response.data.message);
         const message = response.data.message || "로그인 실패";
@@ -92,7 +94,6 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
         console.log("- response.status:", axiosError.response?.status);
         
         if (axiosError.response?.data) {
-          // ✅ 서버에서 반환한 에러 메시지 사용
           const serverMessage = axiosError.response.data.message || 
                                "아이디 또는 비밀번호가 올바르지 않습니다.";
           
@@ -100,19 +101,16 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
           setErrorMessage(serverMessage);
           alert(serverMessage);
         } else if (axiosError.response) {
-          // response는 있지만 data가 없는 경우
           console.log("⚠️ 응답 데이터 없음");
           const message = "서버 응답 오류가 발생했습니다.";
           setErrorMessage(message);
           alert(message);
         } else if (axiosError.request) {
-          // 요청은 보냈지만 응답을 받지 못한 경우
           console.error("🌐 네트워크 오류 - 응답 없음");
           const message = "서버에 연결할 수 없습니다.";
           setErrorMessage(message);
           alert(message);
         } else {
-          // 요청 설정 중 오류
           console.error("⚙️ 요청 설정 오류:", axiosError.message);
           const message = "로그인 요청 중 오류가 발생했습니다.";
           setErrorMessage(message);
