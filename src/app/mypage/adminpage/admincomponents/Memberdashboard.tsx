@@ -16,6 +16,7 @@ interface Company {
   email: string;
   companycls: string;
   introduction: string;
+  mainsales: string;      // 주요판매상품 추가
   createdAt: string;
 }
 
@@ -23,6 +24,7 @@ interface EditableFields {
   email: string;
   companycls: string;
   introduction: string;
+  mainsales: string;      // 주요판매상품 추가
 }
 
 export default function MemberDashboard() {
@@ -35,6 +37,7 @@ export default function MemberDashboard() {
     email: "",
     companycls: "",
     introduction: "",
+    mainsales: "",        // 주요판매상품 추가
   });
 
   useEffect(() => {
@@ -84,6 +87,7 @@ export default function MemberDashboard() {
       email: company.email || "",
       companycls: company.companycls || "",
       introduction: company.introduction || "",
+      mainsales: company.mainsales || "",  // 주요판매상품 추가
     });
     setIsEditMode(true);
     setIsModalOpen(true);
@@ -113,6 +117,7 @@ export default function MemberDashboard() {
             email: editData.email,
             companycls: editData.companycls,
             introduction: editData.introduction,
+            mainsales: editData.mainsales,  // 주요판매상품 추가
           }],
         }),
       });
@@ -216,14 +221,14 @@ export default function MemberDashboard() {
                               <FaEye size={14} />
                               <span className="text-xs">상세</span>
                             </button>
-                            <button
+                            {/* <button
                               onClick={() => openEditModal(company)}
                               className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                               title="수정"
                             >
                               <FaEdit size={14} />
                               <span className="text-xs">수정</span>
-                            </button>
+                            </button> */}
                           </div>
                         </td>
                       </tr>
@@ -247,17 +252,23 @@ export default function MemberDashboard() {
 
       {/* 상세보기/수정 모달 */}
       {isModalOpen && selectedCompany && (
-        <div className="fixed inset-0 bg-white bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             {/* 모달 헤더 */}
-            <div className="sticky top-0 bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-6 rounded-t-2xl flex justify-between items-center">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                {isEditMode ? <FaEdit /> : <FaEye />}
-                {isEditMode ? "기업 정보 수정" : "기업 정보 상세보기"}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${isEditMode ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                  {isEditMode ? (
+                    <FaEdit className="text-blue-600 w-5 h-5" />
+                  ) : (
+                    <FaEye className="text-gray-600 w-5 h-5" />
+                  )}
+                </div>
+                <span>{isEditMode ? "기업 정보 수정" : "기업 정보 상세보기"}</span>
               </h3>
               <button 
                 onClick={closeModal}
-                className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-full transition-colors"
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-lg transition-colors"
               >
                 <FaTimes size={20} />
               </button>
@@ -311,6 +322,12 @@ export default function MemberDashboard() {
                         multiline
                         placeholder="회사에 대한 간단한 소개를 입력하세요"
                       />
+                      <EditField 
+                        label="주요판매상품" 
+                        value={editData.mainsales}
+                        onChange={(value) => setEditData({...editData, mainsales: value})}
+                        placeholder="예: 전자제품, 소프트웨어"
+                      />
                     </>
                   ) : (
                     <>
@@ -321,6 +338,10 @@ export default function MemberDashboard() {
                         value={selectedCompany.introduction || "-"} 
                         multiline 
                       />
+                      <InfoField 
+                        label="주요판매상품" 
+                        value={selectedCompany.mainsales || "-"} 
+                      />
                     </>
                   )}
                 </div>
@@ -328,17 +349,17 @@ export default function MemberDashboard() {
             </div>
 
             {/* 모달 푸터 */}
-            <div className="sticky bottom-0 bg-gray-50 p-6 rounded-b-2xl flex justify-end gap-3 border-t">
+            <div className="sticky bottom-0 bg-white p-6 rounded-b-2xl flex justify-end gap-3 border-t border-gray-200">
               <button
                 onClick={closeModal}
-                className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
                 {isEditMode ? "취소" : "닫기"}
               </button>
               {isEditMode && (
                 <button
                   onClick={handleSave}
-                  className="px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                  className="px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium shadow-sm"
                 >
                   저장
                 </button>
