@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FaChartLine, FaUsers, FaBuilding, FaClipboardCheck } from "react-icons/fa";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface DashboardStats {
   totalReviewers: number;
@@ -11,20 +11,17 @@ interface DashboardStats {
   completedReviews: number;
 }
 
-interface ExpenseData {
+interface ChartData {
   name: string;
   value: number;
-}
-
-interface RevenueData {
-  name: string;
-  value: number;
+  [key: string]: string | number;
 }
 
 interface PaymentData {
   name: string;
   value: number;
   status: "지급" | "미지급";
+  [key: string]: string | number;
 }
 
 export default function Dashboard() {
@@ -35,28 +32,16 @@ export default function Dashboard() {
     completedReviews: 0,
   });
 
-  const [expenseData, setExpenseData] = useState<any[]>([]);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [expenseData, setExpenseData] = useState<ChartData[]>([]);
+  const [revenueData, setRevenueData] = useState<ChartData[]>([]);
   const [paymentData, setPaymentData] = useState<PaymentData[]>([]);
   const [activePaymentTab, setActivePaymentTab] = useState<"all" | "paid" | "unpaid">("all");
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpense, setTotalExpense] = useState(0);
 
-  // TODO: 백엔드에서 통계 데이터 가져오기
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // 여기에 통계 데이터 API 호출 로직 추가
-        // const res = await fetch("https://www.kcci.co.kr/back/mypage/admin/stats", {
-        //   method: "GET",
-        //   credentials: "include",
-        // });
-        // if (res.ok) {
-        //   const data = await res.json();
-        //   setStats(data);
-        // }
-        
-        // 임시 데이터
         setStats({
           totalReviewers: 24,
           totalCompanies: 156,
@@ -64,8 +49,7 @@ export default function Dashboard() {
           completedReviews: 342,
         });
 
-        // 지출 데이터
-        const expenses = [
+        const expenses: ChartData[] = [
           { name: "영업비", value: 15000000 },
           { name: "심사비", value: 25000000 },
           { name: "수수료", value: 8000000 },
@@ -75,8 +59,7 @@ export default function Dashboard() {
         setExpenseData(expenses);
         setTotalExpense(expenses.reduce((sum, item) => sum + item.value, 0));
 
-        // 매출 데이터
-        const revenues = [
+        const revenues: ChartData[] = [
           { name: "인증비", value: 45000000 },
           { name: "교육비", value: 28000000 },
           { name: "쇼핑몰", value: 12000000 },
@@ -84,7 +67,6 @@ export default function Dashboard() {
         setRevenueData(revenues);
         setTotalRevenue(revenues.reduce((sum, item) => sum + item.value, 0));
 
-        // 지급 필요 금액 데이터
         const payments: PaymentData[] = [
           { name: "영업비", value: 15000000, status: "지급" },
           { name: "심사비", value: 25000000, status: "미지급" },
@@ -101,12 +83,9 @@ export default function Dashboard() {
     fetchStats();
   }, []);
 
-  // 차트 색상
   const EXPENSE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
   const REVENUE_COLORS = ["#06B6D4", "#84CC16", "#F97316"];
-  const PAYMENT_COLORS = ["#F97316", "#14B8A6", "#8B5CF6", "#EC4899", "#F59E0B"];
 
-  // 지급 필요 금액 필터링
   const getFilteredPaymentData = () => {
     if (activePaymentTab === "paid") {
       return paymentData.filter(item => item.status === "지급");
@@ -178,7 +157,6 @@ export default function Dashboard() {
 
         {/* 매출/지출 현황 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* 총 매출 현황 카드 */}
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
             <h3 className="text-lg font-semibold mb-2 opacity-90">총 매출</h3>
             <p className="text-4xl font-bold mb-1">
@@ -187,7 +165,6 @@ export default function Dashboard() {
             <p className="text-sm opacity-80">이번 달 기준</p>
           </div>
 
-          {/* 총 지출 현황 카드 */}
           <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white">
             <h3 className="text-lg font-semibold mb-2 opacity-90">총 지출</h3>
             <p className="text-4xl font-bold mb-1">
@@ -196,7 +173,6 @@ export default function Dashboard() {
             <p className="text-sm opacity-80">이번 달 기준</p>
           </div>
 
-          {/* 순이익 현황 카드 */}
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
             <h3 className="text-lg font-semibold mb-2 opacity-90">순이익</h3>
             <p className="text-4xl font-bold mb-1">
@@ -208,7 +184,6 @@ export default function Dashboard() {
 
         {/* 지출 현황 차트 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* 지출 막대 그래프 */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <div className="w-1 h-6 bg-red-500 rounded"></div>
@@ -219,10 +194,7 @@ export default function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value: number) => `${value.toLocaleString()}원`}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
+                <Tooltip formatter={(value: number) => `${value.toLocaleString()}원`} />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                   {expenseData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index]} />
@@ -232,7 +204,6 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* 지출 원 그래프 */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <div className="w-1 h-6 bg-red-500 rounded"></div>
@@ -245,7 +216,7 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -285,7 +256,7 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
@@ -331,7 +302,6 @@ export default function Dashboard() {
             </h3>
           </div>
           
-          {/* 탭 버튼 */}
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => setActivePaymentTab("all")}
@@ -365,17 +335,13 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* 막대 그래프 */}
           <div className="mb-6">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={filteredPaymentData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value: number) => `${value.toLocaleString()}원`}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
+                <Tooltip formatter={(value: number) => `${value.toLocaleString()}원`} />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                   {filteredPaymentData.map((entry, index) => (
                     <Cell 
@@ -388,7 +354,6 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
           
-          {/* 테이블 */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -438,7 +403,6 @@ export default function Dashboard() {
         <div className="bg-gray-50 rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-4">최근 활동</h3>
           <div className="space-y-3">
-            {/* TODO: 실제 최근 활동 데이터로 교체 */}
             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
               <div>
                 <p className="font-medium">새로운 심사원 등록</p>
