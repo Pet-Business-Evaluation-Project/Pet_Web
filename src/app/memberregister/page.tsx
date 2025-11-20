@@ -81,7 +81,7 @@ export default function MemberRegister() {
   const fetchMySigns = async () => {
     if (!currentUser?.id) return;
     try {
-      if (currentUser.id === 117) {
+      if (currentUser.classification === "관리자") {
         const res = await axios.get<SignStart[]>(
           "http://petback.hysu.kr/back/signstart/all",
           { headers: { "X-USER-ID": currentUser.id } }
@@ -122,7 +122,7 @@ export default function MemberRegister() {
   const handleClick = async (sign: SignStart) => {
     if (!currentUser?.id) return;
     try {
-      if (currentUser.id !== 117) {
+      if (currentUser.classification !== "관리자") {
         const reviewerRes = await axios.post(
           "http://petback.hysu.kr/back/user/reviwerinfo",
           { userId: currentUser.id },
@@ -161,7 +161,7 @@ export default function MemberRegister() {
     if (!currentSign) return;
     setSaving(true);
     try {
-      if (currentUser.id === 117 && currentSign.membergrade) {
+      if (currentUser.classification === "관리자" && currentSign.membergrade) {
         await axios.put(
           `http://petback.hysu.kr/back/signstart/updatebysign/${currentSign.signId}`,
           currentSign,
@@ -235,8 +235,8 @@ export default function MemberRegister() {
 
   // 상세 화면
   if (currentSign) {
-    const isAdmin = currentUser?.id === 117;
-    const isReviewer = currentUser?.id !== 117;
+    const isAdmin = currentUser?.classification === "관리자";
+    const isReviewer = currentUser?.classification !== "관리자";
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
