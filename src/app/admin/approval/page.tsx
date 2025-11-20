@@ -114,7 +114,7 @@ export default function AdminApprovalPage() {
           break;
       }
 
-      const res = await fetch(`http://www.kcci.co.kr/back${endpoint}`, {
+      const res = await fetch(`https://www.kcci.co.kr/back${endpoint}`, {
         credentials: "include",
       });
 
@@ -139,7 +139,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -175,7 +175,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/reject/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
+        `https://www.kcci.co.kr/back/admin/approval/reject/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
           method: "POST",
           credentials: "include",
@@ -203,7 +203,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -229,7 +229,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -265,7 +265,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/reject-approved/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
+        `https://www.kcci.co.kr/back/admin/approval/reject-approved/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
           method: "POST",
           credentials: "include",
@@ -293,7 +293,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://www.kcci.co.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
