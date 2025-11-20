@@ -38,12 +38,62 @@ export default function MemberSignDashboard() {
   const [assignedSignStarts, setAssignedSignStarts] = useState<SignStart[]>([]);
   const [selectedSignId, setSelectedSignId] = useState<number | null>(null);
   const [allSignStarts, setAllSignStarts] = useState<SignStart[]>([]);
+  const [adminUserId, setAdminUserId] = useState<number | null>(null);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
-  const adminUserId = 117;
   const BASE_URL = "http://petback.hysu.kr/back";
+
+ // localStorage에서 사용자 정보 확인 및 관리자 권한 체크
+  useEffect(() => {
+    const checkAdminAuth = () => {
+      try {
+        // "userData"가 아닌 "user"로 변경
+        const userStr = localStorage.getItem("user");
+        console.log("📦 userStr:", userStr);
+        
+        if (!userStr) {
+          alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
+          setIsAuthorized(false);
+          return;
+        }
+
+        const user = JSON.parse(userStr);
+        console.log("👤 파싱된 user:", user);
+        
+        // classification이 "관리자"인지 확인
+        if (user.classification !== "관리자") {
+          alert("관리자 권한이 필요합니다.");
+          setIsAuthorized(false);
+          return;
+        }
+
+        // userId 확인
+        const userId = user.id;
+        console.log("🆔 추출된 userId:", userId);
+        
+        if (!userId) {
+          alert("사용자 ID를 찾을 수 없습니다.");
+          setIsAuthorized(false);
+          return;
+        }
+
+        setAdminUserId(userId);
+        setIsAuthorized(true);
+        console.log("✅ 관리자 인증 완료, userId:", userId);
+      } catch (error) {
+        console.error("❌ 사용자 정보 확인 중 오류:", error);
+        alert("사용자 정보를 확인할 수 없습니다.");
+        setIsAuthorized(false);
+      }
+    };
+
+    checkAdminAuth();
+  }, []);
 
   // 전체 SignStart 목록 가져오기
   useEffect(() => {
+    if (!isAuthorized || !adminUserId) return;
+
     fetch(`${BASE_URL}/signstart/all`, {
       headers: { "X-USER-ID": adminUserId.toString() },
     })
@@ -65,9 +115,11 @@ export default function MemberSignDashboard() {
         console.error("전체 SignStart 조회 실패:", err);
         setAllSignStarts([]);
       });
-  }, []);
+  }, [isAuthorized, adminUserId]);
 
   useEffect(() => {
+    if (!isAuthorized || !adminUserId) return;
+
     fetch(`${BASE_URL}/mypage/admin/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -87,9 +139,11 @@ export default function MemberSignDashboard() {
         console.error("Member fetch 실패:", err);
         setMembers([]);
       });
-  }, []);
+  }, [isAuthorized, adminUserId]);
 
   useEffect(() => {
+    if (!isAuthorized || !adminUserId) return;
+
     fetch(`${BASE_URL}/mypage/admin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -113,21 +167,18 @@ export default function MemberSignDashboard() {
         console.error("Reviewer fetch 실패:", err);
         setReviewers([]);
       });
-  }, []);
+  }, [isAuthorized, adminUserId]);
 
   // 선택된 기업의 SignStart 필터링
   useEffect(() => {
+    if (!isAuthorized || !adminUserId) return;
+    
     if (!selectedMember) {
       setAssignedSignStarts([]);
       setSelectedSignId(null);
       return;
     }
 
-    // 전체 SignStart 중에서 선택된 memberId와 연결된 Sign을 찾기
-    // Sign 테이블을 조회하는 대신, 기업명으로 필터링하거나
-    // 기존 데이터에서 찾기
-
-    // 임시로: 전체 목록에서 필터링 (실제로는 API 호출 필요)
     fetch(`${BASE_URL}/signstart/all`, {
       headers: { "X-USER-ID": adminUserId.toString() },
     })
@@ -145,7 +196,6 @@ export default function MemberSignDashboard() {
           signtype: item.signtype || item.signType || null
         })) : [];
 
-        // 선택된 기업의 이름으로 필터링
         const selectedMemberName = members.find(m => m.memberId === selectedMember)?.name;
         const filtered = mappedData.filter(item =>
           item.memberName === selectedMemberName
@@ -157,7 +207,7 @@ export default function MemberSignDashboard() {
         console.error(err);
         setAssignedSignStarts([]);
       });
-  }, [selectedMember, members]);
+  }, [selectedMember, members, isAuthorized, adminUserId]);
 
   const toggleReviewer = (reviewerId: number) => {
     setSelectedReviewers(prev =>
@@ -168,6 +218,11 @@ export default function MemberSignDashboard() {
   };
 
   const createSignWithReviewers = async () => {
+    if (!isAuthorized || !adminUserId) {
+      alert("관리자 권한이 필요합니다.");
+      return;
+    }
+
     if (!selectedMember || selectedReviewers.length === 0)
       return alert("기업 및 심사원을 선택하세요.");
 
@@ -188,7 +243,7 @@ export default function MemberSignDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("인증 생성 실패");
+      if (!res.ok) throw new Error("Sign 생성 실패");
 
       const data = await res.json();
       const mappedData = Array.isArray(data) ? data.map(item => ({
@@ -205,22 +260,26 @@ export default function MemberSignDashboard() {
       setAssignedSignStarts(mappedData);
 
       setSelectedReviewers([]);
-      alert("신규 인증 등록 완료");
+      alert("신규 인증 생성 완료!");
     } catch (err) {
       console.error(err);
-      alert("Sign 생성 실패");
+      alert("인증 생성 실패");
     }
   };
 
   const addReviewersToSign = async () => {
+    if (!isAuthorized || !adminUserId) {
+      alert("관리자 권한이 필요합니다.");
+      return;
+    }
+
     if (!selectedMember || selectedReviewers.length === 0)
       return alert("기업 및 심사원을 선택하세요.");
 
-    // selectedSignId가 있으면 사용, 없으면 첫 번째 Sign 사용
     const targetSignId = selectedSignId || (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
 
     if (!targetSignId) {
-      return alert("기존 인증이 없습니다. 먼저 '신규 인증 등록' 버튼을 사용하세요.");
+      return alert("기존 Sign이 없습니다. 먼저 '신규 Sign 생성' 버튼을 사용하세요.");
     }
 
     const payload = {
@@ -264,6 +323,11 @@ export default function MemberSignDashboard() {
   };
 
   const deleteSignStart = async (signstartId: number) => {
+    if (!isAuthorized || !adminUserId) {
+      alert("관리자 권한이 필요합니다.");
+      return;
+    }
+
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
@@ -282,24 +346,21 @@ export default function MemberSignDashboard() {
     }
   };
 
-  const deleteEntireSign = async (signId: number) => {
-    try {
-     await fetch(`${BASE_URL}/signstart/deletesign/${signId}`, { method: "DELETE", headers: { "X-USER-ID": adminUserId.toString() }});
-
-      setAssignedSignStarts(prev => prev.filter(a => a.signId !== signId));
-      alert("인증 정보 삭제 완료");
-    } catch(err) {
-      console.error(err);
-      alert("삭제 실패");
-    }
-  };
-
-  const selectedSignInfo = selectedSignId
-    ? assignedSignStarts.find(s => s.signId === selectedSignId)
-    : null;
-
-
   const filteredMembers = members.filter(m => m.name.includes(memberSearch));
+
+  // 권한이 없을 때 표시할 화면
+  if (!isAuthorized) {
+    return (
+      <div className="flex-1 max-w-full">
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">접근 권한 없음</h2>
+            <p className="text-gray-600">관리자 권한이 필요한 페이지입니다.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 max-w-full">
@@ -411,19 +472,21 @@ export default function MemberSignDashboard() {
             onClick={addReviewersToSign}
             disabled={!selectedMember || selectedReviewers.length === 0 || assignedSignStarts.length === 0}
           >
-            기존 인증 심사원 추가
-            {selectedSignId && <span className="ml-2 text-xs">(Sign ID: {selectedSignId})</span>}
+            기존 인증에 심사원 추가
           </button>
         </div>
 
         <div className="mt-6">
           <h3 className="text-xl font-semibold mb-4">
-            인증 현황
-            {selectedSignId && (
-              <span className="ml-3 text-sm text-blue-600">
-                (기업명: 수정해야됨{}, 인증 종류 : {})
-              </span>
-            )}
+            배정 현황
+            {selectedSignId && (() => {
+              const selectedSign = assignedSignStarts.find(item => item.signId === selectedSignId);
+              return selectedSign ? (
+                <span className="ml-3 text-sm text-blue-600">
+                  (기업명: {selectedSign.memberName}, 인증 종류: {selectedSign.signtype || "미정"})
+                </span>
+              ) : null;
+            })()}
           </h3>
           {assignedSignStarts.length === 0 ? (
             <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">배정된 심사원이 없습니다.</div>
@@ -441,7 +504,6 @@ export default function MemberSignDashboard() {
                 </thead>
                 <tbody>
                   {(() => {
-                    // signId로 그룹화
                     const groupedBySignId = assignedSignStarts.reduce((acc, item) => {
                       if (!acc[item.signId]) {
                         acc[item.signId] = [];
@@ -452,8 +514,6 @@ export default function MemberSignDashboard() {
 
                     return Object.values(groupedBySignId).map(group => {
                       const first = group[0];
-                      const allComplete = group.every(item => item.reviewComplete === 'Y');
-                      const someComplete = group.some(item => item.reviewComplete === 'Y');
                       const isSelected = selectedSignId === first.signId;
 
                       return (
@@ -478,7 +538,7 @@ export default function MemberSignDashboard() {
                                   <button
                                     className="text-red-500 hover:text-red-700 text-xs"
                                     onClick={(e) => {
-                                      e.stopPropagation(); // 행 클릭 이벤트 방지
+                                      e.stopPropagation();
                                       deleteSignStart(item.signstartId);
                                     }}
                                     title="삭제"
@@ -493,13 +553,13 @@ export default function MemberSignDashboard() {
                             <button
                               className="text-red-500 hover:text-red-700 font-medium hover:underline"
                               onClick={async (e) => {
-                                e.stopPropagation(); // 행 클릭 이벤트 방지
-                                if (!confirm(`인증을 삭제하시겠습니까?`)) return;
+                                e.stopPropagation();
+                                if (!confirm(`이 인증(Sign ID: ${first.signId})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
 
                                 try {
                                   const res = await fetch(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
                                     method: "DELETE",
-                                    headers: { "X-USER-ID": adminUserId.toString() },
+                                    headers: { "X-USER-ID": adminUserId!.toString() },
                                   });
 
                                   if (!res.ok) {
@@ -508,9 +568,8 @@ export default function MemberSignDashboard() {
                                     throw new Error(errorBody?.message || "삭제 실패");
                                   }
 
-                                  // 삭제 성공 시 상태 업데이트
                                   setAssignedSignStarts(prev => prev.filter(a => a.signId !== first.signId));
-                                  alert("인증 삭제 완료");
+                                  alert("Sign 및 관련 SignStart 모두 삭제 완료");
                                 } catch (err) {
                                   console.error("삭제 실패:", err);
                                   alert("삭제 실패");
