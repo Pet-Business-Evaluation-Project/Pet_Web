@@ -134,8 +134,9 @@ export default function MemberSignDashboard() {
         const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
         // Note: We're not using setAllSignStarts anymore since the variable was removed
       })
-      .catch(() => {
-        // Error handling - variable removed
+      .catch(err => {
+        console.error("전체 인증 목록 조회 실패:", err);
+        setAllSignStarts([]);
       });
   }, [isAuthorized, adminUserId]);
 
@@ -255,7 +256,7 @@ export default function MemberSignDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Sign 생성 실패");
+      if (!res.ok) throw new Error("인증 생성 실패");
 
       const data: SignStartRaw[] = await res.json();
       const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
@@ -282,7 +283,7 @@ export default function MemberSignDashboard() {
     const targetSignId = selectedSignId || (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
 
     if (!targetSignId) {
-      return alert("기존 Sign이 없습니다. 먼저 '신규 Sign 생성' 버튼을 사용하세요.");
+      return alert("기존 인증이 없습니다. 먼저 '신규 인증 생성' 버튼을 사용하세요.");
     }
 
     const payload = {
@@ -547,7 +548,7 @@ export default function MemberSignDashboard() {
                               className="text-red-500 hover:text-red-700 font-medium hover:underline"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                if (!confirm(`이 인증(Sign ID: ${first.signId})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
+                                if (!confirm(`이 인증(기업명: ${first.memberName}, 인증 종류: ${first.signtype || "미정"})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
 
                                 try {
                                   const res = await fetch(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
@@ -562,7 +563,7 @@ export default function MemberSignDashboard() {
                                   }
 
                                   setAssignedSignStarts(prev => prev.filter(a => a.signId !== first.signId));
-                                  alert("Sign 및 관련 SignStart 모두 삭제 완료");
+                                  alert("인증 삭제 완료!");
                                 } catch (err) {
                                   console.error("삭제 실패:", err);
                                   alert("삭제 실패");
