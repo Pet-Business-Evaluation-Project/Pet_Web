@@ -188,7 +188,7 @@ export default function MemberSignDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Sign 생성 실패");
+      if (!res.ok) throw new Error("인증 생성 실패");
 
       const data = await res.json();
       const mappedData = Array.isArray(data) ? data.map(item => ({
@@ -205,7 +205,7 @@ export default function MemberSignDashboard() {
       setAssignedSignStarts(mappedData);
 
       setSelectedReviewers([]);
-      alert("신규 Sign 생성 및 배정 완료");
+      alert("신규 인증 등록 완료");
     } catch (err) {
       console.error(err);
       alert("Sign 생성 실패");
@@ -220,7 +220,7 @@ export default function MemberSignDashboard() {
     const targetSignId = selectedSignId || (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
 
     if (!targetSignId) {
-      return alert("기존 Sign이 없습니다. 먼저 '신규 Sign 생성' 버튼을 사용하세요.");
+      return alert("기존 인증이 없습니다. 먼저 '신규 인증 등록' 버튼을 사용하세요.");
     }
 
     const payload = {
@@ -287,12 +287,16 @@ export default function MemberSignDashboard() {
      await fetch(`${BASE_URL}/signstart/deletesign/${signId}`, { method: "DELETE", headers: { "X-USER-ID": adminUserId.toString() }});
 
       setAssignedSignStarts(prev => prev.filter(a => a.signId !== signId));
-      alert("Sign 및 관련 SignStart 모두 삭제 완료");
+      alert("인증 정보 삭제 완료");
     } catch(err) {
       console.error(err);
       alert("삭제 실패");
     }
   };
+
+  const selectedSignInfo = selectedSignId
+    ? assignedSignStarts.find(s => s.signId === selectedSignId)
+    : null;
 
 
   const filteredMembers = members.filter(m => m.name.includes(memberSearch));
@@ -400,24 +404,24 @@ export default function MemberSignDashboard() {
             onClick={createSignWithReviewers}
             disabled={!selectedMember || selectedReviewers.length === 0}
           >
-            신규 Sign 생성 + 배정
+            신규 인증 생성
           </button>
           <button
             className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 disabled:bg-gray-300 transition"
             onClick={addReviewersToSign}
             disabled={!selectedMember || selectedReviewers.length === 0 || assignedSignStarts.length === 0}
           >
-            기존 Sign에 심사원 추가
+            기존 인증 심사원 추가
             {selectedSignId && <span className="ml-2 text-xs">(Sign ID: {selectedSignId})</span>}
           </button>
         </div>
 
         <div className="mt-6">
           <h3 className="text-xl font-semibold mb-4">
-            배정 현황
+            인증 현황
             {selectedSignId && (
               <span className="ml-3 text-sm text-blue-600">
-                (선택된 Sign ID: {selectedSignId})
+                (기업명: 수정해야됨{}, 인증 종류 : {})
               </span>
             )}
           </h3>
@@ -490,7 +494,7 @@ export default function MemberSignDashboard() {
                               className="text-red-500 hover:text-red-700 font-medium hover:underline"
                               onClick={async (e) => {
                                 e.stopPropagation(); // 행 클릭 이벤트 방지
-                                if (!confirm(`이 인증(Sign ID: ${first.signId})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
+                                if (!confirm(`인증을 삭제하시겠습니까?`)) return;
 
                                 try {
                                   const res = await fetch(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
@@ -506,7 +510,7 @@ export default function MemberSignDashboard() {
 
                                   // 삭제 성공 시 상태 업데이트
                                   setAssignedSignStarts(prev => prev.filter(a => a.signId !== first.signId));
-                                  alert("Sign 및 관련 SignStart 모두 삭제 완료");
+                                  alert("인증 삭제 완료");
                                 } catch (err) {
                                   console.error("삭제 실패:", err);
                                   alert("삭제 실패");
