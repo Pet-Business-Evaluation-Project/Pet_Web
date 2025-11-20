@@ -64,6 +64,25 @@ export default function MemberSignDashboard() {
 
   const BASE_URL = "https://www.kcci.co.kr/back";
 
+  // 🔥 공통 fetch 함수 - credentials를 항상 포함
+  const fetchWithAuth = (url: string, options: RequestInit = {}) => {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    // adminUserId가 있으면 X-USER-ID 헤더 추가
+    if (adminUserId) {
+      (headers as Record<string, string>)["X-USER-ID"] = adminUserId.toString();
+    }
+
+    return fetch(url, {
+      credentials: "include", // 항상 세션 쿠키 포함
+      ...options,
+      headers,
+    });
+  };
+
   // Helper function to map raw data to SignStart
   const mapToSignStart = (item: SignStartRaw): SignStart => ({
     signstartId: item.signstartId || item.signStartId || item.id || 0,
@@ -76,7 +95,7 @@ export default function MemberSignDashboard() {
     signtype: item.signtype || item.signType || null
   });
 
- // localStorage에서 사용자 정보 확인 및 관리자 권한 체크
+  // localStorage에서 사용자 정보 확인 및 관리자 권한 체크
   useEffect(() => {
     const checkAdminAuth = () => {
       try {
@@ -126,26 +145,23 @@ export default function MemberSignDashboard() {
   useEffect(() => {
     if (!isAuthorized || !adminUserId) return;
 
-    fetch(`${BASE_URL}/signstart/all`, {
-      headers: { "X-USER-ID": adminUserId.toString() },
-    })
+    fetchWithAuth(`${BASE_URL}/signstart/all`)
       .then(res => res.json())
       .then((data: SignStartRaw[]) => {
         const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
-        // Note: We're not using setAllSignStarts anymore since the variable was removed
+        console.log("✅ 전체 SignStart 목록 로드 성공:", mappedData.length);
       })
       .catch(err => {
-        console.error("전체 인증 목록 조회 실패:", err);
+        console.error("❌ 전체 인증 목록 조회 실패:", err);
       });
   }, [isAuthorized, adminUserId]);
 
+  // Member 목록 가져오기
   useEffect(() => {
     if (!isAuthorized || !adminUserId) return;
 
-    fetch(`${BASE_URL}/mypage/admin/members`, {
+    fetchWithAuth(`${BASE_URL}/mypage/admin/members`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ classification: "관리자" })
     })
       .then(res => res.json())
@@ -156,20 +172,20 @@ export default function MemberSignDashboard() {
             memberId: d.memberId,
             name: d.name || `기업${d.memberId}`
           })));
+        console.log("✅ Member 목록 로드 성공:", list.length);
       })
       .catch(err => {
-        console.error("Member fetch 실패:", err);
+        console.error("❌ Member fetch 실패:", err);
         setMembers([]);
       });
   }, [isAuthorized, adminUserId]);
 
+  // Reviewer 목록 가져오기
   useEffect(() => {
     if (!isAuthorized || !adminUserId) return;
 
-    fetch(`${BASE_URL}/mypage/admin`, {
+    fetchWithAuth(`${BASE_URL}/mypage/admin`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
       body: JSON.stringify({ classification: "관리자" })
     })
       .then(res => res.json())
@@ -184,9 +200,10 @@ export default function MemberSignDashboard() {
             phnum: d.phnum,
             grade: d.grade || '-'
           })));
+        console.log("✅ Reviewer 목록 로드 성공:", list.length);
       })
       .catch(err => {
-        console.error("Reviewer fetch 실패:", err);
+        console.error("❌ Reviewer fetch 실패:", err);
         setReviewers([]);
       });
   }, [isAuthorized, adminUserId]);
@@ -201,9 +218,7 @@ export default function MemberSignDashboard() {
       return;
     }
 
-    fetch(`${BASE_URL}/signstart/all`, {
-      headers: { "X-USER-ID": adminUserId.toString() },
-    })
+    fetchWithAuth(`${BASE_URL}/signstart/all`)
       .then(res => res.json())
       .then((data: SignStartRaw[]) => {
         const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
@@ -214,9 +229,10 @@ export default function MemberSignDashboard() {
         );
 
         setAssignedSignStarts(filtered);
+        console.log("✅ 선택된 기업의 SignStart 필터링 완료:", filtered.length);
       })
       .catch(err => {
-        console.error(err);
+        console.error("❌ SignStart 필터링 실패:", err);
         setAssignedSignStarts([]);
       });
   }, [selectedMember, members, isAuthorized, adminUserId]);
@@ -235,8 +251,10 @@ export default function MemberSignDashboard() {
       return;
     }
 
-    if (!selectedMember || selectedReviewers.length === 0)
-      return alert("기업 및 심사원을 선택하세요.");
+    if (!selectedMember || selectedReviewers.length === 0) {
+      alert("기업 및 심사원을 선택하세요.");
+      return;
+    }
 
     const payload = {
       memberId: selectedMember,
@@ -246,12 +264,8 @@ export default function MemberSignDashboard() {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/signstart/create`, {
+      const res = await fetchWithAuth(`${BASE_URL}/signstart/create`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-USER-ID": adminUserId.toString()
-        },
         body: JSON.stringify(payload),
       });
 
@@ -261,11 +275,11 @@ export default function MemberSignDashboard() {
       const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
       setAssignedSignStarts(mappedData);
-
       setSelectedReviewers([]);
       alert("신규 인증 생성 완료!");
+      console.log("✅ 신규 인증 생성 성공:", mappedData.length);
     } catch (err) {
-      console.error(err);
+      console.error("❌ 인증 생성 실패:", err);
       alert("인증 생성 실패");
     }
   };
@@ -276,13 +290,16 @@ export default function MemberSignDashboard() {
       return;
     }
 
-    if (!selectedMember || selectedReviewers.length === 0)
-      return alert("기업 및 심사원을 선택하세요.");
+    if (!selectedMember || selectedReviewers.length === 0) {
+      alert("기업 및 심사원을 선택하세요.");
+      return;
+    }
 
     const targetSignId = selectedSignId || (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
 
     if (!targetSignId) {
-      return alert("기존 인증이 없습니다. 먼저 '신규 인증 생성' 버튼을 사용하세요.");
+      alert("기존 인증이 없습니다. 먼저 '신규 인증 생성' 버튼을 사용하세요.");
+      return;
     }
 
     const payload = {
@@ -291,12 +308,8 @@ export default function MemberSignDashboard() {
     };
 
     try {
-      const res = await fetch(`${BASE_URL}/signstart/addreviewers`, {
+      const res = await fetchWithAuth(`${BASE_URL}/signstart/addreviewers`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-USER-ID": adminUserId.toString()
-        },
         body: JSON.stringify(payload),
       });
 
@@ -306,11 +319,11 @@ export default function MemberSignDashboard() {
       const newSignStarts = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
       setAssignedSignStarts([...assignedSignStarts, ...newSignStarts]);
-
       setSelectedReviewers([]);
       alert(`${newSignStarts.length}명의 심사원이 추가되었습니다.`);
+      console.log("✅ 심사원 추가 성공:", newSignStarts.length);
     } catch (err) {
-      console.error(err);
+      console.error("❌ 심사원 추가 실패:", err);
       alert("심사원 추가 실패");
     }
   };
@@ -324,17 +337,17 @@ export default function MemberSignDashboard() {
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      const res = await fetch(`${BASE_URL}/signstart/delete/${signstartId}`, {
+      const res = await fetchWithAuth(`${BASE_URL}/signstart/delete/${signstartId}`, {
         method: "DELETE",
-        headers: { "X-USER-ID": adminUserId.toString() },
       });
 
       if (!res.ok) throw new Error("삭제 실패");
 
       setAssignedSignStarts(prev => prev.filter(a => a.signstartId !== signstartId));
       alert("삭제 완료");
+      console.log("✅ SignStart 삭제 성공:", signstartId);
     } catch (err) {
-      console.error(err);
+      console.error("❌ 삭제 실패:", err);
       alert("삭제 실패");
     }
   };
@@ -550,21 +563,21 @@ export default function MemberSignDashboard() {
                                 if (!confirm(`이 인증(기업명: ${first.memberName}, 인증 종류: ${first.signtype || "미정"})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
 
                                 try {
-                                  const res = await fetch(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
+                                  const res = await fetchWithAuth(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
                                     method: "DELETE",
-                                    headers: { "X-USER-ID": adminUserId!.toString() },
                                   });
 
                                   if (!res.ok) {
                                     const errorBody = await res.json();
-                                    console.error("DELETE 에러:", errorBody);
+                                    console.error("❌ DELETE 에러:", errorBody);
                                     throw new Error(errorBody?.message || "삭제 실패");
                                   }
 
                                   setAssignedSignStarts(prev => prev.filter(a => a.signId !== first.signId));
                                   alert("인증 삭제 완료!");
+                                  console.log("✅ 인증 전체 삭제 성공:", first.signId);
                                 } catch (err) {
-                                  console.error("삭제 실패:", err);
+                                  console.error("❌ 삭제 실패:", err);
                                   alert("삭제 실패");
                                 }
                               }}
