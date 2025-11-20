@@ -7,7 +7,7 @@ interface SignStart {
   signstartId: number;
   signId: number;
   reviewerId: number;
-  signtype?: string;
+  signtype?: string | null;
   membergrade?: string;
   signstate?: string;
   signdate?: string;
@@ -42,7 +42,7 @@ export default function MemberRegister() {
   const [reviewersList, setReviewersList] = useState<ReviewerListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const signtypeOptions = ['동물기업인증','우수제품인증','친환경기업인증','동물복지기업인증','동물복지제품인증'];
+  const signtypeOptions = ['미정','동물기업인증','우수제품인증','친환경기업인증','동물복지기업인증','동물복지제품인증'];
   const signstateOptions = ['보완','부적합','완료'];
   const reviewcompleteOptions = ['진행중','심사완료'];
   const affairdoOptions = ['시행','미시행'];
@@ -160,6 +160,9 @@ export default function MemberRegister() {
       setCurrentSign({ ...currentSign, [field]: Number(value) });
     } else if (field === "membergrade") {
       setCurrentSign({ ...currentSign, [field]: reverseMembergradeMap[value] });
+    } else if (field === "signtype") {
+      // '미정'을 선택하면 null로 저장
+      setCurrentSign({ ...currentSign, [field]: value === "미정" ? null : value });
     } else {
       setCurrentSign({ ...currentSign, [field]: value });
     }
@@ -258,11 +261,13 @@ export default function MemberRegister() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-600 block">인증 종류</label>
                 <select
-                  value={currentSign.signtype || ""}
+                  value={currentSign.signtype || "미정"}
                   onChange={e => handleChange("signtype", e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50"
                 >
-                  {signtypeOptions.map(opt => (<option key={opt} value={opt}>{opt}</option>))}
+                  {signtypeOptions
+                    .filter(opt => opt === "미정" ? !currentSign.signtype : true)
+                    .map(opt => (<option key={opt} value={opt}>{opt}</option>))}
                 </select>
               </div>
 
@@ -462,7 +467,8 @@ export default function MemberRegister() {
                 <tr className="bg-gradient-to-r from-blue-50 to-purple-50">
                   <th className="px-8 py-5 text-left text-sm font-semibold text-gray-700">기업명</th>
                   <th className="px-8 py-5 text-left text-sm font-semibold text-gray-700">기업 규모</th>
-                  <th className="px-8 py-5 text-left text-sm font-semibold text-gray-700">인증 상태</th>
+                  <th className="px-8 py-5 text-left text-sm font-semibold text-gray-700">인증 종류</th>
+                  <th className="px-8 py-5 text-left text-sm font-semibold text-gray-700">심사 상태</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -476,20 +482,24 @@ export default function MemberRegister() {
                       <td className="px-8 py-5 text-gray-800 font-medium">{sign.name || "기업명 미기재"}</td>
                       <td className="px-8 py-5 text-gray-700">{sign.membergrade ? membergradeMap[sign.membergrade] : "심사 중"}</td>
                       <td className="px-8 py-5">
+                        <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                          {sign.signtype || "미정"}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5">
                         <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                          sign.signstate === '완료' ? 'bg-green-100 text-green-700' :
-                          sign.signstate === '부적합' ? 'bg-red-100 text-red-700' :
-                          sign.signstate === '보완' ? 'bg-yellow-100 text-yellow-700' :
+                          sign.reviewcomplete === '심사완료' ? 'bg-green-100 text-green-700' :
+                          sign.reviewcomplete === '진행중' ? 'bg-yellow-100 text-yellow-700' :
                           'bg-gray-100 text-gray-700'
                         }`}>
-                          {sign.signstate || "정보 없음"}
+                          {sign.reviewcomplete || "정보 없음"}
                         </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={3} className="px-8 py-12 text-center text-gray-500">
+                    <td colSpan={4} className="px-8 py-12 text-center text-gray-500">
                       {searchTerm ? "검색 결과가 없습니다." : "등록된 인증이 없습니다."}
                     </td>
                   </tr>
