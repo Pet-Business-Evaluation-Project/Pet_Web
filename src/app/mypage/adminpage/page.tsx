@@ -1,25 +1,14 @@
 "use client";
 
-import Button from "../../components/Button/Button";
-import { useEffect, useState } from "react";
-import { FaUserCircle, FaUsers } from "react-icons/fa";
-import Image from "next/image"; // 💡 추가: Image 컴포넌트 import
+import { useState } from "react";
+import Image from "next/image";
+import { FaUserCircle, FaTachometerAlt, FaUserTie, FaBuilding, FaFileSignature } from "react-icons/fa";
+import { Dashboard, ReviewerDashboard, MemberDashboard, MemberSignDashboard } from "./admincomponents";
 
-interface Reviewer {
-  user_id: number;
-  reviewer_id: number;
-  loginID: string;
-  name: string;
-  phnum: string;
-  ssn: string;
-  reviewerGrade: "심사원보" | "심사위원" | "수석심사위원";
-  referralID?: string;
-}
+type ViewType = "main" | "reviewer" | "member" | "dashboard" | "memberSign";
 
 export default function AdminPage() {
-  const [reviewers, setReviewers] = useState<Reviewer[]>([]);
-  const [sortAsc, setSortAsc] = useState(true);
-  const [showTable, setShowTable] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>("main");
 
   const admin = {
     name: "관리자",
@@ -27,6 +16,7 @@ export default function AdminPage() {
     avatar: "/img/profile.png",
   };
 
+<<<<<<< HEAD
   // 직책 순서
   const roleOrder: Record<Reviewer["reviewerGrade"], number> = {
     "심사원보": 1,
@@ -96,98 +86,112 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Save error:", error);
       alert("저장 중 오류가 발생했습니다.");
+=======
+  // 각 뷰 렌더링
+  const renderContent = () => {
+    switch (currentView) {
+      case "reviewer":
+        return <ReviewerDashboard />;
+      case "member":
+        return <MemberDashboard />;
+      case "dashboard":
+        return <Dashboard />;
+      case "memberSign":
+        return <MemberSignDashboard />;
+      default:
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <FaTachometerAlt className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">좌측 메뉴에서 관리 항목을 선택해주세요.</p>
+            </div>
+          </div>
+        );
+>>>>>>> 4e25e4ad795685b255ba78a42bcd272f9c75e3be
     }
   };
 
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-gray-100 p-6 gap-6">
-      {/* 좌측 관리자 프로필 */}
-      <div className="flex flex-col items-center md:items-start w-full md:w-64 bg-blue-100 rounded-2xl shadow-lg p-6 space-y-4 flex-shrink-0">
-        <div className="w-24 h-24 rounded-full border-4 border-blue-500 relative overflow-hidden">
-          {admin.avatar ? (
-            // 💡 수정: <img> 태그 대신 <Image /> 컴포넌트 사용
-            <Image
-              src={admin.avatar}
-              alt="관리자 프로필"
-              fill // 부모 div의 크기에 맞춤
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 33vw" // 반응형 크기 명시
-            />
-          ) : (
-            <FaUserCircle className="w-full h-full text-gray-400" />
-          )}
-        </div>
-        <p className="text-lg font-semibold text-center md:text-left">{admin.name}</p>
-        <p className="text-gray-600 text-center md:text-left">{admin.grade}</p>
-
-        {/* 심사원 관리 버튼 */}
-        <Button
-          label="심사원 관리"
-          onClick={() => setShowTable(!showTable)}
-          className="mt-4 w-full"
-        />
-      </div>
-
-      {/* 우측 심사원 관리 테이블 */}
-      {showTable && (
-        <div className="flex-1 max-w-full">
-          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <FaUsers className="text-blue-500 w-6 h-6" /> 심사원 관리
-              </h2>
-              <Button
-                label={`직책 ${sortAsc ? "오름차순" : "내림차순"}`}
-                onClick={() => setSortAsc(!sortAsc)}
+      {/* 좌측 관리자 프로필 & 네비게이션 */}
+      <aside className="w-full md:w-72 bg-white rounded-2xl shadow-lg p-6 flex-shrink-0">
+        {/* 관리자 프로필 */}
+        <div className="flex flex-col items-center pb-6 border-b border-gray-200">
+          <div className="w-20 h-20 rounded-full border-4 border-blue-500 relative overflow-hidden mb-3">
+            {admin.avatar ? (
+              <Image
+                src={admin.avatar}
+                alt="관리자 프로필"
+                fill
+                className="object-cover"
+                sizes="80px"
               />
-            </div>
+            ) : (
+              <FaUserCircle className="w-full h-full text-gray-400" />
+            )}
+          </div>
+          <p className="text-lg font-bold text-gray-800">{admin.name}</p>
+          <p className="text-sm text-gray-500">{admin.grade}</p>
+        </div>
 
-            {/* 테이블 스크롤 */}
-            <div className="overflow-x-auto overflow-y-auto max-h-[600px] border rounded">
-              <table className="w-full table-fixed border-collapse">
-                <thead>
-                  <tr className="text-left border-b border-gray-300">
-                    <th className="py-2 px-3 min-w-[120px]">이름</th>
-                    <th className="py-2 px-3 min-w-[120px]">전화번호</th>
-                    <th className="py-2 px-3 min-w-[120px]">추천인</th>
-                    <th className="py-2 px-3 min-w-[140px]">직책</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedReviewers.map((r) => (
-                    <tr key={r.loginID} className="border-b border-gray-200">
-                      <td className="py-2 px-3">{r.name}</td>
-                      <td className="py-2 px-3">{r.phnum}</td>
-                      <td className="py-2 px-3">{r.referralID || "-"}</td>
-                      <td className="py-2 px-3">
-                        <select
-                          value={r.reviewerGrade}
-                          onChange={(e) =>
-                            handleRoleChange(
-                              r.loginID,
-                              e.target.value as Reviewer["reviewerGrade"]
-                            )
-                          }
-                          className="border rounded px-2 py-1 w-full"
-                        >
-                          <option value="심사원보">심사원보</option>
-                          <option value="심사위원">심사위원</option>
-                          <option value="수석심사위원">수석심사위원</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 저장 버튼 */}
-            <div className="mt-4 flex justify-end">
-              <Button label="저장" onClick={handleSave} />
+        {/* 메뉴 */}
+        <nav className="mt-6 space-y-6">
+          <div>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-3">
+              관리 메뉴
+            </h3>
+            <div className="space-y-1">
+              <button
+                onClick={() => setCurrentView("dashboard")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "dashboard"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <FaTachometerAlt className="w-5 h-5" />
+                <span>관리자 대시보드</span>
+              </button>
+              <button
+                onClick={() => setCurrentView("reviewer")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "reviewer"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <FaUserTie className="w-5 h-5" />
+                <span>심사원 관리</span>
+              </button>
+              <button
+                onClick={() => setCurrentView("member")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "member"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <FaBuilding className="w-5 h-5" />
+                <span>기업 관리</span>
+              </button>
+              <button
+                onClick={() => setCurrentView("memberSign")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "memberSign"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <FaFileSignature className="w-5 h-5" />
+                <span>기업 인증 관리</span>
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        </nav>
+      </aside>
+
+      {/* 우측 컨텐츠 영역 */}
+      {renderContent()}
     </main>
   );
 }
