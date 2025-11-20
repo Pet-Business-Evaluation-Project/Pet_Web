@@ -39,6 +39,46 @@ export default function CompanyPage() {
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  // axios 인터셉터 설정
+  useEffect(() => {
+    const requestInterceptor = axios.interceptors.request.use(
+      (config) => {
+        console.log('=== 요청 전송 ===');
+        console.log('URL:', config.url);
+        console.log('Method:', config.method);
+        console.log('Headers:', config.headers);
+        console.log('Data:', config.data);
+        console.log('withCredentials:', config.withCredentials);
+        return config;
+      },
+      (error) => {
+        console.error('요청 에러:', error);
+        return Promise.reject(error);
+      }
+    );
+
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => {
+        console.log('=== 응답 수신 ===');
+        console.log('Status:', response.status);
+        console.log('Data:', response.data);
+        return response;
+      },
+      (error) => {
+        console.error('=== 응답 에러 ===');
+        console.error('Status:', error.response?.status);
+        console.error('Data:', error.response?.data);
+        console.error('Headers:', error.response?.headers);
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.request.eject(requestInterceptor);
+      axios.interceptors.response.eject(responseInterceptor);
+    };
+  }, []);
+
   // 로컬스토리지에서 userId 가져오기
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -183,7 +223,7 @@ export default function CompanyPage() {
     if (!userId) return;
 
     try {
-      let profileImageFilename = company?.profileImage || "";
+      let profileImageFilename = company?.profileImage || null;
 
       if (profileImageFile) {
         const uploaded = await uploadProfileImage();
@@ -208,7 +248,12 @@ export default function CompanyPage() {
       const response = await axios.put(
         "https://www.kcci.co.kr/back/mypage/member/update",
         updateData,
-        { withCredentials: true }
+        { 
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
       );
 
       if (response.data) {
@@ -232,8 +277,15 @@ export default function CompanyPage() {
       if (axios.isAxiosError(error)) {
         console.error('응답 상태:', error.response?.status);
         console.error('응답 데이터:', error.response?.data);
+        console.error('요청 헤더:', error.config?.headers);
+        console.error('요청 URL:', error.config?.url);
         
-        alert(`기업 정보 수정 실패: ${error.response?.data?.message || '서버 오류'}`);
+        const errorMessage = error.response?.data?.message 
+          || error.response?.data?.error 
+          || JSON.stringify(error.response?.data)
+          || '서버 오류';
+        
+        alert(`기업 정보 수정 실패: ${errorMessage}`);
       } else {
         alert("기업 정보 수정 중 오류 발생");
       }
@@ -358,7 +410,7 @@ export default function CompanyPage() {
             <div className="flex flex-col items-center mb-8">
               <div className="relative w-32 h-32 rounded-full border-4 border-yellow-500 overflow-hidden bg-gray-100 mb-4">
                 {profileImagePreview ? (
-                  <img src={profileImagePreview} className="w-full h-full object-cover" />
+                  <img src={profileImagePreview} className="w-full h-full object-cover" alt="Profile preview" />
                 ) : (
                   <FaBuilding className="w-full h-full text-gray-400" />
                 )}
@@ -505,7 +557,7 @@ export default function CompanyPage() {
               <button
                 onClick={() => setShowEditModal(false)}
                 disabled={isUploadingImage}
-                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold"
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold disabled:opacity-50"
               >
                 취소
               </button>
@@ -513,7 +565,7 @@ export default function CompanyPage() {
               <button
                 onClick={handleSaveEdit}
                 disabled={isUploadingImage}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold"
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold disabled:opacity-50"
               >
                 {isUploadingImage ? "업로드 중..." : "저장"}
               </button>
