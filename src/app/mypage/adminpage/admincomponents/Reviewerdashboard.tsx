@@ -22,6 +22,23 @@ interface Reviewer {
   created_at: string;
 }
 
+interface ReviewerRaw {
+  user_id: number;
+  reviewer_id: number;
+  name: string;
+  loginID: string;
+  phnum: string;
+  ssn: string;
+  address: string;
+  bankname: string;
+  account: string;
+  reviewergrade?: "심사원보" | "심사위원" | "수석심사위원";
+  reviewerGrade?: "심사원보" | "심사위원" | "수석심사위원";
+  referralID?: string;
+  referralGrade?: string;
+  created_at: string;
+}
+
 interface DownlineMember {
   name: string;
   loginID?: string;
@@ -59,18 +76,17 @@ export default function ReviewerDashboard() {
           credentials: "include",
         });
         if (res.ok) {
-          const rawData: any[] = await res.json();
+          const rawData: ReviewerRaw[] = await res.json();
           
-          // ⭐⭐ 수정 1: 초기 로딩 시 서버 필드(예: reviewerGrade)를 
-          // 상태 필드(reviewergrade)로 명시적 매핑하여 드롭다운 값 초기화 문제를 해결
+          // 초기 로딩 시 서버 필드를 상태 필드로 명시적 매핑
           const data: Reviewer[] = rawData.map(r => ({
               ...r,
               // 서버에서 어떤 이름으로 오든, 상태에는 'reviewergrade'로 저장
               reviewergrade: r.reviewergrade || r.reviewerGrade || "심사원보",
-          })) as Reviewer[]; // 안전을 위해 타입 캐스팅
+          }));
           
           setReviewers(data);
-          setOriginalReviewers(data); // 원본 저장
+          setOriginalReviewers(data);
           setFilteredReviewers(data);
         } else {
           alert("심사원 목록을 불러오지 못했습니다.");
@@ -111,7 +127,7 @@ export default function ReviewerDashboard() {
         ? roleOrder[a.reviewergrade] - roleOrder[b.reviewergrade]
         : roleOrder[b.reviewergrade] - roleOrder[a.reviewergrade]
     );
-  }, [filteredReviewers, sortAsc]);
+  }, [filteredReviewers, sortAsc, roleOrder]);
 
   const { newReviewersCount, totalReviewersCount } = useMemo(() => {
     const now = new Date();
@@ -174,7 +190,6 @@ export default function ReviewerDashboard() {
 
   const handleRoleChange = (loginID: string, newRole: Reviewer["reviewergrade"]) => {
     setReviewers((prev) =>
-      // 이전 수정: reviewerGrade (대문자 G) 대신 reviewergrade (소문자 g)를 사용하여 상태를 업데이트
       prev.map((r) => (r.loginID === loginID ? { ...r, reviewergrade: newRole } : r))
     );
   };
@@ -184,12 +199,10 @@ export default function ReviewerDashboard() {
     const updates = reviewers
       .filter((r) => {
         const original = originalReviewers.find((o) => o.reviewer_id === r.reviewer_id);
-        // 원본과 현재 상태의 'reviewergrade' (소문자 g) 필드를 비교
         return original && original.reviewergrade !== r.reviewergrade;
       })
       .map((r) => ({
         reviewer_id: r.reviewer_id,
-        // 백엔드로 전송 시 'reviewergrade' (소문자 g)를 사용
         reviewergrade: r.reviewergrade,
       }));
 
@@ -215,9 +228,8 @@ export default function ReviewerDashboard() {
       if (res.ok) {
         alert("모든 변경사항이 성공적으로 저장되었습니다!");
         
-        // 이전 수정: 새로고침 대신 상태를 업데이트하여 즉시 반영
         setOriginalReviewers(reviewers);
-        setFilteredReviewers(reviewers); // 필터링된 목록도 최신으로 업데이트
+        setFilteredReviewers(reviewers);
       } else {
         alert("저장 실패: " + text);
       }
@@ -269,7 +281,7 @@ export default function ReviewerDashboard() {
             </div>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value as any)}
+              onChange={(e) => setSelectedGrade(e.target.value as typeof selectedGrade)}
               className="px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
             >
               <option value="">전체 직책</option>
