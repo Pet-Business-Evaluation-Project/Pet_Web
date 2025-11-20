@@ -47,7 +47,7 @@ export default function MemberDashboard() {
   const fetchCompanies = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://petback.hysu.kr/back/mypage/admin/members", {
+      const res = await fetch("http://www.kcci.co.kr/back/mypage/admin/members", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ export default function MemberDashboard() {
     if (!selectedCompany) return;
 
     try {
-      const res = await fetch("http://petback.hysu.kr/back/mypage/admin/members/update", {
+      const res = await fetch("http://www.kcci.co.kr/back/mypage/admin/members/update", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

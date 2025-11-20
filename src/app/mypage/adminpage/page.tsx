@@ -16,77 +16,6 @@ export default function AdminPage() {
     avatar: "/img/profile.png",
   };
 
-<<<<<<< HEAD
-  // 직책 순서
-  const roleOrder: Record<Reviewer["reviewerGrade"], number> = {
-    "심사원보": 1,
-    "심사위원": 2,
-    "수석심사위원": 3,
-  };
-
-  // 백엔드에서 심사원 목록 가져오기
-  useEffect(() => {
-    const fetchReviewers = async () => {
-      try {
-        const res = await fetch("https://www.kcci.co.kr/back/mypage/admin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ classification: "관리자" }),
-          credentials: "include",
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setReviewers(data);
-        } else {
-          alert("데이터를 불러오지 못했습니다.");
-        }
-      } catch (error) {
-        console.error("Fetch error:", error);
-      }
-    };
-
-    fetchReviewers();
-  }, []);
-
-  // 직책 변경
-  const handleRoleChange = (loginID: string, newRole: Reviewer["reviewerGrade"]) => {
-    setReviewers((prev) =>
-      prev.map((r) => (r.loginID === loginID ? { ...r, reviewerGrade: newRole } : r))
-    );
-  };
-
-  // 정렬 적용
-  const sortedReviewers = [...reviewers].sort((a, b) =>
-    sortAsc
-      ? roleOrder[a.reviewerGrade] - roleOrder[b.reviewerGrade]
-      : roleOrder[b.reviewerGrade] - roleOrder[a.reviewerGrade]
-  );
-
-  // 저장 버튼 클릭
-  const handleSave = async () => {
-    try {
-      const payload = reviewers.map((r) => ({
-        reviewer_id: r.reviewer_id,
-        reviewergrade: r.reviewerGrade,
-      }));
-
-      const res = await fetch("https://www.kcci.co.kr/back/mypage/admin/update", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: payload }),
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        alert("직책 변경이 성공적으로 저장되었습니다.");
-      } else {
-        alert("직책 변경 저장에 실패했습니다.");
-      }
-    } catch (error) {
-      console.error("Save error:", error);
-      alert("저장 중 오류가 발생했습니다.");
-=======
   // 각 뷰 렌더링
   const renderContent = () => {
     switch (currentView) {
@@ -107,7 +36,6 @@ export default function AdminPage() {
             </div>
           </div>
         );
->>>>>>> 4e25e4ad795685b255ba78a42bcd272f9c75e3be
     }
   };
 

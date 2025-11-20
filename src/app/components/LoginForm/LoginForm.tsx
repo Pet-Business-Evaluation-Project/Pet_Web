@@ -42,13 +42,8 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
     console.log("🔐 로그인 시도:", email);
 
     try {
-<<<<<<< HEAD
-      const response = await axios.post(
-        "https://www.kcci.co.kr/back/api/auth/login",
-=======
       const response = await axios.post<LoginResponse>(
-        "http://petback.hysu.kr/back/api/auth/login",
->>>>>>> 4e25e4ad795685b255ba78a42bcd272f9c75e3be
+        "http://www.kcci.co.kr/back/api/auth/login",
         {
           loginID: email,
           password,

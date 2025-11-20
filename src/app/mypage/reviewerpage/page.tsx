@@ -162,17 +162,7 @@ export default function ReviewerPage() {
         }
       );
 
-<<<<<<< HEAD
-      // ⭐ 응답 구조 변경에 맞춤
-      if (response.data.success === "true") {
-        return response.data.filename;
-      } else {
-        throw new Error(response.data.message || "업로드 실패");
-      }
-      
-=======
       return response.data;
->>>>>>> 4e25e4ad795685b255ba78a42bcd272f9c75e3be
     } catch (error) {
       console.error("Image upload error:", error);
       
