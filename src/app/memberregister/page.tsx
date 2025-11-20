@@ -63,6 +63,50 @@ export default function MemberRegister() {
     "5단계": "level5"
   };
 
+  // 🔥 Axios 인스턴스 생성 - withCredentials를 항상 포함
+  const axiosInstance = axios.create({
+    baseURL: "https://www.kcci.co.kr/back",
+    withCredentials: true, // 세션 쿠키 자동 포함
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
+
+  // 🔥 요청 인터셉터 - X-USER-ID 헤더 자동 추가
+  axiosInstance.interceptors.request.use(
+    (config) => {
+      if (currentUser?.id) {
+        config.headers["X-USER-ID"] = currentUser.id.toString();
+      }
+      console.log("📤 요청:", config.method?.toUpperCase(), config.url);
+      return config;
+    },
+    (error) => {
+      console.error("❌ 요청 에러:", error);
+      return Promise.reject(error);
+    }
+  );
+
+  // 🔥 응답 인터셉터 - 에러 핸들링
+  axiosInstance.interceptors.response.use(
+    (response) => {
+      console.log("📥 응답:", response.status, response.config.url);
+      return response;
+    },
+    (error) => {
+      if (error.response?.status === 403) {
+        console.error("🚫 403 Forbidden - 권한 없음 또는 세션 만료");
+        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
+      }
+      console.error("❌ 응답 에러:", error);
+      return Promise.reject(error);
+    }
+  );
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
@@ -87,43 +131,40 @@ export default function MemberRegister() {
     if (!currentUser?.id) return;
     try {
       if (currentUser.classification === "관리자") {
-        const res = await axios.get<SignStart[]>(
-          "https://www.kcci.co.kr/back/signstart/all",
-          { headers: { "X-USER-ID": currentUser.id } }
-        );
-        console.log(res.data);
+        const res = await axiosInstance.get<SignStart[]>("/signstart/all");
+        console.log("✅ 전체 인증 목록:", res.data);
         const uniqueMap = new Map<number, SignStart>();
         res.data.forEach(sign => {
           if (!uniqueMap.has(sign.signId)) uniqueMap.set(sign.signId, sign);
         });
         setSigns(Array.from(uniqueMap.values()));
       } else {
-        const reviewerRes = await axios.post(
-          "https://www.kcci.co.kr/back/user/reviwerinfo",
-          { userId: currentUser.id },
-          { headers: { "Content-Type": "application/json" } }
+        const reviewerRes = await axiosInstance.post(
+          "/user/reviwerinfo",
+          { userId: currentUser.id }
         );
         const myReviewerId: number = reviewerRes.data.reviewerId;
+        console.log("✅ 내 심사원 ID:", myReviewerId);
 
-        const allSignsRes = await axios.get<SignStart[]>(
-          "https://www.kcci.co.kr/back/signstart/all",
-          { headers: { "X-USER-ID": currentUser.id } }
-        );
+        const allSignsRes = await axiosInstance.get<SignStart[]>("/signstart/all");
         const mySigns = allSignsRes.data.filter(sign => sign.reviewerId === myReviewerId);
         const uniqueMap = new Map<number, SignStart>();
         mySigns.forEach(sign => {
           if (!uniqueMap.has(sign.signId)) uniqueMap.set(sign.signId, sign);
         });
         setSigns(Array.from(uniqueMap.values()));
+        console.log("✅ 내 담당 인증 목록:", mySigns.length);
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ 인증 정보 로드 실패:", err);
       setError("인증 정보를 불러오는데 실패했습니다.");
     }
   };
 
   useEffect(() => { 
-    fetchMySigns(); 
+    if (currentUser?.id) {
+      fetchMySigns(); 
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
@@ -131,10 +172,9 @@ export default function MemberRegister() {
     if (!currentUser?.id) return;
     try {
       if (currentUser.classification !== "관리자") {
-        const reviewerRes = await axios.post(
-          "https://www.kcci.co.kr/back/user/reviwerinfo",
-          { userId: currentUser.id },
-          { headers: { "Content-Type": "application/json" } }
+        const reviewerRes = await axiosInstance.post(
+          "/user/reviwerinfo",
+          { userId: currentUser.id }
         );
         const myReviewerId: number = reviewerRes.data.reviewerId;
         if (sign.reviewerId !== myReviewerId) {
@@ -142,13 +182,13 @@ export default function MemberRegister() {
           return;
         }
       }
-      const res = await axios.get<SignStart>(
-        `https://www.kcci.co.kr/back/signstart/detail/${sign.signstartId}`,
-        { headers: { "X-USER-ID": currentUser.id } }
+      const res = await axiosInstance.get<SignStart>(
+        `/signstart/detail/${sign.signstartId}`
       );
       setCurrentSign(res.data);
+      console.log("✅ 상세 정보 로드:", res.data);
     } catch (err) {
-      console.error(err);
+      console.error("❌ 상세 정보 로드 실패:", err);
       alert("상세 정보를 불러오는데 실패했습니다.");
     }
   };
@@ -156,7 +196,10 @@ export default function MemberRegister() {
   const handleChange = (field: keyof SignStart, value: string) => {
     if (!currentSign) return;
     if (field === "signcount") {
-      if (isNaN(Number(value))) { alert("심사 횟수는 숫자만 입력 가능합니다."); return; }
+      if (isNaN(Number(value))) { 
+        alert("심사 횟수는 숫자만 입력 가능합니다."); 
+        return; 
+      }
       setCurrentSign({ ...currentSign, [field]: Number(value) });
     } else if (field === "membergrade") {
       setCurrentSign({ ...currentSign, [field]: reverseMembergradeMap[value] });
@@ -173,23 +216,23 @@ export default function MemberRegister() {
     setSaving(true);
     try {
       if (currentUser.classification === "관리자" && currentSign.membergrade) {
-        await axios.put(
-          `https://www.kcci.co.kr/back/signstart/updatebysign/${currentSign.signId}`,
-          currentSign,
-          { headers: { "X-USER-ID": currentUser.id, "Content-Type": "application/json" } }
+        await axiosInstance.put(
+          `/signstart/updatebysign/${currentSign.signId}`,
+          currentSign
         );
+        console.log("✅ 관리자 업데이트 완료 (전체)");
       } else {
-        await axios.put(
-          `https://www.kcci.co.kr/back/signstart/update/${currentSign.signstartId}`,
-          currentSign,
-          { headers: { "X-USER-ID": currentUser.id, "Content-Type": "application/json" } }
+        await axiosInstance.put(
+          `/signstart/update/${currentSign.signstartId}`,
+          currentSign
         );
+        console.log("✅ 심사원 업데이트 완료 (개별)");
       }
       alert("저장 완료!");
       setSaving(false);
       fetchMySigns();
     } catch (err) {
-      console.error(err);
+      console.error("❌ 저장 실패:", err);
       alert("저장 실패. 관리자에게 문의하세요.");
       setSaving(false);
     }
@@ -204,9 +247,8 @@ export default function MemberRegister() {
   const handleViewReviewers = async () => {
     if (!currentSign || !currentUser) return;
     try {
-      const res = await axios.get<SignStart[]>(
-        `https://www.kcci.co.kr/back/signstart/bysign/${currentSign.signId}`,
-        { headers: { "X-USER-ID": currentUser.id } }
+      const res = await axiosInstance.get<SignStart[]>(
+        `/signstart/bysign/${currentSign.signId}`
       );
       const list = res.data.map(r => ({
         reviewerId: r.reviewerId,
@@ -215,8 +257,9 @@ export default function MemberRegister() {
       }));
       setReviewersList(list);
       setReviewersModalOpen(true);
+      console.log("✅ 심사원 목록 로드:", list.length);
     } catch (err) {
-      console.error(err);
+      console.error("❌ 심사원 정보 로드 실패:", err);
       alert("심사원 정보를 불러오는데 실패했습니다.");
     }
   };
