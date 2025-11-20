@@ -23,7 +23,7 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         // 여기에 통계 데이터 API 호출 로직 추가
-        // const res = await fetch("http://www.kcci.co.kr/back/mypage/admin/stats", {
+        // const res = await fetch("https://www.kcci.co.kr/back/mypage/admin/stats", {
         //   method: "GET",
         //   credentials: "include",
         // });

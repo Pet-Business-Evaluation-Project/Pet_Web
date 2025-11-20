@@ -62,7 +62,7 @@ export default function MemberSignDashboard() {
   const [adminUserId, setAdminUserId] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
-  const BASE_URL = "http://www.kcci.co.kr/back";
+  const BASE_URL = "https://www.kcci.co.kr/back";
 
   // Helper function to map raw data to SignStart
   const mapToSignStart = (item: SignStartRaw): SignStart => ({
