@@ -330,14 +330,182 @@ const fetchSignStatus = async () => {
         )}
       </section>
 
-      {/* 편집 모달 */}
+       {/* 개인정보 수정 모달 */}
       {showEditModal && company && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            {/* ...기존 편집 모달 내용 그대로... */}
-          </div>
+  <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">
+        기업 정보 수정
+      </h2>
+
+      {/* 프로필 */}
+      <div className="flex flex-col items-center mb-8">
+        <div className="relative w-32 h-32 rounded-full border-4 border-yellow-500 overflow-hidden bg-gray-100 mb-4">
+          {profileImagePreview ? (
+            <img src={profileImagePreview} className="w-full h-full object-cover" />
+          ) : (
+            <FaBuilding className="w-full h-full text-gray-400" />
+          )}
+
+          <label
+            htmlFor="profile-upload"
+            className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-3 cursor-pointer hover:bg-yellow-600 transition-colors shadow-lg"
+          >
+            <FaCamera className="text-white w-4 h-4" />
+          </label>
+
+          <input
+            id="profile-upload"
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif"
+            onChange={handleProfileImageChange}
+            className="hidden"
+          />
         </div>
-      )}
+
+        <p className="text-xs text-gray-500 text-center">
+          JPG, PNG, GIF (최대 10MB)
+        </p>
+      </div>
+
+      {/* 기업명 */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-gray-700">기업명</label>
+
+          <button
+            onClick={() =>
+              setEditingField(editingField === "companyName" ? null : "companyName")
+            }
+            className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+          >
+            {editingField === "companyName" ? "완료" : "수정"}
+          </button>
+        </div>
+
+        {editingField === "companyName" ? (
+          <input
+            type="text"
+            value={editCompanyName}
+            onChange={(e) => setEditCompanyName(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500"
+          />
+        ) : (
+          <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+            {editCompanyName}
+          </div>
+        )}
+      </div>
+
+      {/* 전화번호 */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-gray-700">전화번호</label>
+
+          <button
+            onClick={() =>
+              setEditingField(editingField === "phone" ? null : "phone")
+            }
+            className="text-sm text-yellow-600"
+          >
+            {editingField === "phone" ? "완료" : "수정"}
+          </button>
+        </div>
+
+        {editingField === "phone" ? (
+          <input
+            type="text"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500"
+          />
+        ) : (
+          <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+            {editPhone}
+          </div>
+        )}
+      </div>
+
+      {/* 기업 구분 */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-gray-700">기업 구분</label>
+
+          <button
+            onClick={() =>
+              setEditingField(editingField === "companycls" ? null : "companycls")
+            }
+            className="text-sm text-yellow-600"
+          >
+            {editingField === "companycls" ? "완료" : "수정"}
+          </button>
+        </div>
+
+        {editingField === "companycls" ? (
+          <input
+            type="text"
+            value={editCompanyCls}
+            onChange={(e) => setEditCompanyCls(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500"
+          />
+        ) : (
+          <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+            {editCompanyCls}
+          </div>
+        )}
+      </div>
+
+      {/* 주요 매출 */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-sm font-semibold text-gray-700">주요 매출</label>
+
+          <button
+            onClick={() =>
+              setEditingField(editingField === "mainsales" ? null : "mainsales")
+            }
+            className="text-sm text-yellow-600"
+          >
+            {editingField === "mainsales" ? "완료" : "수정"}
+          </button>
+        </div>
+
+        {editingField === "mainsales" ? (
+          <input
+            type="text"
+            value={editMainSales}
+            onChange={(e) => setEditMainSales(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500"
+          />
+        ) : (
+          <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+            {editMainSales}
+          </div>
+        )}
+      </div>
+
+      {/* 버튼 */}
+      <div className="flex gap-3">
+        <button
+          onClick={() => setShowEditModal(false)}
+          disabled={isUploadingImage}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold"
+        >
+          취소
+        </button>
+
+        <button
+          onClick={handleSaveEdit}
+          disabled={isUploadingImage}
+          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold"
+        >
+          {isUploadingImage ? "업로드 중..." : "저장"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </main>
   );
 }
