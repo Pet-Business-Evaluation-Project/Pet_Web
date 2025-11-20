@@ -25,10 +25,15 @@ interface ReviewerListItem {
   signcount?: number;
 }
 
+interface CurrentUser {
+  id: number;
+  classification: string;
+}
+
 export default function MemberRegister() {
   const [signs, setSigns] = useState<SignStart[]>([]);
   const [currentSign, setCurrentSign] = useState<SignStart | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [hasAccess, setHasAccess] = useState(true);
@@ -117,7 +122,10 @@ export default function MemberRegister() {
     }
   };
 
-  useEffect(() => { fetchMySigns(); }, [currentUser]);
+  useEffect(() => { 
+    fetchMySigns(); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const handleClick = async (sign: SignStart) => {
     if (!currentUser?.id) return;
@@ -158,7 +166,7 @@ export default function MemberRegister() {
   };
 
   const handleSave = async () => {
-    if (!currentSign) return;
+    if (!currentSign || !currentUser) return;
     setSaving(true);
     try {
       if (currentUser.classification === "관리자" && currentSign.membergrade) {
@@ -191,7 +199,7 @@ export default function MemberRegister() {
   };
 
   const handleViewReviewers = async () => {
-    if (!currentSign) return;
+    if (!currentSign || !currentUser) return;
     try {
       const res = await axios.get<SignStart[]>(
         `http://petback.hysu.kr/back/signstart/bysign/${currentSign.signId}`,

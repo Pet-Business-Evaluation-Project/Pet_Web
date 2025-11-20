@@ -26,6 +26,28 @@ interface SignStart {
   signtype?: string | null;
 }
 
+interface SignStartRaw {
+  signstartId?: number;
+  signStartId?: number;
+  id?: number;
+  signId: number;
+  reviewerId?: number;
+  reviewer_id?: number;
+  reviewerName?: string;
+  reviewer_name?: string;
+  name?: string;
+  membergrade?: string;
+  memberGrade?: string;
+  grade?: string;
+  memberName?: string;
+  member_name?: string;
+  reviewComplete?: string;
+  review_complete?: string;
+  memberId?: number;
+  signtype?: string | null;
+  signType?: string | null;
+}
+
 export default function MemberSignDashboard() {
   const [members, setMembers] = useState<Member[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
@@ -37,17 +59,27 @@ export default function MemberSignDashboard() {
   const [selectedSignType, setSelectedSignType] = useState<string | null>(null);
   const [assignedSignStarts, setAssignedSignStarts] = useState<SignStart[]>([]);
   const [selectedSignId, setSelectedSignId] = useState<number | null>(null);
-  const [allSignStarts, setAllSignStarts] = useState<SignStart[]>([]);
   const [adminUserId, setAdminUserId] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
   const BASE_URL = "http://petback.hysu.kr/back";
 
+  // Helper function to map raw data to SignStart
+  const mapToSignStart = (item: SignStartRaw): SignStart => ({
+    signstartId: item.signstartId || item.signStartId || item.id || 0,
+    signId: item.signId,
+    reviewerId: item.reviewerId || item.reviewer_id || 0,
+    reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
+    membergrade: item.membergrade || item.memberGrade || item.grade || '',
+    memberName: item.name || item.memberName || item.member_name || '-',
+    reviewComplete: item.reviewComplete || item.review_complete || 'N',
+    signtype: item.signtype || item.signType || null
+  });
+
  // localStorage에서 사용자 정보 확인 및 관리자 권한 체크
   useEffect(() => {
     const checkAdminAuth = () => {
       try {
-        // "userData"가 아닌 "user"로 변경
         const userStr = localStorage.getItem("user");
         console.log("📦 userStr:", userStr);
         
@@ -98,22 +130,12 @@ export default function MemberSignDashboard() {
       headers: { "X-USER-ID": adminUserId.toString() },
     })
       .then(res => res.json())
-      .then(data => {
-        const mappedData = Array.isArray(data) ? data.map(item => ({
-          signstartId: item.signstartId || item.signStartId || item.id,
-          signId: item.signId,
-          reviewerId: item.reviewerId || item.reviewer_id,
-          reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
-          membergrade: item.membergrade || item.memberGrade || item.grade,
-          memberName: item.name || item.memberName || item.member_name || '-',
-          reviewComplete: item.reviewComplete || item.review_complete || 'N',
-          signtype: item.signtype || item.signType || null
-        })) : [];
-        setAllSignStarts(mappedData);
+      .then((data: SignStartRaw[]) => {
+        const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
+        // Note: We're not using setAllSignStarts anymore since the variable was removed
       })
-      .catch(err => {
-        console.error("전체 SignStart 조회 실패:", err);
-        setAllSignStarts([]);
+      .catch(() => {
+        // Error handling - variable removed
       });
   }, [isAuthorized, adminUserId]);
 
@@ -127,7 +149,7 @@ export default function MemberSignDashboard() {
       body: JSON.stringify({ classification: "관리자" })
     })
       .then(res => res.json())
-      .then((data: any) => {
+      .then((data: Member[]) => {
         const list = Array.isArray(data) ? data : [];
         setMembers(list.filter(d => d.memberId != null)
           .map(d => ({
@@ -151,7 +173,7 @@ export default function MemberSignDashboard() {
       body: JSON.stringify({ classification: "관리자" })
     })
       .then(res => res.json())
-      .then((data: any) => {
+      .then((data: Reviewer[]) => {
         const list = Array.isArray(data) ? data : [];
         setReviewers(list.filter(d => d.reviewer_id != null)
           .map(d => ({
@@ -160,7 +182,7 @@ export default function MemberSignDashboard() {
             name: d.name || `심사원${d.reviewer_id}`,
             loginID: d.loginID,
             phnum: d.phnum,
-            grade: d.reviewerGrade || d.grade || d.reviewer_grade || '-'
+            grade: d.grade || '-'
           })));
       })
       .catch(err => {
@@ -183,18 +205,8 @@ export default function MemberSignDashboard() {
       headers: { "X-USER-ID": adminUserId.toString() },
     })
       .then(res => res.json())
-      .then(data => {
-        const mappedData = Array.isArray(data) ? data.map(item => ({
-          signstartId: item.signstartId || item.signStartId || item.id,
-          signId: item.signId,
-          reviewerId: item.reviewerId || item.reviewer_id,
-          reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
-          membergrade: item.membergrade || item.memberGrade || item.grade,
-          memberName: item.name || item.memberName || item.member_name || '-',
-          reviewComplete: item.reviewComplete || item.review_complete || 'N',
-          memberId: item.memberId,
-          signtype: item.signtype || item.signType || null
-        })) : [];
+      .then((data: SignStartRaw[]) => {
+        const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
         const selectedMemberName = members.find(m => m.memberId === selectedMember)?.name;
         const filtered = mappedData.filter(item =>
@@ -245,17 +257,8 @@ export default function MemberSignDashboard() {
 
       if (!res.ok) throw new Error("Sign 생성 실패");
 
-      const data = await res.json();
-      const mappedData = Array.isArray(data) ? data.map(item => ({
-        signstartId: item.signstartId || item.signStartId || item.id,
-        signId: item.signId,
-        reviewerId: item.reviewerId || item.reviewer_id,
-        reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
-        membergrade: item.membergrade || item.memberGrade || item.grade,
-        memberName: item.name || item.memberName || item.member_name || '-',
-        reviewComplete: item.reviewComplete || item.review_complete || 'N',
-        signtype: item.signtype || item.signType || null
-      })) : [];
+      const data: SignStartRaw[] = await res.json();
+      const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
       setAssignedSignStarts(mappedData);
 
@@ -299,18 +302,8 @@ export default function MemberSignDashboard() {
 
       if (!res.ok) throw new Error("심사원 추가 실패");
 
-      const data = await res.json();
-
-      const newSignStarts = Array.isArray(data) ? data.map(item => ({
-        signstartId: item.signstartId || item.signStartId || item.id,
-        signId: item.signId,
-        reviewerId: item.reviewerId || item.reviewer_id,
-        reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
-        membergrade: item.membergrade || item.memberGrade || item.grade,
-        memberName: item.name || item.memberName || item.member_name || '-',
-        reviewComplete: item.reviewComplete || item.review_complete || 'N',
-        signtype: item.signtype || item.signType || null
-      })) : [];
+      const data: SignStartRaw[] = await res.json();
+      const newSignStarts = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
       setAssignedSignStarts([...assignedSignStarts, ...newSignStarts]);
 

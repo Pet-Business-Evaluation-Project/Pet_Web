@@ -44,8 +44,8 @@ export default function ReviewInfo() {
                   </h3>
                 </div>
                 <p className="text-gray-700 leading-relaxed ml-11">
-                  단순한 '심사원'을 넘어, 기업의 가치를 발굴하고 성공을 함께 설계하는 
-                  <span className="font-semibold text-gray-900"> '가치 순환 전문가'</span>를 양성합니다.
+                  단순한 &apos;심사원&apos;을 넘어, 기업의 가치를 발굴하고 성공을 함께 설계하는 
+                  <span className="font-semibold text-gray-900"> &apos;가치 순환 전문가&apos;</span>를 양성합니다.
                 </p>
               </div>
               
