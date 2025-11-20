@@ -23,6 +23,7 @@ interface SignStart {
   membergrade: string;
   memberName: string;
   reviewComplete: string;
+  signtype?: string | null;
 }
 
 export default function MemberSignDashboard() {
@@ -33,6 +34,7 @@ export default function MemberSignDashboard() {
   const [reviewerSearch, setReviewerSearch] = useState("");
   const [selectedReviewers, setSelectedReviewers] = useState<number[]>([]);
   const [selectedGrade, setSelectedGrade] = useState(1);
+  const [selectedSignType, setSelectedSignType] = useState<string | null>(null);
   const [assignedSignStarts, setAssignedSignStarts] = useState<SignStart[]>([]);
   const [selectedSignId, setSelectedSignId] = useState<number | null>(null);
   const [allSignStarts, setAllSignStarts] = useState<SignStart[]>([]);
@@ -54,7 +56,8 @@ export default function MemberSignDashboard() {
           reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
           membergrade: item.membergrade || item.memberGrade || item.grade,
           memberName: item.name || item.memberName || item.member_name || '-',
-          reviewComplete: item.reviewComplete || item.review_complete || 'N'
+          reviewComplete: item.reviewComplete || item.review_complete || 'N',
+          signtype: item.signtype || item.signType || null
         })) : [];
         setAllSignStarts(mappedData);
       })
@@ -138,7 +141,8 @@ export default function MemberSignDashboard() {
           membergrade: item.membergrade || item.memberGrade || item.grade,
           memberName: item.name || item.memberName || item.member_name || '-',
           reviewComplete: item.reviewComplete || item.review_complete || 'N',
-          memberId: item.memberId
+          memberId: item.memberId,
+          signtype: item.signtype || item.signType || null
         })) : [];
 
         // 선택된 기업의 이름으로 필터링
@@ -170,7 +174,8 @@ export default function MemberSignDashboard() {
     const payload = {
       memberId: selectedMember,
       reviewerIds: selectedReviewers,
-      membergrade: `level${selectedGrade}`
+      membergrade: `level${selectedGrade}`,
+      signtype: selectedSignType === null ? null : selectedSignType
     };
 
     try {
@@ -193,7 +198,8 @@ export default function MemberSignDashboard() {
         reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
         membergrade: item.membergrade || item.memberGrade || item.grade,
         memberName: item.name || item.memberName || item.member_name || '-',
-        reviewComplete: item.reviewComplete || item.review_complete || 'N'
+        reviewComplete: item.reviewComplete || item.review_complete || 'N',
+        signtype: item.signtype || item.signType || null
       })) : [];
 
       setAssignedSignStarts(mappedData);
@@ -243,7 +249,8 @@ export default function MemberSignDashboard() {
         reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
         membergrade: item.membergrade || item.memberGrade || item.grade,
         memberName: item.name || item.memberName || item.member_name || '-',
-        reviewComplete: item.reviewComplete || item.review_complete || 'N'
+        reviewComplete: item.reviewComplete || item.review_complete || 'N',
+        signtype: item.signtype || item.signType || null
       })) : [];
 
       setAssignedSignStarts([...assignedSignStarts, ...newSignStarts]);
@@ -336,6 +343,22 @@ export default function MemberSignDashboard() {
               ))}
             </select>
           </div>
+
+          <div className="flex flex-col">
+            <label className="font-semibold text-gray-600">인증 유형:</label>
+            <select
+              className="border rounded px-3 py-2"
+              value={selectedSignType === null ? "" : selectedSignType}
+              onChange={e => setSelectedSignType(e.target.value === "" ? null : e.target.value)}
+            >
+              <option value="">미정</option>
+              <option value="동물기업인증">동물기업인증</option>
+              <option value="우수제품인증">우수제품인증</option>
+              <option value="친환경기업인증">친환경기업인증</option>
+              <option value="동물복지제품인증">동물복지제품인증</option>
+              <option value="동물복지기업인증">동물복지기업인증</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-col gap-4 mt-4">
@@ -407,8 +430,8 @@ export default function MemberSignDashboard() {
                   <tr className="bg-gray-100">
                     <th className="border px-4 py-3 text-left font-semibold">기업명</th>
                     <th className="border px-4 py-3 text-left font-semibold">기업 등급</th>
+                    <th className="border px-4 py-3 text-left font-semibold">인증 종류</th>
                     <th className="border px-4 py-3 text-left font-semibold">심사원 목록</th>
-                    <th className="border px-4 py-3 text-left font-semibold">인증 현황</th>
                     <th className="border px-4 py-3 text-left font-semibold">삭제</th>
                   </tr>
                 </thead>
@@ -439,6 +462,11 @@ export default function MemberSignDashboard() {
                           <td className="border px-4 py-3">{first.memberName}</td>
                           <td className="border px-4 py-3">{first.membergrade?.replace("level", "") + "단계"}</td>
                           <td className="border px-4 py-3">
+                            <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+                              {first.signtype || "미정"}
+                            </span>
+                          </td>
+                          <td className="border px-4 py-3">
                             <div className="flex flex-wrap gap-2">
                               {group.map(item => (
                                 <div key={item.signstartId} className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded">
@@ -456,15 +484,6 @@ export default function MemberSignDashboard() {
                                 </div>
                               ))}
                             </div>
-                          </td>
-                          <td className="border px-4 py-3">
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              allComplete ? 'bg-green-100 text-green-700' :
-                              someComplete ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
-                              {allComplete ? '완료' : someComplete ? '일부완료' : '진행중'}
-                            </span>
                           </td>
                           <td className="border px-4 py-3">
                             <button
