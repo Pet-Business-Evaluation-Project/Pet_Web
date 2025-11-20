@@ -61,7 +61,7 @@ export default function CompanyPage() {
     const fetchCompany = async () => {
       try {
         const response = await axios.get(
-          `http://www.kcci.co.kr/back/mypage/member/${userId}`,
+          `https://www.kcci.co.kr/back/mypage/member/${userId}`,
           { withCredentials: true }
         );
         if (response.data) setCompany(response.data);
@@ -76,7 +76,7 @@ const fetchSignStatus = async () => {
       console.log('Fetching sign status for userId:', userId);
 
       const response = await axios.get<SignStatus[]>(
-        `http://www.kcci.co.kr/back/mypage/member/signstatus/${userId}`,
+        `https://www.kcci.co.kr/back/mypage/member/signstatus/${userId}`,
         { withCredentials: true }
       );
 
@@ -124,7 +124,7 @@ const fetchSignStatus = async () => {
     setProfileImageFile(null);
     setProfileImagePreview(
       company.profileImage
-        ? `http://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
+        ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
         : ""
     );
     setShowEditModal(true);
@@ -161,7 +161,7 @@ const fetchSignStatus = async () => {
       formData.append("file", profileImageFile);
 
       const response = await axios.post(
-        "http://www.kcci.co.kr/back/mypage/member/uploadProfile",
+        "https://www.kcci.co.kr/back/mypage/member/uploadProfile",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -191,7 +191,7 @@ const fetchSignStatus = async () => {
       }
 
       const response = await axios.put(
-        "http://www.kcci.co.kr/back/mypage/member/update",
+        "https://www.kcci.co.kr/back/mypage/member/update",
         {
           userId,
           companyName: editCompanyName,
@@ -237,7 +237,7 @@ const fetchSignStatus = async () => {
 
   const getProfileImageUrl = () =>
     company.profileImage
-      ? `http://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
+      ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
       : "";
 
   return (

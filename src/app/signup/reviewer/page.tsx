@@ -136,7 +136,7 @@ export default function SignupReviewer() {
   useEffect(() => {
     const fetchExpertises = async () => {
       try {
-        const res = await fetch("http://www.kcci.co.kr/back/expertise/categories");
+        const res = await fetch("https://www.kcci.co.kr/back/expertise/categories");
         if (!res.ok) throw new Error("전문분야 조회 실패");
         const data = await res.json();
         setExpertiseCategories(data);
