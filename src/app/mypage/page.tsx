@@ -33,6 +33,8 @@ export default function MyPage() {
         router.replace("/mypage/adminpage");
       } else if (user.classification === "심사원") {
         router.replace("/mypage/reviewerpage");
+      } else if (user.classification === "기업") {
+        router.replace("/mypage/companypage");
       } else {
         alert("접근 권한이 없습니다.");
         router.replace("/");

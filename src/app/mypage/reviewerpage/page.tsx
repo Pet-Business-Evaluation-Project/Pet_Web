@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaUserCircle, FaUsers, FaCamera } from "react-icons/fa";
-import Button from "../../components/Button/Button";
+import { FaUserCircle, FaUsers, FaCamera, FaEdit, FaSortUp, FaSortDown } from "react-icons/fa";
 import axios from "axios";
+import Image from "next/image";
 
 interface ReviewerInfo {
   loginID: string;
@@ -121,13 +121,11 @@ export default function ReviewerPage() {
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 파일 크기 검증 (10MB)
       if (file.size > 10 * 1024 * 1024) {
         alert("파일 크기는 10MB를 초과할 수 없습니다.");
         return;
       }
 
-      // 파일 형식 검증
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
       if (!allowedTypes.includes(file.type)) {
         alert("JPG, PNG, GIF 형식의 이미지만 업로드 가능합니다.");
@@ -136,7 +134,6 @@ export default function ReviewerPage() {
 
       setProfileImageFile(file);
       
-      // 미리보기 생성
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImagePreview(reader.result as string);
@@ -165,13 +162,7 @@ export default function ReviewerPage() {
         }
       );
 
-      // ⭐ 응답 구조 변경에 맞춤
-      if (response.data.success === "true") {
-        return response.data.filename;
-      } else {
-        throw new Error(response.data.message || "업로드 실패");
-      }
-      
+      return response.data;
     } catch (error) {
       console.error("Image upload error:", error);
       
@@ -204,7 +195,6 @@ export default function ReviewerPage() {
     try {
       let profileImageFilename = reviewer?.profileImage;
 
-      // 프로필 이미지가 변경된 경우 먼저 업로드
       if (profileImageFile) {
         const uploadedFilename = await uploadProfileImage();
         if (uploadedFilename) {
@@ -236,7 +226,6 @@ export default function ReviewerPage() {
           } : prev
         );
         
-        // localStorage 업데이트
         const currentUser = localStorage.getItem("user");
         if (currentUser) {
           const userObj = JSON.parse(currentUser);
@@ -245,7 +234,6 @@ export default function ReviewerPage() {
           localStorage.setItem("user", JSON.stringify(userObj));
         }
         
-        // Header 업데이트 이벤트
         window.dispatchEvent(new Event("userUpdated"));
         
         alert("개인정보가 성공적으로 수정되었습니다!");
@@ -269,7 +257,16 @@ export default function ReviewerPage() {
     }
   };
 
-  if (!reviewer) return <div className="p-6">불러오는 중...</div>;
+  if (!reviewer) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   const sortedOrgMembers = [...orgMembers].sort((a, b) =>
     sortAsc
@@ -284,92 +281,143 @@ export default function ReviewerPage() {
     return "";
   };
 
+  const getBadgeColor = (grade: string) => {
+    switch (grade) {
+      case "수석심사위원":
+        return "bg-purple-100 text-purple-800";
+      case "심사위원":
+        return "bg-blue-100 text-blue-800";
+      case "심사원보":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <main className="flex flex-col md:flex-row min-h-screen bg-gray-100 p-6 gap-6">
       {/* 좌측 프로필 */}
-      <div className="flex flex-col items-center md:items-start w-full md:w-64 bg-yellow-100 rounded-2xl shadow-lg p-6 space-y-4 flex-shrink-0">
-        <div className="w-24 h-24 rounded-full border-4 border-yellow-500 relative overflow-hidden bg-gray-200">
-          {reviewer.profileImage ? (
-            <img
-              src={getProfileImageUrl()}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <FaUserCircle className="w-full h-full text-gray-400" />
-          )}
+      <aside className="w-full md:w-72 bg-white rounded-2xl shadow-lg p-6 flex-shrink-0">
+        {/* 프로필 섹션 */}
+        <div className="flex flex-col items-center pb-6 border-b border-gray-200">
+          <div className="w-24 h-24 rounded-full border-4 border-yellow-500 relative overflow-hidden mb-3 bg-gray-100">
+            {reviewer.profileImage ? (
+              <img
+                src={getProfileImageUrl()}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <FaUserCircle className="w-full h-full text-gray-400" />
+            )}
+          </div>
+          <p className="text-lg font-bold text-gray-800">{reviewer.name}</p>
+          <span className={`text-xs px-3 py-1 rounded-full font-semibold mt-2 ${getBadgeColor(reviewer.reviewerGrade)}`}>
+            {reviewer.reviewerGrade}
+          </span>
         </div>
-        <p className="text-lg font-semibold text-center md:text-left">{reviewer.name}</p>
-        <p className="text-gray-600 text-center md:text-left">{reviewer.reviewerGrade}</p>
 
-        <div className="flex flex-col gap-3 w-full mt-4">
-          <Button label="개인정보 수정" onClick={openEditModal} />
-        </div>
-      </div>
+        {/* 메뉴 */}
+        <nav className="mt-6">
+          <button
+            onClick={openEditModal}
+            className="w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 text-gray-700 hover:bg-gray-100"
+          >
+            <FaEdit className="w-5 h-5" />
+            <span>개인정보 수정</span>
+          </button>
+        </nav>
+      </aside>
 
       {/* 우측 조직 관리 */}
       <div className="flex-1 flex flex-col gap-6">
+        {/* 조직 관리 카드 */}
         <div
-          className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 cursor-pointer"
+          className="bg-white rounded-2xl shadow-lg p-6 flex items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow"
           onClick={toggleOrgMembers}
         >
-          <FaUsers className="text-yellow-500 w-6 h-6 flex-shrink-0" />
-          <div>
-            <h2 className="text-xl font-bold mb-1">조직 관리</h2>
-            <p className="text-gray-500">나의 조직 확인 및 관리 가능</p>
+          <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <FaUsers className="text-yellow-600 w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-800 mb-1">조직 관리</h2>
+            <p className="text-sm text-gray-500">나의 조직 확인 및 관리</p>
+          </div>
+          <div className="text-gray-400">
+            {showOrg ? "▲" : "▼"}
           </div>
         </div>
 
+        {/* 조직 구성원 테이블 */}
         {showOrg && (
-          <div className="w-full max-w-3xl bg-white rounded-2xl shadow-lg p-6 overflow-x-auto mt-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
               <FaUsers className="text-yellow-500 w-6 h-6" /> 나의 조직 구성원
             </h2>
-            <table className="w-full min-w-[500px] border-collapse table-auto">
-              <thead>
-                <tr className="text-left border-b border-gray-300">
-                  <th className="py-2 px-3">이름</th>
-                  <th className="py-2 px-3">전화번호</th>
-                  <th
-                    className="py-2 px-3 cursor-pointer"
-                    onClick={() => setSortAsc(!sortAsc)}
-                  >
-                    직책 {sortAsc ? "▲" : "▼"}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedOrgMembers.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="py-2 px-3 text-gray-500 text-center">
-                      조직 구성원이 없습니다.
-                    </td>
-                  </tr>
-                ) : (
-                  sortedOrgMembers.map((m, idx) => (
-                    <tr key={idx} className="border-b border-gray-200">
-                      <td className="py-2 px-3">{m.name}</td>
-                      <td className="py-2 px-3">{m.phnum}</td>
-                      <td className="py-2 px-3">{m.reviewerGrade}</td>
+            
+            {sortedOrgMembers.length === 0 ? (
+              <div className="text-center py-10">
+                <FaUsers className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">조직 구성원이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                        이름
+                      </th>
+                      <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">
+                        전화번호
+                      </th>
+                      <th 
+                        className="py-3 px-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:text-yellow-600 transition-colors"
+                        onClick={() => setSortAsc(!sortAsc)}
+                      >
+                        <div className="flex items-center gap-2">
+                          직책
+                          {sortAsc ? (
+                            <FaSortUp className="w-4 h-4" />
+                          ) : (
+                            <FaSortDown className="w-4 h-4" />
+                          )}
+                        </div>
+                      </th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {sortedOrgMembers.map((m, idx) => (
+                      <tr 
+                        key={idx} 
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-4 text-gray-800">{m.name}</td>
+                        <td className="py-3 px-4 text-gray-600">{m.phnum}</td>
+                        <td className="py-3 px-4">
+                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${getBadgeColor(m.reviewerGrade)}`}>
+                            {m.reviewerGrade}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* 개인정보 수정 모달 */}
       {showEditModal && reviewer && (
-        <div className="fixed inset-0 flex items-center justify-center z-50
-                            bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300">
-          <div className="bg-white rounded-2xl shadow-lg p-6 w-96 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-6 border-b pb-2">회원 정보</h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">회원 정보 수정</h2>
 
             {/* 프로필 사진 */}
-            <div className="flex flex-col items-center mb-6">
-              <div className="relative w-32 h-32 rounded-full border-4 border-yellow-500 overflow-hidden bg-gray-200 mb-4">
+            <div className="flex flex-col items-center mb-8">
+              <div className="relative w-32 h-32 rounded-full border-4 border-yellow-500 overflow-hidden bg-gray-100 mb-4">
                 {profileImagePreview ? (
                   <img
                     src={profileImagePreview}
@@ -381,7 +429,7 @@ export default function ReviewerPage() {
                 )}
                 <label
                   htmlFor="profile-upload"
-                  className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-2 cursor-pointer hover:bg-yellow-600 transition"
+                  className="absolute bottom-0 right-0 bg-yellow-500 rounded-full p-3 cursor-pointer hover:bg-yellow-600 transition-colors shadow-lg"
                 >
                   <FaCamera className="text-white w-4 h-4" />
                 </label>
@@ -393,66 +441,77 @@ export default function ReviewerPage() {
                   className="hidden"
                 />
               </div>
-              <p className="text-sm text-gray-500 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 JPG, PNG, GIF (최대 10MB)
               </p>
             </div>
 
             {/* 이름 */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-gray-600 font-medium w-24">이름</span>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-semibold text-gray-700">이름</label>
+                <button
+                  onClick={() => setEditingField(editingField === "name" ? null : "name")}
+                  className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+                >
+                  {editingField === "name" ? "완료" : "수정"}
+                </button>
+              </div>
               {editingField === "name" ? (
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="border rounded-lg p-2 flex-1 mr-2"
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 />
               ) : (
-                <span className="text-gray-700 flex-1">{editName}</span>
+                <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+                  {editName}
+                </div>
               )}
-              <Button
-                label={editingField === "name" ? "완료" : "수정"}
-                onClick={() =>
-                  setEditingField(editingField === "name" ? null : "name")
-                }
-                className="text-sm px-3 py-1"
-              />
             </div>
 
             {/* 전화번호 */}
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-gray-600 font-medium w-24">전화번호</span>
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-semibold text-gray-700">전화번호</label>
+                <button
+                  onClick={() => setEditingField(editingField === "phnum" ? null : "phnum")}
+                  className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+                >
+                  {editingField === "phnum" ? "완료" : "수정"}
+                </button>
+              </div>
               {editingField === "phnum" ? (
                 <input
                   type="text"
                   value={editPhnum}
                   onChange={(e) => setEditPhnum(e.target.value)}
-                  className="border rounded-lg p-2 flex-1 mr-2"
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 />
               ) : (
-                <span className="text-gray-700 flex-1">{editPhnum}</span>
+                <div className="w-full bg-gray-50 rounded-lg p-3 text-gray-800">
+                  {editPhnum}
+                </div>
               )}
-              <Button
-                label={editingField === "phnum" ? "완료" : "수정"}
-                onClick={() =>
-                  setEditingField(editingField === "phnum" ? null : "phnum")
-                }
-                className="text-sm px-3 py-1"
-              />
             </div>
 
-            <div className="flex justify-end gap-3">
-              <Button 
-                label="취소" 
+            {/* 버튼 */}
+            <div className="flex gap-3">
+              <button
                 onClick={() => setShowEditModal(false)}
                 disabled={isUploadingImage}
-              />
-              <Button 
-                label={isUploadingImage ? "업로드 중..." : "저장"}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
                 onClick={handleSaveEdit}
                 disabled={isUploadingImage}
-              />
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50"
+              >
+                {isUploadingImage ? "업로드 중..." : "저장"}
+              </button>
             </div>
           </div>
         </div>

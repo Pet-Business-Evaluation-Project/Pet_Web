@@ -4,11 +4,23 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface ModalData {
+  message: string;
   loginID: string;
   name: string;
   phnum: string;
   referralID: string;
   classification: string;
+}
+
+interface ExpertiseCategories {
+  [key: string]: string[];
+}
+
+interface DaumPostcodeData {
+  address: string;
+  addressType: string;
+  bname: string;
+  buildingName: string;
 }
 
 export default function SignupReviewer() {
@@ -22,6 +34,12 @@ export default function SignupReviewer() {
     Classifnumber: "",
     referralID: "",
     classification: "심사원",
+    address: "",
+    addressDetail: "",
+    account: "",
+    bankName: "",
+    eduLocation: "본사",
+    eduDate: "",
   });
 
   const [errors, setErrors] = useState({
@@ -32,6 +50,10 @@ export default function SignupReviewer() {
     phnum: "",
     Classifnumber: "",
     referralID: "",
+    address: "",
+    account: "",
+    bankName: "",
+    eduDate: "",
   });
 
   const [passwordcheck, setPasswordcheck] = useState("");
@@ -39,7 +61,110 @@ export default function SignupReviewer() {
   const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
 
-  // ✅ 비밀번호 일치 검증 - useEffect로 자동 처리
+  // 전문분야 관련 state
+  const [expertiseCategories, setExpertiseCategories] = useState<ExpertiseCategories>({});
+  const [selectedExpertises, setSelectedExpertises] = useState<string[]>([]);
+  const [customExpertise, setCustomExpertise] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // ✅ 카테고리 영어 → 한글 매핑
+  const categoryNameMap: { [key: string]: string } = {
+    "Health Care": "헬스케어(Health Care)",
+    "Services": "서비스(Services)",
+    "Products & Industry": "제품 & 산업(Products & Industry)",
+    "Others": "기타(Others)"
+  };
+
+  // 한국 주요 은행 리스트
+  const bankList = [
+    "KB국민은행",
+    "신한은행",
+    "우리은행",
+    "하나은행",
+    "NH농협은행",
+    "IBK기업은행",
+    "SC제일은행",
+    "한국씨티은행",
+    "카카오뱅크",
+    "케이뱅크",
+    "토스뱅크",
+    "부산은행",
+    "대구은행",
+    "경남은행",
+    "광주은행",
+    "전북은행",
+    "제주은행",
+    "새마을금고",
+    "신협",
+    "우체국",
+    "기타"
+  ];
+
+  // ✅ Daum 주소 검색 팝업 열기
+  const openAddressPopup = () => {
+    const script = document.createElement("script");
+    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new (window as any).daum.Postcode({
+        oncomplete: function(data: DaumPostcodeData) {
+          let fullAddress = data.address;
+          let extraAddress = "";
+
+          if (data.addressType === "R") {
+            if (data.bname !== "") {
+              extraAddress += data.bname;
+            }
+            if (data.buildingName !== "") {
+              extraAddress += extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+            }
+            fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
+          }
+
+          setFormData((prev) => ({ ...prev, address: fullAddress }));
+        },
+        width: "100%",
+        height: "100%"
+      }).open();
+    };
+  };
+
+  // ✅ 전문분야 목록 불러오기
+  useEffect(() => {
+    const fetchExpertises = async () => {
+      try {
+        const res = await fetch("http://www.kcci.co.kr/back/expertise/categories");
+        if (!res.ok) throw new Error("전문분야 조회 실패");
+        const data = await res.json();
+        setExpertiseCategories(data);
+      } catch (err) {
+        console.error("전문분야 조회 에러:", err);
+        setExpertiseCategories({
+          "Health Care": ["수의학", "동물보건", "재활/피트니스", "마사지", "아로마", "기타 대체요법"],
+          "Services": ["훈련", "미용", "호텔", "유치원", "펫택시", "장례"],
+          "Products & Industry": ["펫푸드", "반려동물 용품", "펫패션(의류)", "펫테크(기기)", "유통(도소매)", "산업(제조/설비)"],
+          "Others": ["미디어(콘텐츠/출판)", "법률(정책/행정)"]
+        });
+      }
+    };
+    fetchExpertises();
+  }, []);
+
+  // ✅ 전문분야 체크박스 처리
+  const handleExpertiseChange = (expertise: string) => {
+    setSelectedExpertises((prev) => {
+      if (prev.includes(expertise)) {
+        return prev.filter((e) => e !== expertise);
+      } else {
+        return [...prev, expertise];
+      }
+    });
+  };
+
+  // ✅ 비밀번호 일치 검증
   useEffect(() => {
     if (passwordcheck) {
       const errorMsg = passwordcheck !== formData.password ? "비밀번호가 일치하지 않습니다." : "";
@@ -47,7 +172,7 @@ export default function SignupReviewer() {
     }
   }, [formData.password, passwordcheck]);
 
-  // ✅ cleanup - 메모리 누수 방지
+  // ✅ cleanup
   useEffect(() => {
     return () => {
       if (referralCheckTimer) {
@@ -56,7 +181,7 @@ export default function SignupReviewer() {
     };
   }, [referralCheckTimer]);
 
-  // ✅ 추천인 검증 함수
+  // ✅ 추천인 검증
   const validateReferralID = async (referralID: string) => {
     if (!referralID) {
       setErrors((prev) => ({ ...prev, referralID: "" }));
@@ -84,7 +209,7 @@ export default function SignupReviewer() {
     }
   };
 
-  // ✅ 일반 필드 검증
+  // ✅ 필드 검증
   const validateField = (name: string, value: string) => {
     let errorMsg = "";
 
@@ -93,9 +218,7 @@ export default function SignupReviewer() {
         if (value.length < 4) errorMsg = "아이디는 4자 이상이어야 합니다.";
         break;
       case "password":
-        if (
-          !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(value)
-        )
+        if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(value))
           errorMsg = "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
         break;
       case "phnum":
@@ -109,6 +232,17 @@ export default function SignupReviewer() {
       case "name":
         if (!value) errorMsg = "이름을 입력해주세요.";
         break;
+      case "account":
+        if (value && !/^[\d-]+$/.test(value))
+          errorMsg = "계좌번호는 숫자와 -만 입력 가능합니다.";
+        break;
+      case "bankName":
+        if (!value) errorMsg = "은행을 선택해주세요.";
+        break;
+      case "eduDate":
+        if (value && new Date(value) > new Date())
+          errorMsg = "교육 날짜는 미래일 수 없습니다.";
+        break;
       default:
         break;
     }
@@ -117,11 +251,10 @@ export default function SignupReviewer() {
     return errorMsg === "";
   };
 
-  // ✅ 입력 핸들러 - 개선됨
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ 입력 핸들러
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
-    // 주민번호 특수 처리
     if (name === "Classifnumber") {
       let digits = value.replace(/[^0-9]/g, "");
       if (digits.length > 7) digits = digits.slice(0, 7);
@@ -136,17 +269,14 @@ export default function SignupReviewer() {
       return;
     }
 
-    // 비밀번호 확인 처리 (useEffect가 자동 검증)
     if (name === "verifyPassword") {
       setPasswordcheck(value);
       return;
     }
 
-    // 일반 필드 처리
     setFormData((prev) => ({ ...prev, [name]: value }));
     validateField(name, value);
 
-    // 추천인 디바운스 검증
     if (name === "referralID") {
       if (referralCheckTimer) clearTimeout(referralCheckTimer);
       const timer = setTimeout(() => {
@@ -179,32 +309,50 @@ export default function SignupReviewer() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 모든 필드 검증
     const validations = {
       loginID: validateField("loginID", formData.loginID),
       password: validateField("password", formData.password),
       name: validateField("name", formData.name),
       phnum: validateField("phnum", formData.phnum),
       Classifnumber: validateField("Classifnumber", ssnRaw),
+      account: validateField("account", formData.account),
+      bankName: validateField("bankName", formData.bankName),
+      eduDate: validateField("eduDate", formData.eduDate),
     };
 
-    // 비밀번호 확인 검증
     const passwordMatch = passwordcheck === formData.password;
     if (!passwordMatch) {
       setErrors((prev) => ({ ...prev, verifyPassword: "비밀번호가 일치하지 않습니다." }));
     }
 
-    const isValid = Object.values(validations).every(v => v === true) && passwordMatch;
+    if (selectedExpertises.length === 0 && !customExpertise.trim()) {
+      alert("전문분야를 최소 1개 이상 선택해주세요.");
+      return;
+    }
+
+    const isValid = Object.values(validations).every((v) => v === true) && passwordMatch;
 
     if (!isValid || errors.referralID) {
       alert("입력값을 확인해주세요.");
       return;
     }
 
-    const payload = {
+    // ✅ 주소와 상세주소를 합쳐서 전송
+    const fullAddress = formData.addressDetail 
+      ? `${formData.address} ${formData.addressDetail}` 
+      : formData.address;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload: any = {
       ...formData,
+      address: fullAddress, // ✅ 합쳐진 주소
       Classifnumber: ssnRaw,
+      expertises: selectedExpertises,
+      customExpertise: showCustomInput ? customExpertise.trim() : null,
     };
+
+    // addressDetail은 payload에서 제거 (백엔드에 불필요)
+    delete payload.addressDetail;
 
     try {
       const res = await fetch("https://www.kcci.co.kr/back/user/signup", {
@@ -213,40 +361,29 @@ export default function SignupReviewer() {
         body: JSON.stringify(payload),
       });
 
+      const responseText = await res.text();
+
       if (!res.ok) {
-        let errorMessage = "회원가입 요청 실패 (서버 응답 오류)";
-        
-        try {
-          const errorData = await res.json();
-          if (errorData && typeof errorData.message === 'string') { 
-            errorMessage = errorData.message;
-          } else if (res.statusText) {
-            errorMessage = `[HTTP ${res.status}] ${res.statusText}`;
-          }
-        } catch (_) {
-          errorMessage = await res.text() || `서버 오류 발생: 상태 코드 ${res.status}`;
-        }
-        throw new Error(errorMessage);
+        throw new Error(responseText || "회원가입 요청 실패");
       }
 
-      const data = await res.json();
-      console.log("심사원 회원가입 성공:", data);
-      
       setModalData({
-        loginID: data.loginID || formData.loginID,
-        name: data.name || formData.name,
-        phnum: data.phnum || formData.phnum,
-        referralID: data.referralID || formData.referralID,
-        classification: data.classification || "심사원",
+        message: responseText,
+        loginID: formData.loginID,
+        name: formData.name,
+        phnum: formData.phnum,
+        referralID: formData.referralID || "없음",
+        classification: "심사원",
       });
     } catch (e) {
-      const message = (e instanceof Error) ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
+      const message =
+        e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
       alert(message);
       console.error("회원가입 에러:", e);
     }
   };
 
-  // ✅ 모달 닫기 후 이동
+  // ✅ 모달 닫기
   const handleModalClose = () => {
     setModalData(null);
     router.push("/");
@@ -254,7 +391,7 @@ export default function SignupReviewer() {
 
   return (
     <div className="flex justify-center bg-gradient-to-b from-gray-100 to-gray-200 px-4 py-10 sm:py-16 min-h-screen items-start">
-      <div className="relative bg-white w-full max-w-lg p-8 sm:p-10 rounded-2xl shadow-lg">
+      <div className="relative bg-white w-full max-w-2xl p-8 sm:p-10 rounded-2xl shadow-lg">
         <button
           type="button"
           onClick={() => window.history.back()}
@@ -263,14 +400,12 @@ export default function SignupReviewer() {
           &times;
         </button>
 
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          심사원 회원가입
-        </h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">심사원 회원가입</h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 이름 */}
           <div>
-            <label className="block text-gray-700 mb-2">이름</label>
+            <label className="block text-gray-700 mb-2">이름 *</label>
             <input
               type="text"
               name="name"
@@ -285,7 +420,7 @@ export default function SignupReviewer() {
 
           {/* 아이디 */}
           <div>
-            <label className="block text-gray-700 mb-2">아이디</label>
+            <label className="block text-gray-700 mb-2">아이디 *</label>
             <input
               type="text"
               name="loginID"
@@ -300,7 +435,7 @@ export default function SignupReviewer() {
 
           {/* 비밀번호 */}
           <div>
-            <label className="block text-gray-700 mb-2">비밀번호</label>
+            <label className="block text-gray-700 mb-2">비밀번호 *</label>
             <input
               type="password"
               name="password"
@@ -315,7 +450,7 @@ export default function SignupReviewer() {
 
           {/* 비밀번호 확인 */}
           <div>
-            <label className="block text-gray-700 mb-2">비밀번호 확인</label>
+            <label className="block text-gray-700 mb-2">비밀번호 확인 *</label>
             <input
               type="password"
               name="verifyPassword"
@@ -332,14 +467,14 @@ export default function SignupReviewer() {
 
           {/* 휴대폰 */}
           <div>
-            <label className="block text-gray-700 mb-2">휴대폰 번호</label>
+            <label className="block text-gray-700 mb-2">휴대폰 번호 *</label>
             <input
               type="text"
               name="phnum"
               value={formData.phnum}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
-              placeholder="01012345678 "
+              placeholder="01012345678"
               required
             />
             {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}
@@ -347,7 +482,7 @@ export default function SignupReviewer() {
 
           {/* 주민등록번호 */}
           <div>
-            <label className="block text-gray-700 mb-2">주민등록번호</label>
+            <label className="block text-gray-700 mb-2">주민등록번호 *</label>
             <input
               type="text"
               name="Classifnumber"
@@ -362,6 +497,156 @@ export default function SignupReviewer() {
             {errors.Classifnumber && (
               <p className="text-red-500 text-sm mt-1">{errors.Classifnumber}</p>
             )}
+          </div>
+
+          {/* 주소 검색 - 클릭하면 팝업 */}
+          <div>
+            <label className="block text-gray-700 mb-2">주소 *</label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onClick={openAddressPopup}
+              readOnly
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 bg-white cursor-pointer hover:border-blue-400 focus:ring-2 focus:ring-blue-400"
+              placeholder="클릭하여 주소를 검색하세요"
+              required
+            />
+            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+          </div>
+
+          {/* 상세주소 */}
+          {formData.address && (
+            <div>
+              <label className="block text-gray-700 mb-2">상세주소</label>
+              <input
+                type="text"
+                name="addressDetail"
+                value={formData.addressDetail}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                placeholder="상세주소를 입력하세요 (예: 101동 202호)"
+              />
+            </div>
+          )}
+
+          {/* 은행 선택 */}
+          <div>
+            <label className="block text-gray-700 mb-2">은행명 *</label>
+            <select
+              name="bankName"
+              value={formData.bankName}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+              required
+            >
+              <option value="">은행을 선택하세요</option>
+              {bankList.map((bank) => (
+                <option key={bank} value={bank}>
+                  {bank}
+                </option>
+              ))}
+            </select>
+            {errors.bankName && <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>}
+          </div>
+
+          {/* 계좌번호 */}
+          <div>
+            <label className="block text-gray-700 mb-2">계좌번호 *</label>
+            <input
+              type="text"
+              name="account"
+              value={formData.account}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+              placeholder="계좌번호를 입력하세요 (예: 110-123-456789)"
+              required
+            />
+            {errors.account && <p className="text-red-500 text-sm mt-1">{errors.account}</p>}
+          </div>
+
+          {/* 전문분야 선택 */}
+          <div>
+            <label className="block text-gray-700 mb-3 font-semibold">전문분야 선택 *</label>
+            <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto">
+              {Object.entries(expertiseCategories).map(([category, expertises]) => (
+                <div key={category} className="mb-4">
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {categoryNameMap[category] || category}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {expertises.map((expertise) => (
+                      <label key={expertise} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedExpertises.includes(expertise)}
+                          onChange={() => handleExpertiseChange(expertise)}
+                          className="w-4 h-4 text-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{expertise}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* 기타 전문분야 입력 */}
+              <div className="mt-4 pt-4 border-t">
+                <label className="flex items-center space-x-2 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={showCustomInput}
+                    onChange={(e) => setShowCustomInput(e.target.checked)}
+                    className="w-4 h-4 text-blue-500"
+                  />
+                  <span className="font-semibold text-gray-800">기타 (직접 입력)</span>
+                </label>
+                {showCustomInput && (
+                  <input
+                    type="text"
+                    value={customExpertise}
+                    onChange={(e) => setCustomExpertise(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+                    placeholder="기타 전문분야를 입력하세요"
+                  />
+                )}
+              </div>
+            </div>
+            {selectedExpertises.length > 0 && (
+              <p className="text-sm text-blue-600 mt-2">
+                선택된 전문분야: {selectedExpertises.join(", ")}
+              </p>
+            )}
+          </div>
+
+          {/* 교육 장소 */}
+          <div>
+            <label className="block text-gray-700 mb-2">교육 받은 장소 *</label>
+            <select
+              name="eduLocation"
+              value={formData.eduLocation}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+              required
+            >
+              <option value="본사">본사</option>
+              <option value="대구경북지사">대구경북지사</option>
+            </select>
+          </div>
+
+          {/* 교육 날짜 */}
+          <div>
+            <label className="block text-gray-700 mb-2">교육 받은 날짜 *</label>
+            <input
+              type="date"
+              name="eduDate"
+              value={formData.eduDate}
+              onChange={handleChange}
+              max={new Date().toISOString().split("T")[0]}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
+              required
+            />
+            {errors.eduDate && <p className="text-red-500 text-sm mt-1">{errors.eduDate}</p>}
           </div>
 
           {/* 추천인 */}
@@ -392,27 +677,39 @@ export default function SignupReviewer() {
       </div>
 
       {/* 회원가입 성공 모달 */}
-{modalData && (
-  <div
-    className="fixed inset-0 flex items-center justify-center z-50
-                   bg-[rgba(0,0,0,0.2)] backdrop-blur-sm transition-all duration-300"
-  >
-    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 정보</h2>
-      <p className="text-gray-700 mb-2"><b>이름:</b> {modalData.name}</p>
-      <p className="text-gray-700 mb-2"><b>아이디:</b> {modalData.loginID}</p>
-      <p className="text-gray-700 mb-2"><b>휴대폰:</b> {modalData.phnum}</p>
-      <p className="text-gray-700 mb-4"><b>추천인:</b> {modalData.referralID || "없음"}</p>
-      <p className="text-gray-700 mb-4"><b>직책:</b> 심사원보</p>
-      <button
-        onClick={handleModalClose}
-        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
-      >
-        확인
-      </button>
-    </div>
-  </div>
-)}
+      {modalData && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+            </div>
+
+            <p className="text-gray-700 mb-2">
+              <b>이름:</b> {modalData.name}
+            </p>
+            <p className="text-gray-700 mb-2">
+              <b>아이디:</b> {modalData.loginID}
+            </p>
+            <p className="text-gray-700 mb-2">
+              <b>휴대폰:</b> {modalData.phnum}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <b>추천인:</b> {modalData.referralID}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <b>직책:</b> 심사원보 (승인 대기)
+            </p>
+            <button
+              onClick={handleModalClose}
+              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md transition"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

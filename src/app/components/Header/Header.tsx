@@ -13,6 +13,7 @@ interface User {
   id: number;
   name: string;
   email: string;
+  classification: string;  // ✅ 추가
   expiresAt?: number;
 }
 
@@ -46,7 +47,6 @@ export default function Header() {
       const userData = JSON.parse(storedUser) as User;
       
       if (userData.expiresAt && Date.now() >= userData.expiresAt) {
-        // 세션 만료
         localStorage.removeItem("user");
         setUser(null);
         setRemainingTime("");
@@ -65,7 +65,6 @@ export default function Header() {
     if (storedUser) {
       const userData = JSON.parse(storedUser) as User;
       
-      // 세션 만료 체크
       if (userData.expiresAt && Date.now() >= userData.expiresAt) {
         localStorage.removeItem("user");
         setUser(null);
@@ -82,17 +81,14 @@ export default function Header() {
   }, [router]);
 
   useEffect(() => {
-    // 초기 로드
     loadUser();
 
-    // 사용자 정보 업데이트 이벤트 리스너 등록
     const handleUserUpdate = () => {
       loadUser();
     };
 
     window.addEventListener("userUpdated", handleUserUpdate);
 
-    // 클린업
     return () => {
       window.removeEventListener("userUpdated", handleUserUpdate);
     };
@@ -101,10 +97,8 @@ export default function Header() {
   // 남은 시간 업데이트 타이머
   useEffect(() => {
     if (user?.expiresAt) {
-      // 즉시 한 번 실행
       setRemainingTime(formatRemainingTime(user.expiresAt));
 
-      // 1초마다 업데이트
       const timer = setInterval(() => {
         if (!checkSessionExpiry()) {
           clearInterval(timer);
@@ -114,7 +108,6 @@ export default function Header() {
         const newRemainingTime = formatRemainingTime(user.expiresAt!);
         setRemainingTime(newRemainingTime);
 
-        // 세션 만료 시 타이머 정리
         if (newRemainingTime === "세션 만료") {
           clearInterval(timer);
           localStorage.removeItem("user");
@@ -149,6 +142,9 @@ export default function Header() {
     setIsCommunityOpen(false);
   };
 
+  // ✅ 관리자 여부 확인
+  const isAdmin = user?.classification === "관리자";
+
   return (
     <header className="w-full shadow-md">
       {/* 최상단: 로그인/회원가입 or 사용자정보 */}
@@ -160,7 +156,25 @@ export default function Header() {
               회원가입
             </Link>
           </>
+        ) : isAdmin ? (
+          // ✅ 관리자 메뉴
+          <>
+            <span>{user.name} 님</span>
+            {remainingTime && (
+              <span className="text-xs text-gray-500 font-mono">
+                ({remainingTime})
+              </span>
+            )}
+            <Link href="/mypage" className="hover:underline">
+              마이페이지
+            </Link>
+            <Link href="/admin/approval" className="hover:underline font-semibold text-blue-600">
+              승인관리
+            </Link>
+            <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
+          </>
         ) : (
+          // 일반 사용자 메뉴
           <>
             <span>{user.name} 님</span>
             {remainingTime && (
@@ -211,7 +225,7 @@ export default function Header() {
             회원사 소개
           </Link>
           <Link href="/memberregister" className="hover:text-red-900 whitespace-nowrap">
-            회원사 등록
+            인증 현황
           </Link>
 
           {/* 🔽 커뮤니티 hover 드롭다운 (데스크톱) */}
@@ -270,7 +284,7 @@ export default function Header() {
               className="px-6 py-3 hover:bg-gray-100 text-gray-800"
               onClick={closeMobileMenu}
             >
-              회원사 등록
+              인증 현황
             </Link>
 
             {/* 🔽 커뮤니티 드롭다운 (모바일) */}
@@ -315,7 +329,6 @@ export default function Header() {
             setUser(userData);
             setIsLoginOpen(false);
             
-            // 사용자 정보 업데이트 이벤트 발생
             window.dispatchEvent(new Event("userUpdated"));
           }}
           onClose={() => setIsLoginOpen(false)}
