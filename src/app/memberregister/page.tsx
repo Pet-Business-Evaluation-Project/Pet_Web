@@ -88,7 +88,7 @@ export default function MemberRegister() {
     try {
       if (currentUser.classification === "관리자") {
         const res = await axios.get<SignStart[]>(
-          "http://petback.hysu.kr/back/signstart/all",
+          "http://www.kcci.co.kr/back/signstart/all",
           { headers: { "X-USER-ID": currentUser.id } }
         );
         console.log(res.data);
@@ -99,14 +99,14 @@ export default function MemberRegister() {
         setSigns(Array.from(uniqueMap.values()));
       } else {
         const reviewerRes = await axios.post(
-          "http://petback.hysu.kr/back/user/reviwerinfo",
+          "http://www.kcci.co.kr/back/user/reviwerinfo",
           { userId: currentUser.id },
           { headers: { "Content-Type": "application/json" } }
         );
         const myReviewerId: number = reviewerRes.data.reviewerId;
 
         const allSignsRes = await axios.get<SignStart[]>(
-          "http://petback.hysu.kr/back/signstart/all",
+          "http://www.kcci.co.kr/back/signstart/all",
           { headers: { "X-USER-ID": currentUser.id } }
         );
         const mySigns = allSignsRes.data.filter(sign => sign.reviewerId === myReviewerId);
@@ -132,7 +132,7 @@ export default function MemberRegister() {
     try {
       if (currentUser.classification !== "관리자") {
         const reviewerRes = await axios.post(
-          "http://petback.hysu.kr/back/user/reviwerinfo",
+          "http://www.kcci.co.kr/back/user/reviwerinfo",
           { userId: currentUser.id },
           { headers: { "Content-Type": "application/json" } }
         );
@@ -143,7 +143,7 @@ export default function MemberRegister() {
         }
       }
       const res = await axios.get<SignStart>(
-        `http://petback.hysu.kr/back/signstart/detail/${sign.signstartId}`,
+        `http://www.kcci.co.kr/back/signstart/detail/${sign.signstartId}`,
         { headers: { "X-USER-ID": currentUser.id } }
       );
       setCurrentSign(res.data);
@@ -171,13 +171,13 @@ export default function MemberRegister() {
     try {
       if (currentUser.classification === "관리자" && currentSign.membergrade) {
         await axios.put(
-          `http://petback.hysu.kr/back/signstart/updatebysign/${currentSign.signId}`,
+          `http://www.kcci.co.kr/back/signstart/updatebysign/${currentSign.signId}`,
           currentSign,
           { headers: { "X-USER-ID": currentUser.id, "Content-Type": "application/json" } }
         );
       } else {
         await axios.put(
-          `http://petback.hysu.kr/back/signstart/update/${currentSign.signstartId}`,
+          `http://www.kcci.co.kr/back/signstart/update/${currentSign.signstartId}`,
           currentSign,
           { headers: { "X-USER-ID": currentUser.id, "Content-Type": "application/json" } }
         );
@@ -202,7 +202,7 @@ export default function MemberRegister() {
     if (!currentSign || !currentUser) return;
     try {
       const res = await axios.get<SignStart[]>(
-        `http://petback.hysu.kr/back/signstart/bysign/${currentSign.signId}`,
+        `http://www.kcci.co.kr/back/signstart/bysign/${currentSign.signId}`,
         { headers: { "X-USER-ID": currentUser.id } }
       );
       const list = res.data.map(r => ({

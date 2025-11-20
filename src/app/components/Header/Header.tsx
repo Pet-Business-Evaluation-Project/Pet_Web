@@ -125,7 +125,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("https://www.kcci.co.kr/back/api/auth/logout", {}, { withCredentials: true });
+      await axios.post("http://www.kcci.co.kr/back/api/auth/logout", {}, { withCredentials: true });
       localStorage.removeItem("user");
       setUser(null);
       setRemainingTime("");
