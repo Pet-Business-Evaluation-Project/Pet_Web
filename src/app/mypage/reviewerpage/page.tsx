@@ -71,7 +71,7 @@ export default function ReviewerPage() {
     const fetchReviewer = async () => {
       try {
         const response = await axios.post(
-          "http://petback.hysu.kr/back/mypage/reviewer",
+          "https://www.kcci.co.kr/back/mypage/reviewer",
           { userId },
           { withCredentials: true }
         );
@@ -99,7 +99,7 @@ export default function ReviewerPage() {
 
     try {
       const response = await axios.post(
-        "http://petback.hysu.kr/back/mypage/reviewer/invite",
+        "https://www.kcci.co.kr/back/mypage/reviewer/invite",
         { loginID: reviewer.loginID },
         { withCredentials: true }
       );
@@ -122,7 +122,7 @@ export default function ReviewerPage() {
     setProfileImageFile(null);
     setProfileImagePreview(
       reviewer.profileImage
-        ? `http://petback.hysu.kr/back/uploads/profiles/${reviewer.profileImage}`
+        ? `https://www.kcci.co.kr/back/uploads/profiles/${reviewer.profileImage}`
         : ""
     );
     setShowEditModal(true);
@@ -167,7 +167,7 @@ export default function ReviewerPage() {
       formData.append("file", profileImageFile);
 
       const response = await axios.post(
-        "http://petback.hysu.kr/back/mypage/reviewer/uploadProfile",
+        "https://www.kcci.co.kr/back/mypage/reviewer/uploadProfile",
         formData,
         {
           headers: {
@@ -223,7 +223,7 @@ export default function ReviewerPage() {
       }
 
       const response = await axios.put(
-        "http://petback.hysu.kr/back/mypage/reviewer/infoUpdate",
+        "https://www.kcci.co.kr/back/mypage/reviewer/infoUpdate",
         {
           userId,
           name: editName,
@@ -296,7 +296,7 @@ export default function ReviewerPage() {
 
   const getProfileImageUrl = () => {
     if (reviewer.profileImage) {
-      return `http://petback.hysu.kr/back/uploads/profiles/${reviewer.profileImage}`;
+      return `https://www.kcci.co.kr/back/uploads/profiles/${reviewer.profileImage}`;
     }
     return "";
   };

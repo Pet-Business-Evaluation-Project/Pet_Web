@@ -8,6 +8,7 @@ import {
   FaUndo,
   FaList,
   FaSearch,
+  FaTrash,
 } from "react-icons/fa";
 import Image from "next/image";
 
@@ -86,6 +87,7 @@ export default function AdminApprovalPage() {
         user.loginID.toLowerCase().includes(query) ||
         user.phnum.includes(query) ||
         user.classification.toLowerCase().includes(query) ||
+        user.classifNumber.toLowerCase().includes(query) ||
         (user.address && user.address.toLowerCase().includes(query)) ||
         (user.email && user.email.toLowerCase().includes(query)) ||
         (user.referralID && user.referralID.toLowerCase().includes(query)) ||
@@ -130,7 +132,7 @@ export default function AdminApprovalPage() {
           break;
       }
 
-      const res = await fetch(`http://petback.hysu.kr/back${endpoint}`, {
+      const res = await fetch(`https://www.kcci.co.kr/back${endpoint}`, {
         credentials: "include",
       });
 
@@ -155,7 +157,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -191,7 +193,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/reject/${
+        `https://www.kcci.co.kr/back/admin/approval/reject/${
           selectedUser.approvalId
         }?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
@@ -226,7 +228,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -260,7 +262,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -296,7 +298,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/reject-approved/${
+        `https://www.kcci.co.kr/back/admin/approval/reject-approved/${
           selectedUser.approvalId
         }?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
@@ -329,7 +331,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `http://petback.hysu.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
+        `https://www.kcci.co.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -345,6 +347,41 @@ export default function AdminApprovalPage() {
     } catch (error) {
       console.error("Approve rejected error:", error);
       alert("승인 중 오류가 발생했습니다.");
+    }
+  };
+
+  // ✅ 거부된 신청 삭제
+  const handleDeleteRejected = async (
+    approvalId: number,
+    userName: string,
+    loginID: string
+  ) => {
+    if (
+      !confirm(
+        `${userName}님(${loginID})의 거부된 신청을 완전히 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없으며, 해당 아이디로 재가입이 가능해집니다.`
+      )
+    )
+      return;
+
+    try {
+      const adminId = 1;
+      const res = await fetch(
+        `https://www.kcci.co.kr/back/admin/approval/delete-rejected/${approvalId}?adminId=${adminId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      const message = await res.text();
+      alert(message);
+
+      if (res.ok) {
+        fetchApprovalUsers();
+      }
+    } catch (error) {
+      console.error("Delete rejected error:", error);
+      alert("삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -498,7 +535,7 @@ export default function AdminApprovalPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="이름, 아이디, 전화번호 등으로 검색..."
+                placeholder="이름, 아이디, 본사, 전화번호 등으로 검색..."
                 className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
               {searchQuery && (
@@ -568,6 +605,10 @@ export default function AdminApprovalPage() {
                     <p className="text-gray-600">
                       <span className="font-semibold">전화번호:</span>{" "}
                       {user.phnum}
+                    </p>
+                    <p className="text-gray-600">
+                      <span className="font-semibold">본사:</span>{" "}
+                      {user.classifNumber}
                     </p>
                     <p className="text-gray-600">
                       <span className="font-semibold">신청일:</span>{" "}
@@ -728,6 +769,18 @@ export default function AdminApprovalPage() {
                               className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <FaCheckCircle /> 바로 승인
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleDeleteRejected(
+                                  user.approvalId,
+                                  user.name,
+                                  user.loginID
+                                )
+                              }
+                              className="flex-1 bg-gray-700 hover:bg-gray-800 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <FaTrash /> 삭제
                             </button>
                           </>
                         )}
