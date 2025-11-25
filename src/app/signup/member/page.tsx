@@ -52,20 +52,22 @@ export default function Signupmember() {
 
   const [passwordcheck, setPasswordcheck] = useState("");
   const [businessNumRaw, setBusinessNumRaw] = useState("");
-  const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
+  const [referralCheckTimer, setReferralCheckTimer] =
+    useState<NodeJS.Timeout | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
 
   // ✅ Daum 주소 검색 팝업 열기
   const openAddressPopup = () => {
     const script = document.createElement("script");
-    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.src =
+      "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
     script.async = true;
     document.head.appendChild(script);
 
     script.onload = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new (window as any).daum.Postcode({
-        oncomplete: function(data: DaumPostcodeData) {
+        oncomplete: function (data: DaumPostcodeData) {
           let fullAddress = data.address;
           let extraAddress = "";
 
@@ -74,7 +76,10 @@ export default function Signupmember() {
               extraAddress += data.bname;
             }
             if (data.buildingName !== "") {
-              extraAddress += extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+              extraAddress +=
+                extraAddress !== ""
+                  ? `, ${data.buildingName}`
+                  : data.buildingName;
             }
             fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
           }
@@ -82,7 +87,7 @@ export default function Signupmember() {
           setFormData((prev) => ({ ...prev, address: fullAddress }));
         },
         width: "100%",
-        height: "100%"
+        height: "100%",
       }).open();
     };
   };
@@ -104,7 +109,7 @@ export default function Signupmember() {
     }
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/loginInfo");
+      const res = await fetch("http://petback.hysu.kr/back/user/loginInfo");
       if (!res.ok) throw new Error("유저 조회 실패");
 
       const data = await res.json();
@@ -127,7 +132,10 @@ export default function Signupmember() {
   // ✅ 비밀번호 일치 검증
   useEffect(() => {
     if (passwordcheck) {
-      const errorMsg = passwordcheck !== formData.password ? "비밀번호가 일치하지 않습니다." : "";
+      const errorMsg =
+        passwordcheck !== formData.password
+          ? "비밀번호가 일치하지 않습니다."
+          : "";
       setErrors((prev) => ({ ...prev, verifyPassword: errorMsg }));
     }
   }, [formData.password, passwordcheck]);
@@ -141,15 +149,22 @@ export default function Signupmember() {
         if (value.length < 4) errorMsg = "아이디는 4자 이상이어야 합니다.";
         break;
       case "password":
-        if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(value))
-          errorMsg = "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
+        if (
+          !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(
+            value
+          )
+        )
+          errorMsg =
+            "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
         break;
       case "phnum":
         if (!/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(value))
-          errorMsg = "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)";
+          errorMsg =
+            "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)";
         break;
       case "Classifnumber":
-        if (!/^\d{10}$/.test(value)) errorMsg = "사업자등록번호 10자리를 입력해주세요.";
+        if (!/^\d{10}$/.test(value))
+          errorMsg = "사업자등록번호 10자리를 입력해주세요.";
         break;
       case "name":
         if (!value) errorMsg = "기업명을 입력해주세요.";
@@ -167,7 +182,9 @@ export default function Signupmember() {
   };
 
   // ✅ 입력 핸들러
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
 
     // 사업자등록번호 특수 처리
@@ -181,7 +198,8 @@ export default function Signupmember() {
       } else if (digits.length <= 5) {
         display = digits.slice(0, 3) + "-" + digits.slice(3);
       } else {
-        display = digits.slice(0, 3) + "-" + digits.slice(3, 5) + "-" + digits.slice(5);
+        display =
+          digits.slice(0, 3) + "-" + digits.slice(3, 5) + "-" + digits.slice(5);
       }
 
       setFormData((prev) => ({ ...prev, Classifnumber: display }));
@@ -211,7 +229,9 @@ export default function Signupmember() {
   };
 
   // ✅ 백스페이스 사업자등록번호 처리
-  const handleBusinessNumKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleBusinessNumKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
     if (e.key === "Backspace") {
       e.preventDefault();
 
@@ -224,7 +244,12 @@ export default function Signupmember() {
         } else if (updated.length <= 5) {
           display = updated.slice(0, 3) + "-" + updated.slice(3);
         } else {
-          display = updated.slice(0, 3) + "-" + updated.slice(3, 5) + "-" + updated.slice(5);
+          display =
+            updated.slice(0, 3) +
+            "-" +
+            updated.slice(3, 5) +
+            "-" +
+            updated.slice(5);
         }
 
         setFormData((p) => ({ ...p, Classifnumber: display }));
@@ -251,10 +276,14 @@ export default function Signupmember() {
     // 비밀번호 확인 검증
     const passwordMatch = passwordcheck === formData.password;
     if (!passwordMatch) {
-      setErrors((prev) => ({ ...prev, verifyPassword: "비밀번호가 일치하지 않습니다." }));
+      setErrors((prev) => ({
+        ...prev,
+        verifyPassword: "비밀번호가 일치하지 않습니다.",
+      }));
     }
 
-    const isValid = Object.values(validations).every((v) => v === true) && passwordMatch;
+    const isValid =
+      Object.values(validations).every((v) => v === true) && passwordMatch;
 
     if (!isValid || errors.referralID) {
       alert("입력값을 확인해주세요.");
@@ -262,8 +291,8 @@ export default function Signupmember() {
     }
 
     // ✅ 주소와 상세주소를 합쳐서 전송
-    const fullAddress = formData.addressDetail 
-      ? `${formData.address} ${formData.addressDetail}` 
+    const fullAddress = formData.addressDetail
+      ? `${formData.address} ${formData.addressDetail}`
       : formData.address;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -277,7 +306,7 @@ export default function Signupmember() {
     delete payload.addressDetail;
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/signup", {
+      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -301,7 +330,9 @@ export default function Signupmember() {
       });
     } catch (e) {
       const message =
-        e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
+        e instanceof Error
+          ? e.message
+          : "회원가입 중 알 수 없는 오류가 발생했습니다.";
       alert(message);
       console.error("회원가입 에러:", e);
     }
@@ -324,7 +355,9 @@ export default function Signupmember() {
           &times;
         </button>
 
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">기업 회원가입</h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          기업 회원가입
+        </h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 기업명 */}
@@ -339,7 +372,9 @@ export default function Signupmember() {
               placeholder="기업명을 입력하세요"
               required
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
           {/* 아이디 */}
@@ -354,7 +389,9 @@ export default function Signupmember() {
               placeholder="아이디를 입력하세요"
               required
             />
-            {errors.loginID && <p className="text-red-500 text-sm mt-1">{errors.loginID}</p>}
+            {errors.loginID && (
+              <p className="text-red-500 text-sm mt-1">{errors.loginID}</p>
+            )}
           </div>
 
           {/* 비밀번호 */}
@@ -369,7 +406,9 @@ export default function Signupmember() {
               placeholder="비밀번호를 입력하세요"
               required
             />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+            )}
           </div>
 
           {/* 비밀번호 확인 */}
@@ -385,7 +424,9 @@ export default function Signupmember() {
               required
             />
             {errors.verifyPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.verifyPassword}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.verifyPassword}
+              </p>
             )}
           </div>
 
@@ -401,7 +442,9 @@ export default function Signupmember() {
               placeholder="01012345678"
               required
             />
-            {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}
+            {errors.phnum && (
+              <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>
+            )}
           </div>
 
           {/* 사업자등록번호 */}
@@ -419,7 +462,9 @@ export default function Signupmember() {
               required
             />
             {errors.Classifnumber && (
-              <p className="text-red-500 text-sm mt-1">{errors.Classifnumber}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.Classifnumber}
+              </p>
             )}
           </div>
 
@@ -481,7 +526,9 @@ export default function Signupmember() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-green-400"
               placeholder="company@example.com"
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+            )}
           </div>
 
           {/* 사업분류 */}
@@ -536,11 +583,15 @@ export default function Signupmember() {
       {modalData && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
-            
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+              회원가입 신청 완료
+            </h2>
+
             {/* ✅ 서버 메시지 표시 */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+              <p className="text-blue-800 font-medium whitespace-pre-line">
+                {modalData.message}
+              </p>
             </div>
 
             <p className="text-gray-700 mb-2">

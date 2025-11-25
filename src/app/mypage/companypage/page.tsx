@@ -33,7 +33,9 @@ export default function CompanyPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editCompanyCls, setEditCompanyCls] = useState("");
   const [editMainSales, setEditMainSales] = useState("");
-  const [editingField, setEditingField] = useState<"companyName" | "phone" | "companycls" | "mainsales" | null>(null);
+  const [editingField, setEditingField] = useState<
+    "companyName" | "phone" | "companycls" | "mainsales" | null
+  >(null);
 
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
@@ -43,32 +45,32 @@ export default function CompanyPage() {
   useEffect(() => {
     const requestInterceptor = axios.interceptors.request.use(
       (config) => {
-        console.log('=== 요청 전송 ===');
-        console.log('URL:', config.url);
-        console.log('Method:', config.method);
-        console.log('Headers:', config.headers);
-        console.log('Data:', config.data);
-        console.log('withCredentials:', config.withCredentials);
+        console.log("=== 요청 전송 ===");
+        console.log("URL:", config.url);
+        console.log("Method:", config.method);
+        console.log("Headers:", config.headers);
+        console.log("Data:", config.data);
+        console.log("withCredentials:", config.withCredentials);
         return config;
       },
       (error) => {
-        console.error('요청 에러:', error);
+        console.error("요청 에러:", error);
         return Promise.reject(error);
       }
     );
 
     const responseInterceptor = axios.interceptors.response.use(
       (response) => {
-        console.log('=== 응답 수신 ===');
-        console.log('Status:', response.status);
-        console.log('Data:', response.data);
+        console.log("=== 응답 수신 ===");
+        console.log("Status:", response.status);
+        console.log("Data:", response.data);
         return response;
       },
       (error) => {
-        console.error('=== 응답 에러 ===');
-        console.error('Status:', error.response?.status);
-        console.error('Data:', error.response?.data);
-        console.error('Headers:', error.response?.headers);
+        console.error("=== 응답 에러 ===");
+        console.error("Status:", error.response?.status);
+        console.error("Data:", error.response?.data);
+        console.error("Headers:", error.response?.headers);
         return Promise.reject(error);
       }
     );
@@ -101,7 +103,7 @@ export default function CompanyPage() {
     const fetchCompany = async () => {
       try {
         const response = await axios.get(
-          `https://www.kcci.co.kr/back/mypage/member/${userId}`,
+          `http://petback.hysu.kr/back/mypage/member/${userId}`,
           { withCredentials: true }
         );
         if (response.data) setCompany(response.data);
@@ -113,10 +115,10 @@ export default function CompanyPage() {
 
     const fetchSignStatus = async () => {
       try {
-        console.log('Fetching sign status for userId:', userId);
+        console.log("Fetching sign status for userId:", userId);
 
         const response = await axios.get<SignStatus[]>(
-          `https://www.kcci.co.kr/back/mypage/member/signstatus/${userId}`,
+          `http://petback.hysu.kr/back/mypage/member/signstatus/${userId}`,
           { withCredentials: true }
         );
 
@@ -143,9 +145,9 @@ export default function CompanyPage() {
           setSignStatuses(processedStatuses);
         }
       } catch (error) {
-        console.error('Sign status fetch error:', error);
+        console.error("Sign status fetch error:", error);
         if (axios.isAxiosError(error)) {
-          console.error('Response data:', error.response?.data);
+          console.error("Response data:", error.response?.data);
         }
         alert("기업 인증 정보를 불러오지 못했습니다.");
       }
@@ -164,7 +166,7 @@ export default function CompanyPage() {
     setProfileImageFile(null);
     setProfileImagePreview(
       company.profileImage
-        ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
+        ? `http://petback.hysu.kr/back/uploads/profiles/${company.profileImage}`
         : ""
     );
     setShowEditModal(true);
@@ -201,7 +203,7 @@ export default function CompanyPage() {
       formData.append("file", profileImageFile);
 
       const response = await axios.post(
-        "https://www.kcci.co.kr/back/mypage/member/uploadProfile",
+        "http://petback.hysu.kr/back/mypage/member/uploadProfile",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -240,19 +242,19 @@ export default function CompanyPage() {
         phone: editPhone.trim(),
         companycls: editCompanyCls.trim(),
         mainsales: editMainSales.trim(),
-        profileImage: profileImageFilename
+        profileImage: profileImageFilename,
       };
 
-      console.log('전송 데이터:', updateData);
+      console.log("전송 데이터:", updateData);
 
       const response = await axios.put(
-        "https://www.kcci.co.kr/back/mypage/member/update",
+        "http://petback.hysu.kr/back/mypage/member/update",
         updateData,
-        { 
+        {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json',
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -266,25 +268,26 @@ export default function CompanyPage() {
           userObj.profileImage = response.data.profileImage;
           localStorage.setItem("user", JSON.stringify(userObj));
         }
-        
+
         window.dispatchEvent(new Event("userUpdated"));
         alert("기업 정보가 수정되었습니다!");
         setShowEditModal(false);
       }
     } catch (error) {
-      console.error('수정 오류:', error);
-      
+      console.error("수정 오류:", error);
+
       if (axios.isAxiosError(error)) {
-        console.error('응답 상태:', error.response?.status);
-        console.error('응답 데이터:', error.response?.data);
-        console.error('요청 헤더:', error.config?.headers);
-        console.error('요청 URL:', error.config?.url);
-        
-        const errorMessage = error.response?.data?.message 
-          || error.response?.data?.error 
-          || JSON.stringify(error.response?.data)
-          || '서버 오류';
-        
+        console.error("응답 상태:", error.response?.status);
+        console.error("응답 데이터:", error.response?.data);
+        console.error("요청 헤더:", error.config?.headers);
+        console.error("요청 URL:", error.config?.url);
+
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          JSON.stringify(error.response?.data) ||
+          "서버 오류";
+
         alert(`기업 정보 수정 실패: ${errorMessage}`);
       } else {
         alert("기업 정보 수정 중 오류 발생");
@@ -305,7 +308,7 @@ export default function CompanyPage() {
 
   const getProfileImageUrl = () =>
     company.profileImage
-      ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
+      ? `http://petback.hysu.kr/back/uploads/profiles/${company.profileImage}`
       : "";
 
   return (
@@ -324,10 +327,16 @@ export default function CompanyPage() {
               <FaBuilding className="w-full h-full text-gray-400" />
             )}
           </div>
-          <p className="text-lg font-bold text-gray-800">{company.companyName}</p>
+          <p className="text-lg font-bold text-gray-800">
+            {company.companyName}
+          </p>
           <span className="text-xs text-gray-500 mt-1">{company.phone}</span>
-          <span className="text-xs text-gray-500 mt-1">{company.companycls}</span>
-          <span className="text-xs text-gray-500 mt-1">{company.mainsales}</span>
+          <span className="text-xs text-gray-500 mt-1">
+            {company.companycls}
+          </span>
+          <span className="text-xs text-gray-500 mt-1">
+            {company.mainsales}
+          </span>
         </div>
 
         {company.referralName && (
@@ -366,9 +375,13 @@ export default function CompanyPage() {
                 <p>
                   <span className="font-semibold">심사 상태: </span>
                   {status.reviewcomplete === "진행중" ? (
-                    <span className="text-yellow-600">{status.reviewcomplete}</span>
+                    <span className="text-yellow-600">
+                      {status.reviewcomplete}
+                    </span>
                   ) : (
-                    <span className="text-green-600">{status.reviewcomplete}</span>
+                    <span className="text-green-600">
+                      {status.reviewcomplete}
+                    </span>
                   )}
                 </p>
 
@@ -410,7 +423,11 @@ export default function CompanyPage() {
             <div className="flex flex-col items-center mb-8">
               <div className="relative w-32 h-32 rounded-full border-4 border-yellow-500 overflow-hidden bg-gray-100 mb-4">
                 {profileImagePreview ? (
-                  <img src={profileImagePreview} className="w-full h-full object-cover" alt="Profile preview" />
+                  <img
+                    src={profileImagePreview}
+                    className="w-full h-full object-cover"
+                    alt="Profile preview"
+                  />
                 ) : (
                   <FaBuilding className="w-full h-full text-gray-400" />
                 )}
@@ -439,11 +456,15 @@ export default function CompanyPage() {
             {/* 기업명 */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">기업명</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  기업명
+                </label>
 
                 <button
                   onClick={() =>
-                    setEditingField(editingField === "companyName" ? null : "companyName")
+                    setEditingField(
+                      editingField === "companyName" ? null : "companyName"
+                    )
                   }
                   className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
                 >
@@ -468,7 +489,9 @@ export default function CompanyPage() {
             {/* 전화번호 */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">전화번호</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  전화번호
+                </label>
 
                 <button
                   onClick={() =>
@@ -497,11 +520,15 @@ export default function CompanyPage() {
             {/* 기업 구분 */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">기업 구분</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  기업 구분
+                </label>
 
                 <button
                   onClick={() =>
-                    setEditingField(editingField === "companycls" ? null : "companycls")
+                    setEditingField(
+                      editingField === "companycls" ? null : "companycls"
+                    )
                   }
                   className="text-sm text-yellow-600"
                 >
@@ -526,11 +553,15 @@ export default function CompanyPage() {
             {/* 주요 매출 */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">주요 매출</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  주요 매출
+                </label>
 
                 <button
                   onClick={() =>
-                    setEditingField(editingField === "mainsales" ? null : "mainsales")
+                    setEditingField(
+                      editingField === "mainsales" ? null : "mainsales"
+                    )
                   }
                   className="text-sm text-yellow-600"
                 >

@@ -62,7 +62,7 @@ export default function MemberSignDashboard() {
   const [adminUserId, setAdminUserId] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
-  const BASE_URL = "https://www.kcci.co.kr/back";
+  const BASE_URL = "http://petback.hysu.kr/back";
 
   // 🔥 공통 fetch 함수 - credentials를 항상 포함
   const fetchWithAuth = (url: string, options: RequestInit = {}) => {
@@ -88,11 +88,11 @@ export default function MemberSignDashboard() {
     signstartId: item.signstartId || item.signStartId || item.id || 0,
     signId: item.signId,
     reviewerId: item.reviewerId || item.reviewer_id || 0,
-    reviewerName: item.reviewerName || item.reviewer_name || item.name || '-',
-    membergrade: item.membergrade || item.memberGrade || item.grade || '',
-    memberName: item.name || item.memberName || item.member_name || '-',
-    reviewComplete: item.reviewComplete || item.review_complete || 'N',
-    signtype: item.signtype || item.signType || null
+    reviewerName: item.reviewerName || item.reviewer_name || item.name || "-",
+    membergrade: item.membergrade || item.memberGrade || item.grade || "",
+    memberName: item.name || item.memberName || item.member_name || "-",
+    reviewComplete: item.reviewComplete || item.review_complete || "N",
+    signtype: item.signtype || item.signType || null,
   });
 
   // localStorage에서 사용자 정보 확인 및 관리자 권한 체크
@@ -101,7 +101,7 @@ export default function MemberSignDashboard() {
       try {
         const userStr = localStorage.getItem("user");
         console.log("📦 userStr:", userStr);
-        
+
         if (!userStr) {
           alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
           setIsAuthorized(false);
@@ -110,7 +110,7 @@ export default function MemberSignDashboard() {
 
         const user = JSON.parse(userStr);
         console.log("👤 파싱된 user:", user);
-        
+
         // classification이 "관리자"인지 확인
         if (user.classification !== "관리자") {
           alert("관리자 권한이 필요합니다.");
@@ -121,7 +121,7 @@ export default function MemberSignDashboard() {
         // userId 확인
         const userId = user.id;
         console.log("🆔 추출된 userId:", userId);
-        
+
         if (!userId) {
           alert("사용자 ID를 찾을 수 없습니다.");
           setIsAuthorized(false);
@@ -146,12 +146,12 @@ export default function MemberSignDashboard() {
     if (!isAuthorized || !adminUserId) return;
 
     fetchWithAuth(`${BASE_URL}/signstart/all`)
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: SignStartRaw[]) => {
         const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
         console.log("✅ 전체 SignStart 목록 로드 성공:", mappedData.length);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("❌ 전체 인증 목록 조회 실패:", err);
       });
   }, [isAuthorized, adminUserId]);
@@ -162,19 +162,22 @@ export default function MemberSignDashboard() {
 
     fetchWithAuth(`${BASE_URL}/mypage/admin/members`, {
       method: "POST",
-      body: JSON.stringify({ classification: "관리자" })
+      body: JSON.stringify({ classification: "관리자" }),
     })
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: Member[]) => {
         const list = Array.isArray(data) ? data : [];
-        setMembers(list.filter(d => d.memberId != null)
-          .map(d => ({
-            memberId: d.memberId,
-            name: d.name || `기업${d.memberId}`
-          })));
+        setMembers(
+          list
+            .filter((d) => d.memberId != null)
+            .map((d) => ({
+              memberId: d.memberId,
+              name: d.name || `기업${d.memberId}`,
+            }))
+        );
         console.log("✅ Member 목록 로드 성공:", list.length);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("❌ Member fetch 실패:", err);
         setMembers([]);
       });
@@ -186,23 +189,26 @@ export default function MemberSignDashboard() {
 
     fetchWithAuth(`${BASE_URL}/mypage/admin`, {
       method: "POST",
-      body: JSON.stringify({ classification: "관리자" })
+      body: JSON.stringify({ classification: "관리자" }),
     })
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: Reviewer[]) => {
         const list = Array.isArray(data) ? data : [];
-        setReviewers(list.filter(d => d.reviewer_id != null)
-          .map(d => ({
-            user_id: d.user_id,
-            reviewer_id: d.reviewer_id,
-            name: d.name || `심사원${d.reviewer_id}`,
-            loginID: d.loginID,
-            phnum: d.phnum,
-            grade: d.grade || '-'
-          })));
+        setReviewers(
+          list
+            .filter((d) => d.reviewer_id != null)
+            .map((d) => ({
+              user_id: d.user_id,
+              reviewer_id: d.reviewer_id,
+              name: d.name || `심사원${d.reviewer_id}`,
+              loginID: d.loginID,
+              phnum: d.phnum,
+              grade: d.grade || "-",
+            }))
+        );
         console.log("✅ Reviewer 목록 로드 성공:", list.length);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("❌ Reviewer fetch 실패:", err);
         setReviewers([]);
       });
@@ -211,7 +217,7 @@ export default function MemberSignDashboard() {
   // 선택된 기업의 SignStart 필터링
   useEffect(() => {
     if (!isAuthorized || !adminUserId) return;
-    
+
     if (!selectedMember) {
       setAssignedSignStarts([]);
       setSelectedSignId(null);
@@ -219,28 +225,30 @@ export default function MemberSignDashboard() {
     }
 
     fetchWithAuth(`${BASE_URL}/signstart/all`)
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: SignStartRaw[]) => {
         const mappedData = Array.isArray(data) ? data.map(mapToSignStart) : [];
 
-        const selectedMemberName = members.find(m => m.memberId === selectedMember)?.name;
-        const filtered = mappedData.filter(item =>
-          item.memberName === selectedMemberName
+        const selectedMemberName = members.find(
+          (m) => m.memberId === selectedMember
+        )?.name;
+        const filtered = mappedData.filter(
+          (item) => item.memberName === selectedMemberName
         );
 
         setAssignedSignStarts(filtered);
         console.log("✅ 선택된 기업의 SignStart 필터링 완료:", filtered.length);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("❌ SignStart 필터링 실패:", err);
         setAssignedSignStarts([]);
       });
   }, [selectedMember, members, isAuthorized, adminUserId]);
 
   const toggleReviewer = (reviewerId: number) => {
-    setSelectedReviewers(prev =>
+    setSelectedReviewers((prev) =>
       prev.includes(reviewerId)
-        ? prev.filter(id => id !== reviewerId)
+        ? prev.filter((id) => id !== reviewerId)
         : [...prev, reviewerId]
     );
   };
@@ -260,7 +268,7 @@ export default function MemberSignDashboard() {
       memberId: selectedMember,
       reviewerIds: selectedReviewers,
       membergrade: `level${selectedGrade}`,
-      signtype: selectedSignType === null ? null : selectedSignType
+      signtype: selectedSignType === null ? null : selectedSignType,
     };
 
     try {
@@ -295,7 +303,9 @@ export default function MemberSignDashboard() {
       return;
     }
 
-    const targetSignId = selectedSignId || (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
+    const targetSignId =
+      selectedSignId ||
+      (assignedSignStarts.length > 0 ? assignedSignStarts[0].signId : null);
 
     if (!targetSignId) {
       alert("기존 인증이 없습니다. 먼저 '신규 인증 생성' 버튼을 사용하세요.");
@@ -304,7 +314,7 @@ export default function MemberSignDashboard() {
 
     const payload = {
       signId: targetSignId,
-      reviewerIds: selectedReviewers
+      reviewerIds: selectedReviewers,
     };
 
     try {
@@ -337,13 +347,18 @@ export default function MemberSignDashboard() {
     if (!confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      const res = await fetchWithAuth(`${BASE_URL}/signstart/delete/${signstartId}`, {
-        method: "DELETE",
-      });
+      const res = await fetchWithAuth(
+        `${BASE_URL}/signstart/delete/${signstartId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!res.ok) throw new Error("삭제 실패");
 
-      setAssignedSignStarts(prev => prev.filter(a => a.signstartId !== signstartId));
+      setAssignedSignStarts((prev) =>
+        prev.filter((a) => a.signstartId !== signstartId)
+      );
       alert("삭제 완료");
       console.log("✅ SignStart 삭제 성공:", signstartId);
     } catch (err) {
@@ -352,7 +367,7 @@ export default function MemberSignDashboard() {
     }
   };
 
-  const filteredMembers = members.filter(m => m.name.includes(memberSearch));
+  const filteredMembers = members.filter((m) => m.name.includes(memberSearch));
 
   // 권한이 없을 때 표시할 화면
   if (!isAuthorized) {
@@ -360,7 +375,9 @@ export default function MemberSignDashboard() {
       <div className="flex-1 max-w-full">
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">접근 권한 없음</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              접근 권한 없음
+            </h2>
             <p className="text-gray-600">관리자 권한이 필요한 페이지입니다.</p>
           </div>
         </div>
@@ -375,19 +392,23 @@ export default function MemberSignDashboard() {
 
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <div className="flex-1 flex flex-col">
-            <label className="font-semibold text-gray-600 mb-2">기업 검색:</label>
+            <label className="font-semibold text-gray-600 mb-2">
+              기업 검색:
+            </label>
             <input
               type="text"
               value={memberSearch}
-              onChange={e => setMemberSearch(e.target.value)}
+              onChange={(e) => setMemberSearch(e.target.value)}
               placeholder="기업명 검색"
               className="border rounded px-3 py-2 mb-2"
             />
             <div className="border rounded h-40 overflow-y-auto">
               {filteredMembers.length === 0 ? (
-                <div className="px-3 py-2 text-gray-500">검색된 기업이 없습니다.</div>
+                <div className="px-3 py-2 text-gray-500">
+                  검색된 기업이 없습니다.
+                </div>
               ) : (
-                filteredMembers.map(m => (
+                filteredMembers.map((m) => (
                   <div
                     key={m.memberId}
                     className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
@@ -407,10 +428,12 @@ export default function MemberSignDashboard() {
             <select
               className="border rounded px-3 py-2"
               value={selectedGrade}
-              onChange={e => setSelectedGrade(Number(e.target.value))}
+              onChange={(e) => setSelectedGrade(Number(e.target.value))}
             >
-              {[1, 2, 3, 4, 5].map(n => (
-                <option key={n} value={n}>{n}단계</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n}단계
+                </option>
               ))}
             </select>
           </div>
@@ -420,7 +443,11 @@ export default function MemberSignDashboard() {
             <select
               className="border rounded px-3 py-2"
               value={selectedSignType === null ? "" : selectedSignType}
-              onChange={e => setSelectedSignType(e.target.value === "" ? null : e.target.value)}
+              onChange={(e) =>
+                setSelectedSignType(
+                  e.target.value === "" ? null : e.target.value
+                )
+              }
             >
               <option value="">미정</option>
               <option value="동물기업인증">동물기업인증</option>
@@ -433,32 +460,38 @@ export default function MemberSignDashboard() {
         </div>
 
         <div className="flex flex-col gap-4 mt-4">
-          <label className="font-semibold text-gray-600 mb-2">심사원 검색:</label>
+          <label className="font-semibold text-gray-600 mb-2">
+            심사원 검색:
+          </label>
           <input
             type="text"
             value={reviewerSearch}
-            onChange={e => setReviewerSearch(e.target.value)}
+            onChange={(e) => setReviewerSearch(e.target.value)}
             placeholder="이름 검색"
             className="border rounded px-3 py-2"
           />
           <div className="border rounded mt-2 h-80 overflow-y-auto">
-            {reviewers.filter(r => r.name.includes(reviewerSearch)).map(r => (
-              <div
-                key={r.reviewer_id}
-                className="flex items-center px-4 py-3 hover:bg-gray-50 border-b"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedReviewers.includes(r.reviewer_id)}
-                  onChange={() => toggleReviewer(r.reviewer_id)}
-                  className="mr-3 w-4 h-4 cursor-pointer"
-                />
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{r.name}</div>
-                  <div className="text-sm text-gray-500">{r.loginID} | {r.phnum} | {r.grade}</div>
+            {reviewers
+              .filter((r) => r.name.includes(reviewerSearch))
+              .map((r) => (
+                <div
+                  key={r.reviewer_id}
+                  className="flex items-center px-4 py-3 hover:bg-gray-50 border-b"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedReviewers.includes(r.reviewer_id)}
+                    onChange={() => toggleReviewer(r.reviewer_id)}
+                    className="mr-3 w-4 h-4 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">{r.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {r.loginID} | {r.phnum} | {r.grade}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
           <div className="mt-2 text-sm font-medium text-gray-700">
             선택된 심사원: {selectedReviewers.length}명
@@ -476,7 +509,11 @@ export default function MemberSignDashboard() {
           <button
             className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 disabled:bg-gray-300 transition"
             onClick={addReviewersToSign}
-            disabled={!selectedMember || selectedReviewers.length === 0 || assignedSignStarts.length === 0}
+            disabled={
+              !selectedMember ||
+              selectedReviewers.length === 0 ||
+              assignedSignStarts.length === 0
+            }
           >
             기존 인증에 심사원 추가
           </button>
@@ -485,40 +522,59 @@ export default function MemberSignDashboard() {
         <div className="mt-6">
           <h3 className="text-xl font-semibold mb-4">
             배정 현황
-            {selectedSignId && (() => {
-              const selectedSign = assignedSignStarts.find(item => item.signId === selectedSignId);
-              return selectedSign ? (
-                <span className="ml-3 text-sm text-blue-600">
-                  (기업명: {selectedSign.memberName}, 인증 종류: {selectedSign.signtype || "미정"})
-                </span>
-              ) : null;
-            })()}
+            {selectedSignId &&
+              (() => {
+                const selectedSign = assignedSignStarts.find(
+                  (item) => item.signId === selectedSignId
+                );
+                return selectedSign ? (
+                  <span className="ml-3 text-sm text-blue-600">
+                    (기업명: {selectedSign.memberName}, 인증 종류:{" "}
+                    {selectedSign.signtype || "미정"})
+                  </span>
+                ) : null;
+              })()}
           </h3>
           {assignedSignStarts.length === 0 ? (
-            <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">배정된 심사원이 없습니다.</div>
+            <div className="text-gray-500 text-center py-8 bg-gray-50 rounded-lg">
+              배정된 심사원이 없습니다.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border rounded-lg">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border px-4 py-3 text-left font-semibold">기업명</th>
-                    <th className="border px-4 py-3 text-left font-semibold">기업 등급</th>
-                    <th className="border px-4 py-3 text-left font-semibold">인증 종류</th>
-                    <th className="border px-4 py-3 text-left font-semibold">심사원 목록</th>
-                    <th className="border px-4 py-3 text-left font-semibold">삭제</th>
+                    <th className="border px-4 py-3 text-left font-semibold">
+                      기업명
+                    </th>
+                    <th className="border px-4 py-3 text-left font-semibold">
+                      기업 등급
+                    </th>
+                    <th className="border px-4 py-3 text-left font-semibold">
+                      인증 종류
+                    </th>
+                    <th className="border px-4 py-3 text-left font-semibold">
+                      심사원 목록
+                    </th>
+                    <th className="border px-4 py-3 text-left font-semibold">
+                      삭제
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const groupedBySignId = assignedSignStarts.reduce((acc, item) => {
-                      if (!acc[item.signId]) {
-                        acc[item.signId] = [];
-                      }
-                      acc[item.signId].push(item);
-                      return acc;
-                    }, {} as Record<number, SignStart[]>);
+                    const groupedBySignId = assignedSignStarts.reduce(
+                      (acc, item) => {
+                        if (!acc[item.signId]) {
+                          acc[item.signId] = [];
+                        }
+                        acc[item.signId].push(item);
+                        return acc;
+                      },
+                      {} as Record<number, SignStart[]>
+                    );
 
-                    return Object.values(groupedBySignId).map(group => {
+                    return Object.values(groupedBySignId).map((group) => {
                       const first = group[0];
                       const isSelected = selectedSignId === first.signId;
 
@@ -526,11 +582,18 @@ export default function MemberSignDashboard() {
                         <tr
                           key={first.signId}
                           className={`hover:bg-gray-50 cursor-pointer ${
-                            isSelected ? 'bg-blue-100 border-2 border-blue-500' : ''}`}
+                            isSelected
+                              ? "bg-blue-100 border-2 border-blue-500"
+                              : ""
+                          }`}
                           onClick={() => setSelectedSignId(first.signId)}
                         >
-                          <td className="border px-4 py-3">{first.memberName}</td>
-                          <td className="border px-4 py-3">{first.membergrade?.replace("level", "") + "단계"}</td>
+                          <td className="border px-4 py-3">
+                            {first.memberName}
+                          </td>
+                          <td className="border px-4 py-3">
+                            {first.membergrade?.replace("level", "") + "단계"}
+                          </td>
                           <td className="border px-4 py-3">
                             <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
                               {first.signtype || "미정"}
@@ -538,9 +601,14 @@ export default function MemberSignDashboard() {
                           </td>
                           <td className="border px-4 py-3">
                             <div className="flex flex-wrap gap-2">
-                              {group.map(item => (
-                                <div key={item.signstartId} className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded">
-                                  <span className="text-sm">{item.reviewerName}</span>
+                              {group.map((item) => (
+                                <div
+                                  key={item.signstartId}
+                                  className="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded"
+                                >
+                                  <span className="text-sm">
+                                    {item.reviewerName}
+                                  </span>
                                   <button
                                     className="text-red-500 hover:text-red-700 text-xs"
                                     onClick={(e) => {
@@ -560,22 +628,43 @@ export default function MemberSignDashboard() {
                               className="text-red-500 hover:text-red-700 font-medium hover:underline"
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                if (!confirm(`이 인증(기업명: ${first.memberName}, 인증 종류: ${first.signtype || "미정"})의 모든 심사원 배정을 삭제하시겠습니까?`)) return;
+                                if (
+                                  !confirm(
+                                    `이 인증(기업명: ${
+                                      first.memberName
+                                    }, 인증 종류: ${
+                                      first.signtype || "미정"
+                                    })의 모든 심사원 배정을 삭제하시겠습니까?`
+                                  )
+                                )
+                                  return;
 
                                 try {
-                                  const res = await fetchWithAuth(`${BASE_URL}/signstart/deletesign/${first.signId}`, {
-                                    method: "DELETE",
-                                  });
+                                  const res = await fetchWithAuth(
+                                    `${BASE_URL}/signstart/deletesign/${first.signId}`,
+                                    {
+                                      method: "DELETE",
+                                    }
+                                  );
 
                                   if (!res.ok) {
                                     const errorBody = await res.json();
                                     console.error("❌ DELETE 에러:", errorBody);
-                                    throw new Error(errorBody?.message || "삭제 실패");
+                                    throw new Error(
+                                      errorBody?.message || "삭제 실패"
+                                    );
                                   }
 
-                                  setAssignedSignStarts(prev => prev.filter(a => a.signId !== first.signId));
+                                  setAssignedSignStarts((prev) =>
+                                    prev.filter(
+                                      (a) => a.signId !== first.signId
+                                    )
+                                  );
                                   alert("인증 삭제 완료!");
-                                  console.log("✅ 인증 전체 삭제 성공:", first.signId);
+                                  console.log(
+                                    "✅ 인증 전체 삭제 성공:",
+                                    first.signId
+                                  );
                                 } catch (err) {
                                   console.error("❌ 삭제 실패:", err);
                                   alert("삭제 실패");

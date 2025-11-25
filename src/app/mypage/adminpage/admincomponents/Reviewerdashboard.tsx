@@ -2,7 +2,12 @@
 
 import Button from "../../../components/Button/Button";
 import { useEffect, useState, useMemo } from "react";
-import { FaUsers, FaSearch, FaChevronDown, FaChevronRight } from "react-icons/fa";
+import {
+  FaUsers,
+  FaSearch,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa";
 import React from "react";
 
 interface Reviewer {
@@ -16,7 +21,7 @@ interface Reviewer {
   bankname: string;
   account: string;
   // DB 업데이트 및 상태 관리용 필드
-  reviewergrade: "심사원보" | "심사위원" | "수석심사위원"; 
+  reviewergrade: "심사원보" | "심사위원" | "수석심사위원";
   referralID?: string;
   referralGrade?: string;
   created_at: string;
@@ -43,7 +48,7 @@ interface DownlineMember {
   name: string;
   loginID?: string;
   phnum: string;
-  reviewerGrade: string; 
+  reviewerGrade: string;
   referralGrade: string;
 }
 
@@ -53,11 +58,17 @@ export default function ReviewerDashboard() {
   const [filteredReviewers, setFilteredReviewers] = useState<Reviewer[]>([]);
   const [sortAsc, setSortAsc] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGrade, setSelectedGrade] = useState<"" | "심사원보" | "심사위원" | "수석심사위원">("");
+  const [selectedGrade, setSelectedGrade] = useState<
+    "" | "심사원보" | "심사위원" | "수석심사위원"
+  >("");
 
   const [openToggles, setOpenToggles] = useState<Set<string>>(new Set());
-  const [downlineData, setDownlineData] = useState<Record<string, DownlineMember[]>>({});
-  const [loadingDownline, setLoadingDownline] = useState<Set<string>>(new Set());
+  const [downlineData, setDownlineData] = useState<
+    Record<string, DownlineMember[]>
+  >({});
+  const [loadingDownline, setLoadingDownline] = useState<Set<string>>(
+    new Set()
+  );
 
   const roleOrder: Record<Reviewer["reviewergrade"], number> = {
     심사원보: 1,
@@ -69,7 +80,7 @@ export default function ReviewerDashboard() {
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const res = await fetch("https://www.kcci.co.kr/back/mypage/admin", {
+        const res = await fetch("http://petback.hysu.kr/back/mypage/admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ classification: "관리자" }),
@@ -77,14 +88,14 @@ export default function ReviewerDashboard() {
         });
         if (res.ok) {
           const rawData: ReviewerRaw[] = await res.json();
-          
+
           // 초기 로딩 시 서버 필드를 상태 필드로 명시적 매핑
-          const data: Reviewer[] = rawData.map(r => ({
-              ...r,
-              // 서버에서 어떤 이름으로 오든, 상태에는 'reviewergrade'로 저장
-              reviewergrade: r.reviewergrade || r.reviewerGrade || "심사원보",
+          const data: Reviewer[] = rawData.map((r) => ({
+            ...r,
+            // 서버에서 어떤 이름으로 오든, 상태에는 'reviewergrade'로 저장
+            reviewergrade: r.reviewergrade || r.reviewerGrade || "심사원보",
           }));
-          
+
           setReviewers(data);
           setOriginalReviewers(data);
           setFilteredReviewers(data);
@@ -137,10 +148,16 @@ export default function ReviewerDashboard() {
     const newCount = reviewers.filter((r) => {
       if (!r.created_at) return false;
       const created = new Date(r.created_at + "T00:00:00");
-      return created.getFullYear() === currentYear && created.getMonth() === currentMonth;
+      return (
+        created.getFullYear() === currentYear &&
+        created.getMonth() === currentMonth
+      );
     }).length;
 
-    return { newReviewersCount: newCount, totalReviewersCount: reviewers.length };
+    return {
+      newReviewersCount: newCount,
+      totalReviewersCount: reviewers.length,
+    };
   }, [reviewers]);
 
   const findUplineName = (referralID?: string) => {
@@ -166,12 +183,15 @@ export default function ReviewerDashboard() {
 
     setLoadingDownline((prev) => new Set(prev).add(loginID));
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/mypage/reviewer/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loginID }),
-        credentials: "include",
-      });
+      const res = await fetch(
+        "http://petback.hysu.kr/back/mypage/reviewer/invite",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginID }),
+          credentials: "include",
+        }
+      );
       if (res.ok) {
         const data = await res.json();
         setDownlineData((prev) => ({ ...prev, [loginID]: data }));
@@ -188,9 +208,14 @@ export default function ReviewerDashboard() {
     }
   };
 
-  const handleRoleChange = (loginID: string, newRole: Reviewer["reviewergrade"]) => {
+  const handleRoleChange = (
+    loginID: string,
+    newRole: Reviewer["reviewergrade"]
+  ) => {
     setReviewers((prev) =>
-      prev.map((r) => (r.loginID === loginID ? { ...r, reviewergrade: newRole } : r))
+      prev.map((r) =>
+        r.loginID === loginID ? { ...r, reviewergrade: newRole } : r
+      )
     );
   };
 
@@ -198,7 +223,9 @@ export default function ReviewerDashboard() {
   const handleSave = async () => {
     const updates = reviewers
       .filter((r) => {
-        const original = originalReviewers.find((o) => o.reviewer_id === r.reviewer_id);
+        const original = originalReviewers.find(
+          (o) => o.reviewer_id === r.reviewer_id
+        );
         return original && original.reviewergrade !== r.reviewergrade;
       })
       .map((r) => ({
@@ -214,12 +241,15 @@ export default function ReviewerDashboard() {
     console.log("전송할 데이터:", JSON.stringify({ updates }, null, 2));
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/mypage/admin/update", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }),
-        credentials: "include",
-      });
+      const res = await fetch(
+        "http://petback.hysu.kr/back/mypage/admin/update",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updates }),
+          credentials: "include",
+        }
+      );
 
       const text = await res.text();
       console.log("응답 상태:", res.status);
@@ -227,7 +257,7 @@ export default function ReviewerDashboard() {
 
       if (res.ok) {
         alert("모든 변경사항이 성공적으로 저장되었습니다!");
-        
+
         setOriginalReviewers(reviewers);
         setFilteredReviewers(reviewers);
       } else {
@@ -253,16 +283,23 @@ export default function ReviewerDashboard() {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">신규</span>
-                  <span className="font-bold text-xl text-red-600">{newReviewersCount}</span>
+                  <span className="font-bold text-xl text-red-600">
+                    {newReviewersCount}
+                  </span>
                 </div>
                 <span className="text-gray-400">/</span>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500">전체</span>
-                  <span className="font-bold text-xl text-gray-900">{totalReviewersCount}</span>
+                  <span className="font-bold text-xl text-gray-900">
+                    {totalReviewersCount}
+                  </span>
                 </div>
               </div>
             </div>
-            <Button label={`직책 ${sortAsc ? "오름차순" : "내림차순"}`} onClick={() => setSortAsc(!sortAsc)} />
+            <Button
+              label={`직책 ${sortAsc ? "오름차순" : "내림차순"}`}
+              onClick={() => setSortAsc(!sortAsc)}
+            />
           </div>
         </div>
 
@@ -281,7 +318,9 @@ export default function ReviewerDashboard() {
             </div>
             <select
               value={selectedGrade}
-              onChange={(e) => setSelectedGrade(e.target.value as typeof selectedGrade)}
+              onChange={(e) =>
+                setSelectedGrade(e.target.value as typeof selectedGrade)
+              }
               className="px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition"
             >
               <option value="">전체 직책</option>
@@ -298,22 +337,40 @@ export default function ReviewerDashboard() {
             <table className="min-w-full w-max">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">이름</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">아이디</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">전화번호</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">주소</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">은행/계좌</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">추천인 ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">상위 심사원</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">직책</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    이름
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    아이디
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    전화번호
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    주소
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm">
+                    은행/계좌
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    추천인 ID
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    상위 심사원
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">
+                    직책
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {sortedReviewers.map((r) => {
                   const isNew =
                     r.created_at &&
-                    new Date(r.created_at + "T00:00:00").getMonth() === new Date().getMonth() &&
-                    new Date(r.created_at + "T00:00:00").getFullYear() === new Date().getFullYear();
+                    new Date(r.created_at + "T00:00:00").getMonth() ===
+                      new Date().getMonth() &&
+                    new Date(r.created_at + "T00:00:00").getFullYear() ===
+                      new Date().getFullYear();
                   const isOpen = openToggles.has(r.loginID);
                   const downline = downlineData[r.loginID] || [];
                   const isLoading = loadingDownline.has(r.loginID);
@@ -336,7 +393,9 @@ export default function ReviewerDashboard() {
                               )}
                             </button>
                             <div className="flex items-center gap-1.5 text-xs">
-                              <span className="font-semibold text-gray-900 whitespace-nowrap">{r.name}</span>
+                              <span className="font-semibold text-gray-900 whitespace-nowrap">
+                                {r.name}
+                              </span>
                               {isNew && (
                                 <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-red-600 rounded whitespace-nowrap">
                                   NEW
@@ -350,22 +409,43 @@ export default function ReviewerDashboard() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.loginID}</td>
-                        <td className="py-3 px-4 text-xs text-gray-700 whitespace-nowrap">{r.phnum}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[200px] break-words">{r.address || "-"}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[180px] break-words">
-                          {r.bankname && r.account ? `${r.bankname} / ${r.account}` : "-"}
+                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">
+                          {r.loginID}
                         </td>
-                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.referralID || "-"}</td>
+                        <td className="py-3 px-4 text-xs text-gray-700 whitespace-nowrap">
+                          {r.phnum}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[200px] break-words">
+                          {r.address || "-"}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 max-w-[180px] break-words">
+                          {r.bankname && r.account
+                            ? `${r.bankname} / ${r.account}`
+                            : "-"}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">
+                          {r.referralID || "-"}
+                        </td>
                         <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          <span className={`font-medium ${findUplineName(r.referralID) === "-" ? "text-gray-400" : "text-indigo-700"}`}>
+                          <span
+                            className={`font-medium ${
+                              findUplineName(r.referralID) === "-"
+                                ? "text-gray-400"
+                                : "text-indigo-700"
+                            }`}
+                          >
                             {findUplineName(r.referralID)}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           <select
                             value={r.reviewergrade}
-                            onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewergrade"])}
+                            onChange={(e) =>
+                              handleRoleChange(
+                                r.loginID,
+                                e.target.value as Reviewer["reviewergrade"]
+                              )
+                            }
                             className="px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
                           >
                             <option value="심사원보">심사원보</option>
@@ -390,16 +470,29 @@ export default function ReviewerDashboard() {
                                       <table className="w-full min-w-[900px] bg-white text-sm leading-tight">
                                         <thead className="bg-gray-100">
                                           <tr>
-                                            <th className="text-left py-4 px-6 font-medium text-gray-700">이름</th>
-                                            <th className="text-left py-4 px-6 font-medium text-gray-700">아이디</th>
-                                            <th className="text-left py-4 px-6 font-medium text-gray-700">전화번호</th>
-                                            <th className="text-left py-4 px-6 font-medium text-gray-700">직책</th>
-                                            <th className="text-left py-4 px-6 font-medium text-gray-700">구분</th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">
+                                              이름
+                                            </th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">
+                                              아이디
+                                            </th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">
+                                              전화번호
+                                            </th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">
+                                              직책
+                                            </th>
+                                            <th className="text-left py-4 px-6 font-medium text-gray-700">
+                                              구분
+                                            </th>
                                           </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
                                           {downline.map((member, idx) => (
-                                            <tr key={idx} className="hover:bg-blue-50 transition">
+                                            <tr
+                                              key={idx}
+                                              className="hover:bg-blue-50 transition"
+                                            >
                                               <td className="py-4 px-6">
                                                 <div className="flex items-center gap-2">
                                                   <span className="font-semibold text-gray-900 whitespace-nowrap">

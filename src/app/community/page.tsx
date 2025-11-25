@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-const BASE_URL = "https://www.kcci.co.kr/back/community/board";
+const BASE_URL = "http://petback.hysu.kr/back/community/board";
 
 interface CommunityPost {
   id: number;
@@ -57,7 +57,9 @@ export default function BoardPage() {
     content: "",
   });
   const [showWriteModal, setShowWriteModal] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<CommunityPost | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<CommunityPost | null>(
+    null
+  );
 
   /** 전체 게시글 가져오기 */
   const fetchAllBoards = async () => {
@@ -68,7 +70,9 @@ export default function BoardPage() {
       const data: CommunityPost[] = await res.json();
       setBoards(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setError(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+      );
     } finally {
       setLoading(false);
     }
@@ -108,7 +112,11 @@ export default function BoardPage() {
       await fetchAllBoards();
       setNewPost({ loginID, title: "", content: "" });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "게시글 작성 중 오류가 발생했습니다.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "게시글 작성 중 오류가 발생했습니다."
+      );
     }
   };
 
@@ -129,7 +137,11 @@ export default function BoardPage() {
       setSelectedPost(null);
       setConfirmDelete(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "게시글 삭제 중 오류가 발생했습니다.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "게시글 삭제 중 오류가 발생했습니다."
+      );
     }
   };
 
@@ -152,7 +164,11 @@ export default function BoardPage() {
       setSelectedPost(updatedPost);
       setEditingPostId(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "게시글 수정 중 오류가 발생했습니다.");
+      alert(
+        err instanceof Error
+          ? err.message
+          : "게시글 수정 중 오류가 발생했습니다."
+      );
     }
   };
 
@@ -325,9 +341,7 @@ export default function BoardPage() {
               </>
             ) : (
               <>
-                <h2
-                  style={{ color: "#007bff", marginBottom: "10px" }}
-                >
+                <h2 style={{ color: "#007bff", marginBottom: "10px" }}>
                   {selectedPost.title}
                 </h2>
                 <p style={{ color: "#666", marginBottom: "4px" }}>
@@ -569,8 +583,7 @@ export default function BoardPage() {
       )}
 
       {/* 오른쪽 아래 + 버튼 */}
-      {(userClassification === "심사원" ||
-        userClassification === "관리자") && (
+      {(userClassification === "심사원" || userClassification === "관리자") && (
         <button
           onClick={() => setShowWriteModal(true)}
           style={{

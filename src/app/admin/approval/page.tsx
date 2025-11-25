@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaUserCircle, FaCheckCircle, FaTimesCircle, FaUndo, FaList, FaSearch } from "react-icons/fa";
+import {
+  FaUserCircle,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaUndo,
+  FaList,
+  FaSearch,
+} from "react-icons/fa";
 import Image from "next/image";
 
 interface ApprovalUser {
@@ -30,7 +37,14 @@ interface ApprovalUser {
   mainsales?: string;
 }
 
-type MenuType = "전체가입요청" | "심사원요청" | "기업요청" | "전체승인목록" | "승인대기" | "승인완료목록" | "거부목록";
+type MenuType =
+  | "전체가입요청"
+  | "심사원요청"
+  | "기업요청"
+  | "전체승인목록"
+  | "승인대기"
+  | "승인완료목록"
+  | "거부목록";
 
 export default function AdminApprovalPage() {
   const [approvalUsers, setApprovalUsers] = useState<ApprovalUser[]>([]);
@@ -49,7 +63,9 @@ export default function AdminApprovalPage() {
   };
 
   // ✅ 가입 요청 섹션인지 확인
-  const isRequestSection = ["전체가입요청", "심사원요청", "기업요청"].includes(activeMenu);
+  const isRequestSection = ["전체가입요청", "심사원요청", "기업요청"].includes(
+    activeMenu
+  );
 
   // 데이터 불러오기
   useEffect(() => {
@@ -98,7 +114,7 @@ export default function AdminApprovalPage() {
         case "기업요청":
           endpoint = "/admin/approval/requests/member";
           break;
-        
+
         // 승인 관리 섹션 (모든 상태)
         case "전체승인목록":
           endpoint = "/admin/approval/all";
@@ -114,7 +130,7 @@ export default function AdminApprovalPage() {
           break;
       }
 
-      const res = await fetch(`https://www.kcci.co.kr/back${endpoint}`, {
+      const res = await fetch(`http://petback.hysu.kr/back${endpoint}`, {
         credentials: "include",
       });
 
@@ -139,7 +155,7 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
+        `http://petback.hysu.kr/back/admin/approval/approve/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -148,7 +164,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         fetchApprovalUsers();
       }
@@ -175,7 +191,9 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/reject/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
+        `http://petback.hysu.kr/back/admin/approval/reject/${
+          selectedUser.approvalId
+        }?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
           method: "POST",
           credentials: "include",
@@ -184,7 +202,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         setShowRejectModal(false);
         setSelectedUser(null);
@@ -198,12 +216,17 @@ export default function AdminApprovalPage() {
 
   // 승인 취소 (승인 → 승인대기)
   const handleCancelApproval = async (approvalId: number, userName: string) => {
-    if (!confirm(`${userName}님의 승인을 취소하시겠습니까?\n승인 대기 상태로 돌아갑니다.`)) return;
+    if (
+      !confirm(
+        `${userName}님의 승인을 취소하시겠습니까?\n승인 대기 상태로 돌아갑니다.`
+      )
+    )
+      return;
 
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
+        `http://petback.hysu.kr/back/admin/approval/cancel-approval/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -212,7 +235,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         fetchApprovalUsers();
       }
@@ -223,13 +246,21 @@ export default function AdminApprovalPage() {
   };
 
   // 거부 취소 (거절 → 승인대기)
-  const handleCancelRejection = async (approvalId: number, userName: string) => {
-    if (!confirm(`${userName}님의 거부를 취소하시겠습니까?\n승인 대기 상태로 돌아갑니다.`)) return;
+  const handleCancelRejection = async (
+    approvalId: number,
+    userName: string
+  ) => {
+    if (
+      !confirm(
+        `${userName}님의 거부를 취소하시겠습니까?\n승인 대기 상태로 돌아갑니다.`
+      )
+    )
+      return;
 
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
+        `http://petback.hysu.kr/back/admin/approval/cancel-rejection/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -238,7 +269,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         fetchApprovalUsers();
       }
@@ -265,7 +296,9 @@ export default function AdminApprovalPage() {
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/reject-approved/${selectedUser.approvalId}?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
+        `http://petback.hysu.kr/back/admin/approval/reject-approved/${
+          selectedUser.approvalId
+        }?adminId=${adminId}&reason=${encodeURIComponent(rejectionReason)}`,
         {
           method: "POST",
           credentials: "include",
@@ -274,7 +307,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         setShowRejectApprovedModal(false);
         setSelectedUser(null);
@@ -287,13 +320,16 @@ export default function AdminApprovalPage() {
   };
 
   // 거부된 사용자를 바로 승인
-  const handleApproveRejected = async (approvalId: number, userName: string) => {
+  const handleApproveRejected = async (
+    approvalId: number,
+    userName: string
+  ) => {
     if (!confirm(`${userName}님을 바로 승인하시겠습니까?`)) return;
 
     try {
       const adminId = 1;
       const res = await fetch(
-        `https://www.kcci.co.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
+        `http://petback.hysu.kr/back/admin/approval/approve-rejected/${approvalId}?adminId=${adminId}`,
         {
           method: "POST",
           credentials: "include",
@@ -302,7 +338,7 @@ export default function AdminApprovalPage() {
 
       const message = await res.text();
       alert(message);
-      
+
       if (res.ok) {
         fetchApprovalUsers();
       }
@@ -449,9 +485,10 @@ export default function AdminApprovalPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FaList className="text-blue-500" />
-              {activeMenu.replace(/([A-Z])/g, ' $1').trim()} ({filteredUsers.length}건)
+              {activeMenu.replace(/([A-Z])/g, " $1").trim()} (
+              {filteredUsers.length}건)
             </h2>
-            
+
             {/* 검색 바 */}
             <div className="relative w-full md:w-80">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -479,7 +516,10 @@ export default function AdminApprovalPage() {
           {searchQuery && (
             <div className="mb-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
-                <span className="font-semibold">&ldquo;{searchQuery}&rdquo;</span> 검색 결과: {filteredUsers.length}건
+                <span className="font-semibold">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>{" "}
+                검색 결과: {filteredUsers.length}건
               </p>
             </div>
           )}
@@ -508,41 +548,53 @@ export default function AdminApprovalPage() {
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-800">{user.name}</h3>
+                      <h3 className="text-xl font-bold text-gray-800">
+                        {user.name}
+                      </h3>
                       <p className="text-sm text-gray-500 mt-1">
                         {user.classification} | {user.loginID}
                       </p>
                     </div>
-                    <span className={`text-xs px-3 py-1.5 rounded-full font-semibold ${getStatusBadgeColor(user.approvalStatus)}`}>
+                    <span
+                      className={`text-xs px-3 py-1.5 rounded-full font-semibold ${getStatusBadgeColor(
+                        user.approvalStatus
+                      )}`}
+                    >
                       {user.approvalStatus}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                     <p className="text-gray-600">
-                      <span className="font-semibold">전화번호:</span> {user.phnum}
+                      <span className="font-semibold">전화번호:</span>{" "}
+                      {user.phnum}
                     </p>
                     <p className="text-gray-600">
-                      <span className="font-semibold">신청일:</span> {new Date(user.requestedAt).toLocaleDateString()}
+                      <span className="font-semibold">신청일:</span>{" "}
+                      {new Date(user.requestedAt).toLocaleDateString()}
                     </p>
                     {user.processedAt && (
                       <p className="col-span-2 text-gray-600">
-                        <span className="font-semibold">처리일:</span> {new Date(user.processedAt).toLocaleString()}
+                        <span className="font-semibold">처리일:</span>{" "}
+                        {new Date(user.processedAt).toLocaleString()}
                       </p>
                     )}
                     {user.address && (
                       <p className="col-span-2 text-gray-600">
-                        <span className="font-semibold">주소:</span> {user.address}
+                        <span className="font-semibold">주소:</span>{" "}
+                        {user.address}
                       </p>
                     )}
                     {user.referralID && (
                       <p className="text-gray-600">
-                        <span className="font-semibold">추천인:</span> {user.referralID}
+                        <span className="font-semibold">추천인:</span>{" "}
+                        {user.referralID}
                       </p>
                     )}
                     {user.rejectionReason && (
                       <p className="col-span-2 text-red-600">
-                        <span className="font-semibold">거부 사유:</span> {user.rejectionReason}
+                        <span className="font-semibold">거부 사유:</span>{" "}
+                        {user.rejectionReason}
                       </p>
                     )}
                   </div>
@@ -551,19 +603,24 @@ export default function AdminApprovalPage() {
                   {user.classification === "심사원" && (
                     <div className="bg-blue-50 rounded-lg p-4 mb-4 text-sm space-y-2">
                       <p className="text-gray-700">
-                        <span className="font-semibold">은행:</span> {user.bankName || "-"}
+                        <span className="font-semibold">은행:</span>{" "}
+                        {user.bankName || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">계좌번호:</span> {user.account || "-"}
+                        <span className="font-semibold">계좌번호:</span>{" "}
+                        {user.account || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">전문분야:</span> {user.expertises || "-"}
+                        <span className="font-semibold">전문분야:</span>{" "}
+                        {user.expertises || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">교육장소:</span> {user.eduLocation || "-"}
+                        <span className="font-semibold">교육장소:</span>{" "}
+                        {user.eduLocation || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">교육날짜:</span> {user.eduDate || "-"}
+                        <span className="font-semibold">교육날짜:</span>{" "}
+                        {user.eduDate || "-"}
                       </p>
                     </div>
                   )}
@@ -572,16 +629,20 @@ export default function AdminApprovalPage() {
                   {user.classification === "기업" && (
                     <div className="bg-green-50 rounded-lg p-4 mb-4 text-sm space-y-2">
                       <p className="text-gray-700">
-                        <span className="font-semibold">이메일:</span> {user.email || "-"}
+                        <span className="font-semibold">이메일:</span>{" "}
+                        {user.email || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">사업분류:</span> {user.companycls || "-"}
+                        <span className="font-semibold">사업분류:</span>{" "}
+                        {user.companycls || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">회사소개:</span> {user.introduction || "-"}
+                        <span className="font-semibold">회사소개:</span>{" "}
+                        {user.introduction || "-"}
                       </p>
                       <p className="text-gray-700">
-                        <span className="font-semibold">주요판매상품:</span> {user.mainsales || "-"}
+                        <span className="font-semibold">주요판매상품:</span>{" "}
+                        {user.mainsales || "-"}
                       </p>
                     </div>
                   )}
@@ -628,7 +689,9 @@ export default function AdminApprovalPage() {
                         {user.approvalStatus === "승인" && (
                           <>
                             <button
-                              onClick={() => handleCancelApproval(user.approvalId, user.name)}
+                              onClick={() =>
+                                handleCancelApproval(user.approvalId, user.name)
+                              }
                               className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <FaUndo /> 승인 취소
@@ -645,13 +708,23 @@ export default function AdminApprovalPage() {
                         {user.approvalStatus === "거절" && (
                           <>
                             <button
-                              onClick={() => handleCancelRejection(user.approvalId, user.name)}
+                              onClick={() =>
+                                handleCancelRejection(
+                                  user.approvalId,
+                                  user.name
+                                )
+                              }
                               className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <FaUndo /> 거부 취소
                             </button>
                             <button
-                              onClick={() => handleApproveRejected(user.approvalId, user.name)}
+                              onClick={() =>
+                                handleApproveRejected(
+                                  user.approvalId,
+                                  user.name
+                                )
+                              }
                               className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                             >
                               <FaCheckCircle /> 바로 승인
@@ -674,7 +747,10 @@ export default function AdminApprovalPage() {
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">가입 거부</h2>
             <p className="text-gray-700 mb-6">
-              <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 가입을 거부하시겠습니까?
+              <span className="font-semibold text-gray-900">
+                {selectedUser.name}
+              </span>
+              님의 가입을 거부하시겠습니까?
             </p>
             <textarea
               value={rejectionReason}
@@ -705,9 +781,14 @@ export default function AdminApprovalPage() {
       {showRejectApprovedModal && selectedUser && (
         <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">승인 취소 및 거부</h2>
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+              승인 취소 및 거부
+            </h2>
             <p className="text-gray-700 mb-6">
-              <span className="font-semibold text-gray-900">{selectedUser.name}</span>님의 승인을 취소하고 거부하시겠습니까?
+              <span className="font-semibold text-gray-900">
+                {selectedUser.name}
+              </span>
+              님의 승인을 취소하고 거부하시겠습니까?
             </p>
             <textarea
               value={rejectionReason}

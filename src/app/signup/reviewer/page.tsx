@@ -58,11 +58,13 @@ export default function SignupReviewer() {
 
   const [passwordcheck, setPasswordcheck] = useState("");
   const [ssnRaw, setSsnRaw] = useState("");
-  const [referralCheckTimer, setReferralCheckTimer] = useState<NodeJS.Timeout | null>(null);
+  const [referralCheckTimer, setReferralCheckTimer] =
+    useState<NodeJS.Timeout | null>(null);
   const [modalData, setModalData] = useState<ModalData | null>(null);
 
   // 전문분야 관련 state
-  const [expertiseCategories, setExpertiseCategories] = useState<ExpertiseCategories>({});
+  const [expertiseCategories, setExpertiseCategories] =
+    useState<ExpertiseCategories>({});
   const [selectedExpertises, setSelectedExpertises] = useState<string[]>([]);
   const [customExpertise, setCustomExpertise] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -70,9 +72,9 @@ export default function SignupReviewer() {
   // ✅ 카테고리 영어 → 한글 매핑
   const categoryNameMap: { [key: string]: string } = {
     "Health Care": "헬스케어(Health Care)",
-    "Services": "서비스(Services)",
+    Services: "서비스(Services)",
     "Products & Industry": "제품 & 산업(Products & Industry)",
-    "Others": "기타(Others)"
+    Others: "기타(Others)",
   };
 
   // 한국 주요 은행 리스트
@@ -97,20 +99,21 @@ export default function SignupReviewer() {
     "새마을금고",
     "신협",
     "우체국",
-    "기타"
+    "기타",
   ];
 
   // ✅ Daum 주소 검색 팝업 열기
   const openAddressPopup = () => {
     const script = document.createElement("script");
-    script.src = "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
+    script.src =
+      "//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js";
     script.async = true;
     document.head.appendChild(script);
 
     script.onload = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new (window as any).daum.Postcode({
-        oncomplete: function(data: DaumPostcodeData) {
+        oncomplete: function (data: DaumPostcodeData) {
           let fullAddress = data.address;
           let extraAddress = "";
 
@@ -119,7 +122,10 @@ export default function SignupReviewer() {
               extraAddress += data.bname;
             }
             if (data.buildingName !== "") {
-              extraAddress += extraAddress !== "" ? `, ${data.buildingName}` : data.buildingName;
+              extraAddress +=
+                extraAddress !== ""
+                  ? `, ${data.buildingName}`
+                  : data.buildingName;
             }
             fullAddress += extraAddress !== "" ? ` (${extraAddress})` : "";
           }
@@ -127,7 +133,7 @@ export default function SignupReviewer() {
           setFormData((prev) => ({ ...prev, address: fullAddress }));
         },
         width: "100%",
-        height: "100%"
+        height: "100%",
       }).open();
     };
   };
@@ -136,17 +142,33 @@ export default function SignupReviewer() {
   useEffect(() => {
     const fetchExpertises = async () => {
       try {
-        const res = await fetch("https://www.kcci.co.kr/back/expertise/categories");
+        const res = await fetch(
+          "http://petback.hysu.kr/back/expertise/categories"
+        );
         if (!res.ok) throw new Error("전문분야 조회 실패");
         const data = await res.json();
         setExpertiseCategories(data);
       } catch (err) {
         console.error("전문분야 조회 에러:", err);
         setExpertiseCategories({
-          "Health Care": ["수의학", "동물보건", "재활/피트니스", "마사지", "아로마", "기타 대체요법"],
-          "Services": ["훈련", "미용", "호텔", "유치원", "펫택시", "장례"],
-          "Products & Industry": ["펫푸드", "반려동물 용품", "펫패션(의류)", "펫테크(기기)", "유통(도소매)", "산업(제조/설비)"],
-          "Others": ["미디어(콘텐츠/출판)", "법률(정책/행정)"]
+          "Health Care": [
+            "수의학",
+            "동물보건",
+            "재활/피트니스",
+            "마사지",
+            "아로마",
+            "기타 대체요법",
+          ],
+          Services: ["훈련", "미용", "호텔", "유치원", "펫택시", "장례"],
+          "Products & Industry": [
+            "펫푸드",
+            "반려동물 용품",
+            "펫패션(의류)",
+            "펫테크(기기)",
+            "유통(도소매)",
+            "산업(제조/설비)",
+          ],
+          Others: ["미디어(콘텐츠/출판)", "법률(정책/행정)"],
         });
       }
     };
@@ -167,7 +189,10 @@ export default function SignupReviewer() {
   // ✅ 비밀번호 일치 검증
   useEffect(() => {
     if (passwordcheck) {
-      const errorMsg = passwordcheck !== formData.password ? "비밀번호가 일치하지 않습니다." : "";
+      const errorMsg =
+        passwordcheck !== formData.password
+          ? "비밀번호가 일치하지 않습니다."
+          : "";
       setErrors((prev) => ({ ...prev, verifyPassword: errorMsg }));
     }
   }, [formData.password, passwordcheck]);
@@ -189,7 +214,7 @@ export default function SignupReviewer() {
     }
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/loginInfo");
+      const res = await fetch("http://petback.hysu.kr/back/user/loginInfo");
       if (!res.ok) throw new Error("유저 조회 실패");
 
       const data = await res.json();
@@ -218,12 +243,18 @@ export default function SignupReviewer() {
         if (value.length < 4) errorMsg = "아이디는 4자 이상이어야 합니다.";
         break;
       case "password":
-        if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(value))
-          errorMsg = "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
+        if (
+          !/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/.test(
+            value
+          )
+        )
+          errorMsg =
+            "비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.";
         break;
       case "phnum":
         if (!/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(value))
-          errorMsg = "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)";
+          errorMsg =
+            "휴대폰 번호 형식이 올바르지 않습니다. (예: 010-1234-5678)";
         break;
       case "Classifnumber":
         if (!/^\d{7}$/.test(value))
@@ -252,7 +283,9 @@ export default function SignupReviewer() {
   };
 
   // ✅ 입력 핸들러
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
 
     if (name === "Classifnumber") {
@@ -322,7 +355,10 @@ export default function SignupReviewer() {
 
     const passwordMatch = passwordcheck === formData.password;
     if (!passwordMatch) {
-      setErrors((prev) => ({ ...prev, verifyPassword: "비밀번호가 일치하지 않습니다." }));
+      setErrors((prev) => ({
+        ...prev,
+        verifyPassword: "비밀번호가 일치하지 않습니다.",
+      }));
     }
 
     if (selectedExpertises.length === 0 && !customExpertise.trim()) {
@@ -330,7 +366,8 @@ export default function SignupReviewer() {
       return;
     }
 
-    const isValid = Object.values(validations).every((v) => v === true) && passwordMatch;
+    const isValid =
+      Object.values(validations).every((v) => v === true) && passwordMatch;
 
     if (!isValid || errors.referralID) {
       alert("입력값을 확인해주세요.");
@@ -338,8 +375,8 @@ export default function SignupReviewer() {
     }
 
     // ✅ 주소와 상세주소를 합쳐서 전송
-    const fullAddress = formData.addressDetail 
-      ? `${formData.address} ${formData.addressDetail}` 
+    const fullAddress = formData.addressDetail
+      ? `${formData.address} ${formData.addressDetail}`
       : formData.address;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -355,7 +392,7 @@ export default function SignupReviewer() {
     delete payload.addressDetail;
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/signup", {
+      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -377,7 +414,9 @@ export default function SignupReviewer() {
       });
     } catch (e) {
       const message =
-        e instanceof Error ? e.message : "회원가입 중 알 수 없는 오류가 발생했습니다.";
+        e instanceof Error
+          ? e.message
+          : "회원가입 중 알 수 없는 오류가 발생했습니다.";
       alert(message);
       console.error("회원가입 에러:", e);
     }
@@ -400,7 +439,9 @@ export default function SignupReviewer() {
           &times;
         </button>
 
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">심사원 회원가입</h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+          심사원 회원가입
+        </h1>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 이름 */}
@@ -415,7 +456,9 @@ export default function SignupReviewer() {
               placeholder="이름을 입력하세요"
               required
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
           </div>
 
           {/* 아이디 */}
@@ -430,7 +473,9 @@ export default function SignupReviewer() {
               placeholder="아이디를 입력하세요"
               required
             />
-            {errors.loginID && <p className="text-red-500 text-sm mt-1">{errors.loginID}</p>}
+            {errors.loginID && (
+              <p className="text-red-500 text-sm mt-1">{errors.loginID}</p>
+            )}
           </div>
 
           {/* 비밀번호 */}
@@ -445,7 +490,9 @@ export default function SignupReviewer() {
               placeholder="비밀번호를 입력하세요"
               required
             />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+            )}
           </div>
 
           {/* 비밀번호 확인 */}
@@ -461,7 +508,9 @@ export default function SignupReviewer() {
               required
             />
             {errors.verifyPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.verifyPassword}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.verifyPassword}
+              </p>
             )}
           </div>
 
@@ -477,7 +526,9 @@ export default function SignupReviewer() {
               placeholder="01012345678"
               required
             />
-            {errors.phnum && <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>}
+            {errors.phnum && (
+              <p className="text-red-500 text-sm mt-1">{errors.phnum}</p>
+            )}
           </div>
 
           {/* 주민등록번호 */}
@@ -495,7 +546,9 @@ export default function SignupReviewer() {
               required
             />
             {errors.Classifnumber && (
-              <p className="text-red-500 text-sm mt-1">{errors.Classifnumber}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.Classifnumber}
+              </p>
             )}
           </div>
 
@@ -512,7 +565,9 @@ export default function SignupReviewer() {
               placeholder="클릭하여 주소를 검색하세요"
               required
             />
-            {errors.address && <p className="text-red-500 text-sm mt-1">{errors.address}</p>}
+            {errors.address && (
+              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+            )}
           </div>
 
           {/* 상세주소 */}
@@ -547,7 +602,9 @@ export default function SignupReviewer() {
                 </option>
               ))}
             </select>
-            {errors.bankName && <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>}
+            {errors.bankName && (
+              <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>
+            )}
           </div>
 
           {/* 계좌번호 */}
@@ -562,33 +619,44 @@ export default function SignupReviewer() {
               placeholder="계좌번호를 입력하세요 (예: 110-123-456789)"
               required
             />
-            {errors.account && <p className="text-red-500 text-sm mt-1">{errors.account}</p>}
+            {errors.account && (
+              <p className="text-red-500 text-sm mt-1">{errors.account}</p>
+            )}
           </div>
 
           {/* 전문분야 선택 */}
           <div>
-            <label className="block text-gray-700 mb-3 font-semibold">전문분야 선택 *</label>
+            <label className="block text-gray-700 mb-3 font-semibold">
+              전문분야 선택 *
+            </label>
             <div className="border border-gray-300 rounded-lg p-4 max-h-96 overflow-y-auto">
-              {Object.entries(expertiseCategories).map(([category, expertises]) => (
-                <div key={category} className="mb-4">
-                  <h3 className="font-semibold text-gray-800 mb-2">
-                    {categoryNameMap[category] || category}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {expertises.map((expertise) => (
-                      <label key={expertise} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedExpertises.includes(expertise)}
-                          onChange={() => handleExpertiseChange(expertise)}
-                          className="w-4 h-4 text-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">{expertise}</span>
-                      </label>
-                    ))}
+              {Object.entries(expertiseCategories).map(
+                ([category, expertises]) => (
+                  <div key={category} className="mb-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      {categoryNameMap[category] || category}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {expertises.map((expertise) => (
+                        <label
+                          key={expertise}
+                          className="flex items-center space-x-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedExpertises.includes(expertise)}
+                            onChange={() => handleExpertiseChange(expertise)}
+                            className="w-4 h-4 text-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {expertise}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
 
               {/* 기타 전문분야 입력 */}
               <div className="mt-4 pt-4 border-t">
@@ -599,7 +667,9 @@ export default function SignupReviewer() {
                     onChange={(e) => setShowCustomInput(e.target.checked)}
                     className="w-4 h-4 text-blue-500"
                   />
-                  <span className="font-semibold text-gray-800">기타 (직접 입력)</span>
+                  <span className="font-semibold text-gray-800">
+                    기타 (직접 입력)
+                  </span>
                 </label>
                 {showCustomInput && (
                   <input
@@ -646,7 +716,9 @@ export default function SignupReviewer() {
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-400"
               required
             />
-            {errors.eduDate && <p className="text-red-500 text-sm mt-1">{errors.eduDate}</p>}
+            {errors.eduDate && (
+              <p className="text-red-500 text-sm mt-1">{errors.eduDate}</p>
+            )}
           </div>
 
           {/* 추천인 */}
@@ -680,10 +752,14 @@ export default function SignupReviewer() {
       {modalData && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm transition-all duration-300">
           <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">회원가입 신청 완료</h2>
-            
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">
+              회원가입 신청 완료
+            </h2>
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-blue-800 font-medium whitespace-pre-line">{modalData.message}</p>
+              <p className="text-blue-800 font-medium whitespace-pre-line">
+                {modalData.message}
+              </p>
             </div>
 
             <p className="text-gray-700 mb-2">

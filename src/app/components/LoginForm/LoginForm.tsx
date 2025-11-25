@@ -43,16 +43,16 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
 
     try {
       const response = await axios.post<LoginResponse>(
-        "https://www.kcci.co.kr/back/api/auth/login",
+        "http://petback.hysu.kr/back/api/auth/login",
         {
           loginID: email,
           password,
         },
-        { 
+        {
           withCredentials: true,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -61,7 +61,7 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
 
       if (response.data.success) {
         console.log("✅ 로그인 성공");
-        
+
         const userData: User = {
           id: response.data.userId!,
           name: response.data.name!,
@@ -69,12 +69,12 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
           classification: response.data.classification!,
           expiresAt: response.data.expiresAt,
         };
-        
+
         localStorage.setItem("user", JSON.stringify(userData));
 
         if (onLoginSuccess) onLoginSuccess(userData);
         alert(`로그인 성공! 환영합니다, ${userData.name}님 😊`);
-        
+
         router.push("/"); // ✅ 홈화면으로 이동
       } else {
         console.log("❌ 로그인 실패:", response.data.message);
@@ -84,19 +84,20 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
       }
     } catch (error: unknown) {
       console.error("❌ 로그인 에러:", error);
-      
+
       if (axios.isAxiosError(error)) {
         const axiosError = error as AxiosError<LoginResponse>;
-        
+
         console.log("📡 Axios 에러 상세:");
         console.log("- response:", axiosError.response);
         console.log("- response.data:", axiosError.response?.data);
         console.log("- response.status:", axiosError.response?.status);
-        
+
         if (axiosError.response?.data) {
-          const serverMessage = axiosError.response.data.message || 
-                               "아이디 또는 비밀번호가 올바르지 않습니다.";
-          
+          const serverMessage =
+            axiosError.response.data.message ||
+            "아이디 또는 비밀번호가 올바르지 않습니다.";
+
           console.log("💬 표시할 메시지:", serverMessage);
           setErrorMessage(serverMessage);
           alert(serverMessage);
@@ -157,8 +158,8 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
       )}
 
       <div className="flex justify-end mt-[-8px]">
-        <Link 
-          href="/FindPassword" 
+        <Link
+          href="/FindPassword"
           className="text-sm text-gray-500 hover:text-blue-600 transition duration-150"
           onClick={handleForgotPasswordClick}
         >

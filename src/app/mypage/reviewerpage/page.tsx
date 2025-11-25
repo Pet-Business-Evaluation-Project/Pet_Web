@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaUserCircle, FaUsers, FaCamera, FaEdit, FaSortUp, FaSortDown } from "react-icons/fa";
+import {
+  FaUserCircle,
+  FaUsers,
+  FaCamera,
+  FaEdit,
+  FaSortUp,
+  FaSortDown,
+} from "react-icons/fa";
 import axios from "axios";
 import Image from "next/image";
 
@@ -29,16 +36,18 @@ export default function ReviewerPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editPhnum, setEditPhnum] = useState("");
-  const [editingField, setEditingField] = useState<"name" | "phnum" | null>(null);
-  
+  const [editingField, setEditingField] = useState<"name" | "phnum" | null>(
+    null
+  );
+
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string>("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const roleOrder: Record<OrgMember["reviewerGrade"], number> = {
-    "심사원보": 1,
-    "심사위원": 2,
-    "수석심사위원": 3,
+    심사원보: 1,
+    심사위원: 2,
+    수석심사위원: 3,
   };
 
   useEffect(() => {
@@ -62,7 +71,7 @@ export default function ReviewerPage() {
     const fetchReviewer = async () => {
       try {
         const response = await axios.post(
-          "https://www.kcci.co.kr/back/mypage/reviewer",
+          "http://petback.hysu.kr/back/mypage/reviewer",
           { userId },
           { withCredentials: true }
         );
@@ -90,7 +99,7 @@ export default function ReviewerPage() {
 
     try {
       const response = await axios.post(
-        "https://www.kcci.co.kr/back/mypage/reviewer/invite",
+        "http://petback.hysu.kr/back/mypage/reviewer/invite",
         { loginID: reviewer.loginID },
         { withCredentials: true }
       );
@@ -111,9 +120,10 @@ export default function ReviewerPage() {
     setEditPhnum(reviewer.phnum || "");
     setEditingField(null);
     setProfileImageFile(null);
-    setProfileImagePreview(reviewer.profileImage 
-      ? `https://www.kcci.co.kr/back/uploads/profiles/${reviewer.profileImage}`
-      : ""
+    setProfileImagePreview(
+      reviewer.profileImage
+        ? `http://petback.hysu.kr/back/uploads/profiles/${reviewer.profileImage}`
+        : ""
     );
     setShowEditModal(true);
   };
@@ -126,14 +136,19 @@ export default function ReviewerPage() {
         return;
       }
 
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+      ];
       if (!allowedTypes.includes(file.type)) {
         alert("JPG, PNG, GIF 형식의 이미지만 업로드 가능합니다.");
         return;
       }
 
       setProfileImageFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileImagePreview(reader.result as string);
@@ -152,7 +167,7 @@ export default function ReviewerPage() {
       formData.append("file", profileImageFile);
 
       const response = await axios.post(
-        "https://www.kcci.co.kr/back/mypage/reviewer/uploadProfile",
+        "http://petback.hysu.kr/back/mypage/reviewer/uploadProfile",
         formData,
         {
           headers: {
@@ -165,7 +180,7 @@ export default function ReviewerPage() {
       return response.data;
     } catch (error) {
       console.error("Image upload error:", error);
-      
+
       // ⭐ 에러 처리 개선
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
@@ -178,7 +193,9 @@ export default function ReviewerPage() {
           return null;
         }
         // 백엔드에서 보낸 에러 메시지 표시
-        const errorMessage = error.response?.data?.message || "프로필 이미지 업로드에 실패했습니다.";
+        const errorMessage =
+          error.response?.data?.message ||
+          "프로필 이미지 업로드에 실패했습니다.";
         alert(errorMessage);
       } else {
         alert("프로필 이미지 업로드에 실패했습니다.");
@@ -206,7 +223,7 @@ export default function ReviewerPage() {
       }
 
       const response = await axios.put(
-        "https://www.kcci.co.kr/back/mypage/reviewer/infoUpdate",
+        "http://petback.hysu.kr/back/mypage/reviewer/infoUpdate",
         {
           userId,
           name: editName,
@@ -218,14 +235,16 @@ export default function ReviewerPage() {
 
       if (response.data) {
         setReviewer((prev) =>
-          prev ? { 
-            ...prev, 
-            name: response.data.name, 
-            phnum: response.data.phnum,
-            profileImage: response.data.profileImage
-          } : prev
+          prev
+            ? {
+                ...prev,
+                name: response.data.name,
+                phnum: response.data.phnum,
+                profileImage: response.data.profileImage,
+              }
+            : prev
         );
-        
+
         const currentUser = localStorage.getItem("user");
         if (currentUser) {
           const userObj = JSON.parse(currentUser);
@@ -233,15 +252,15 @@ export default function ReviewerPage() {
           userObj.profileImage = response.data.profileImage;
           localStorage.setItem("user", JSON.stringify(userObj));
         }
-        
+
         window.dispatchEvent(new Event("userUpdated"));
-        
+
         alert("개인정보가 성공적으로 수정되었습니다!");
         setShowEditModal(false);
       }
     } catch (error) {
       console.error("Edit error:", error);
-      
+
       // ⭐ 에러 처리 개선
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 401) {
@@ -249,7 +268,8 @@ export default function ReviewerPage() {
           window.location.href = "/login";
           return;
         }
-        const errorMessage = error.response?.data?.message || "정보 수정 중 오류가 발생했습니다.";
+        const errorMessage =
+          error.response?.data?.message || "정보 수정 중 오류가 발생했습니다.";
         alert(errorMessage);
       } else {
         alert("정보 수정 중 오류가 발생했습니다.");
@@ -276,7 +296,7 @@ export default function ReviewerPage() {
 
   const getProfileImageUrl = () => {
     if (reviewer.profileImage) {
-      return `https://www.kcci.co.kr/back/uploads/profiles/${reviewer.profileImage}`;
+      return `http://petback.hysu.kr/back/uploads/profiles/${reviewer.profileImage}`;
     }
     return "";
   };
@@ -312,7 +332,11 @@ export default function ReviewerPage() {
             )}
           </div>
           <p className="text-lg font-bold text-gray-800">{reviewer.name}</p>
-          <span className={`text-xs px-3 py-1 rounded-full font-semibold mt-2 ${getBadgeColor(reviewer.reviewerGrade)}`}>
+          <span
+            className={`text-xs px-3 py-1 rounded-full font-semibold mt-2 ${getBadgeColor(
+              reviewer.reviewerGrade
+            )}`}
+          >
             {reviewer.reviewerGrade}
           </span>
         </div>
@@ -343,9 +367,7 @@ export default function ReviewerPage() {
             <h2 className="text-xl font-bold text-gray-800 mb-1">조직 관리</h2>
             <p className="text-sm text-gray-500">나의 조직 확인 및 관리</p>
           </div>
-          <div className="text-gray-400">
-            {showOrg ? "▲" : "▼"}
-          </div>
+          <div className="text-gray-400">{showOrg ? "▲" : "▼"}</div>
         </div>
 
         {/* 조직 구성원 테이블 */}
@@ -354,7 +376,7 @@ export default function ReviewerPage() {
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-800">
               <FaUsers className="text-yellow-500 w-6 h-6" /> 나의 조직 구성원
             </h2>
-            
+
             {sortedOrgMembers.length === 0 ? (
               <div className="text-center py-10">
                 <FaUsers className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -371,7 +393,7 @@ export default function ReviewerPage() {
                       <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">
                         전화번호
                       </th>
-                      <th 
+                      <th
                         className="py-3 px-4 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:text-yellow-600 transition-colors"
                         onClick={() => setSortAsc(!sortAsc)}
                       >
@@ -388,14 +410,18 @@ export default function ReviewerPage() {
                   </thead>
                   <tbody>
                     {sortedOrgMembers.map((m, idx) => (
-                      <tr 
-                        key={idx} 
+                      <tr
+                        key={idx}
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-3 px-4 text-gray-800">{m.name}</td>
                         <td className="py-3 px-4 text-gray-600">{m.phnum}</td>
                         <td className="py-3 px-4">
-                          <span className={`text-xs px-2 py-1 rounded-full font-semibold ${getBadgeColor(m.reviewerGrade)}`}>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full font-semibold ${getBadgeColor(
+                              m.reviewerGrade
+                            )}`}
+                          >
                             {m.reviewerGrade}
                           </span>
                         </td>
@@ -413,7 +439,9 @@ export default function ReviewerPage() {
       {showEditModal && reviewer && (
         <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-white/30 p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">회원 정보 수정</h2>
+            <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">
+              회원 정보 수정
+            </h2>
 
             {/* 프로필 사진 */}
             <div className="flex flex-col items-center mb-8">
@@ -449,9 +477,13 @@ export default function ReviewerPage() {
             {/* 이름 */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">이름</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  이름
+                </label>
                 <button
-                  onClick={() => setEditingField(editingField === "name" ? null : "name")}
+                  onClick={() =>
+                    setEditingField(editingField === "name" ? null : "name")
+                  }
                   className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
                 >
                   {editingField === "name" ? "완료" : "수정"}
@@ -474,9 +506,13 @@ export default function ReviewerPage() {
             {/* 전화번호 */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">전화번호</label>
+                <label className="text-sm font-semibold text-gray-700">
+                  전화번호
+                </label>
                 <button
-                  onClick={() => setEditingField(editingField === "phnum" ? null : "phnum")}
+                  onClick={() =>
+                    setEditingField(editingField === "phnum" ? null : "phnum")
+                  }
                   className="text-sm text-yellow-600 hover:text-yellow-700 font-medium"
                 >
                   {editingField === "phnum" ? "완료" : "수정"}
