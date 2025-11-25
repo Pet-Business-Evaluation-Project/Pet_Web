@@ -13,7 +13,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  classification: string;  // ✅ 추가
+  classification: string; // ✅ 추가
   expiresAt?: number;
 }
 
@@ -45,7 +45,7 @@ export default function Header() {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       const userData = JSON.parse(storedUser) as User;
-      
+
       if (userData.expiresAt && Date.now() >= userData.expiresAt) {
         localStorage.removeItem("user");
         setUser(null);
@@ -64,7 +64,7 @@ export default function Header() {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       const userData = JSON.parse(storedUser) as User;
-      
+
       if (userData.expiresAt && Date.now() >= userData.expiresAt) {
         localStorage.removeItem("user");
         setUser(null);
@@ -125,7 +125,11 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await axios.post("https://www.kcci.co.kr/back/api/auth/logout", {}, { withCredentials: true });
+      await axios.post(
+        "http://petback.hysu.kr/back/api/auth/logout",
+        {},
+        { withCredentials: true }
+      );
       localStorage.removeItem("user");
       setUser(null);
       setRemainingTime("");
@@ -151,7 +155,11 @@ export default function Header() {
       <div className="flex justify-end items-center space-x-4 text-sm text-gray-600 bg-gray-300 px-4 lg:px-16 xl:px-70 py-2">
         {!user ? (
           <>
-            <Button label="로그인" onClick={() => setIsLoginOpen(true)} className="px-3 py-1 text-sm" />
+            <Button
+              label="로그인"
+              onClick={() => setIsLoginOpen(true)}
+              className="px-3 py-1 text-sm"
+            />
             <Link href="/signupagree" className="hover:underline">
               회원가입
             </Link>
@@ -168,10 +176,17 @@ export default function Header() {
             <Link href="/mypage" className="hover:underline">
               마이페이지
             </Link>
-            <Link href="/admin/approval" className="hover:underline font-semibold text-blue-600">
+            <Link
+              href="/admin/approval"
+              className="hover:underline font-semibold text-blue-600"
+            >
               승인관리
             </Link>
-            <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
+            <Button
+              label="로그아웃"
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm"
+            />
           </>
         ) : (
           // 일반 사용자 메뉴
@@ -182,7 +197,11 @@ export default function Header() {
                 ({remainingTime})
               </span>
             )}
-            <Button label="로그아웃" onClick={handleLogout} className="px-3 py-1 text-sm" />
+            <Button
+              label="로그아웃"
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm"
+            />
             <Link href="/mypage" className="hover:underline">
               마이페이지
             </Link>
@@ -208,23 +227,47 @@ export default function Header() {
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="메뉴"
         >
-          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
-          <span className={`block w-6 h-0.5 bg-gray-800 transition-opacity ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
-          <span className={`block w-6 h-0.5 bg-gray-800 transition-transform ${isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
+          <span
+            className={`block w-6 h-0.5 bg-gray-800 transition-transform ${
+              isMobileMenuOpen ? "rotate-45 translate-y-2" : ""
+            }`}
+          ></span>
+          <span
+            className={`block w-6 h-0.5 bg-gray-800 transition-opacity ${
+              isMobileMenuOpen ? "opacity-0" : ""
+            }`}
+          ></span>
+          <span
+            className={`block w-6 h-0.5 bg-gray-800 transition-transform ${
+              isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""
+            }`}
+          ></span>
         </button>
 
         {/* 데스크톱 네비게이션 */}
         <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 text-lg xl:text-2xl font-bold relative">
-          <Link href="/" className="hover:text-red-900 whitespace-nowrap font-bold">
+          <Link
+            href="/"
+            className="hover:text-red-900 whitespace-nowrap font-bold"
+          >
             KCCI
           </Link>
-          <Link href="/reviewinfo" className="hover:text-red-900 whitespace-nowrap">
+          <Link
+            href="/reviewinfo"
+            className="hover:text-red-900 whitespace-nowrap"
+          >
             심사원 소개
           </Link>
-          <Link href="/memberinfo" className="hover:text-red-900 whitespace-nowrap">
+          <Link
+            href="/memberinfo"
+            className="hover:text-red-900 whitespace-nowrap"
+          >
             회원사 소개
           </Link>
-          <Link href="/memberregister" className="hover:text-red-900 whitespace-nowrap">
+          <Link
+            href="/memberregister"
+            className="hover:text-red-900 whitespace-nowrap"
+          >
             인증 현황
           </Link>
 
@@ -294,7 +337,11 @@ export default function Header() {
                 onClick={() => setIsCommunityOpen(!isCommunityOpen)}
               >
                 커뮤니티
-                <span className={`transform transition-transform ${isCommunityOpen ? 'rotate-180' : ''}`}>
+                <span
+                  className={`transform transition-transform ${
+                    isCommunityOpen ? "rotate-180" : ""
+                  }`}
+                >
                   ▼
                 </span>
               </button>
@@ -328,7 +375,7 @@ export default function Header() {
             localStorage.setItem("user", JSON.stringify(userData));
             setUser(userData);
             setIsLoginOpen(false);
-            
+
             window.dispatchEvent(new Event("userUpdated"));
           }}
           onClose={() => setIsLoginOpen(false)}

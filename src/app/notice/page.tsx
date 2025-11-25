@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
-const BASE_URL = "https://www.kcci.co.kr/back/community/notice";
+const BASE_URL = "http://petback.hysu.kr/back/community/notice";
 
 interface CommunityPost {
   id: number;
@@ -44,7 +44,9 @@ export default function NoticePage() {
   const [userName] = useState(storedUserName);
   const [userClass] = useState(storedClass);
   const [notices, setNotices] = useState<CommunityPost[]>([]);
-  const [selectedNotice, setSelectedNotice] = useState<CommunityPost | null>(null);
+  const [selectedNotice, setSelectedNotice] = useState<CommunityPost | null>(
+    null
+  );
   const [isFixedNotice, setIsFixedNotice] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -88,7 +90,9 @@ export default function NoticePage() {
       const data: CommunityPost[] = await res.json();
       setNotices(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setError(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+      );
     } finally {
       setLoading(false);
     }
@@ -222,13 +226,19 @@ export default function NoticePage() {
                 transition: "background-color 0.2s",
                 backgroundColor: "#f0f8ff",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e6f3ff")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f0f8ff")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#e6f3ff")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#f0f8ff")
+              }
             >
               <td style={{ padding: "10px", fontWeight: "bold" }}>
                 📌 KCCI 심사원 회원가입 방법
               </td>
-              <td style={{ textAlign: "right", padding: "10px" }}>KCCI 관리자</td>
+              <td style={{ textAlign: "right", padding: "10px" }}>
+                KCCI 관리자
+              </td>
             </tr>
             {/* 일반 공지사항 */}
             {notices.map((n) => (
@@ -243,11 +253,17 @@ export default function NoticePage() {
                   cursor: "pointer",
                   transition: "background-color 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9f9f9")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#f9f9f9")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
               >
                 <td style={{ padding: "10px" }}>{n.title}</td>
-                <td style={{ textAlign: "right", padding: "10px" }}>{n.author}</td>
+                <td style={{ textAlign: "right", padding: "10px" }}>
+                  {n.author}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -303,7 +319,13 @@ export default function NoticePage() {
                     marginBottom: "0",
                   }}
                 >
-                  <h2 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "12px" }}>
+                  <h2
+                    style={{
+                      fontSize: "32px",
+                      fontWeight: "bold",
+                      marginBottom: "12px",
+                    }}
+                  >
                     {selectedNotice.title}
                   </h2>
                   <p style={{ fontSize: "16px", color: "#bfdbfe" }}>
@@ -312,30 +334,66 @@ export default function NoticePage() {
                 </div>
 
                 {/* 섹션 컨텐츠 */}
-                <div style={{ padding: "48px", minHeight: "500px", position: "relative" }}>
+                <div
+                  style={{
+                    padding: "48px",
+                    minHeight: "500px",
+                    position: "relative",
+                  }}
+                >
                   {/* 섹션 0: 인트로 */}
                   {currentSection === 0 && (
                     <div style={{ textAlign: "center", padding: "40px 0" }}>
-                      <h3 style={{ fontSize: "28px", fontWeight: "bold", color: "#1f2937", marginBottom: "24px" }}>
+                      <h3
+                        style={{
+                          fontSize: "28px",
+                          fontWeight: "bold",
+                          color: "#1f2937",
+                          marginBottom: "24px",
+                        }}
+                      >
                         KCCI 심사원 회원가입 안내
                       </h3>
-                      <p style={{ fontSize: "18px", color: "#6b7280", marginBottom: "32px", lineHeight: "1.8" }}>
-                        심사원으로 활동하기 위한 회원가입 절차를 단계별로 안내해드립니다.
+                      <p
+                        style={{
+                          fontSize: "18px",
+                          color: "#6b7280",
+                          marginBottom: "32px",
+                          lineHeight: "1.8",
+                        }}
+                      >
+                        심사원으로 활동하기 위한 회원가입 절차를 단계별로
+                        안내해드립니다.
                       </p>
                       <div
                         style={{
-                          background: "linear-gradient(to right, #eff6ff, #e0e7ff)",
+                          background:
+                            "linear-gradient(to right, #eff6ff, #e0e7ff)",
                           border: "2px solid #bfdbfe",
                           padding: "32px",
                           borderRadius: "12px",
                           marginTop: "40px",
                         }}
                       >
-                        <h4 style={{ fontSize: "20px", fontWeight: "bold", color: "#1f2937", marginBottom: "16px" }}>
+                        <h4
+                          style={{
+                            fontSize: "20px",
+                            fontWeight: "bold",
+                            color: "#1f2937",
+                            marginBottom: "16px",
+                          }}
+                        >
                           💡 안내사항
                         </h4>
-                        <p style={{ fontSize: "16px", color: "#374151", lineHeight: "1.8" }}>
-                          회원가입 최초시 심사원 등급은 자동으로 <strong>심사원보</strong>가 됩니다.
+                        <p
+                          style={{
+                            fontSize: "16px",
+                            color: "#374151",
+                            lineHeight: "1.8",
+                          }}
+                        >
+                          회원가입 최초시 심사원 등급은 자동으로{" "}
+                          <strong>심사원보</strong>가 됩니다.
                         </p>
                       </div>
                     </div>
@@ -344,7 +402,13 @@ export default function NoticePage() {
                   {/* 섹션 1: Step 1 */}
                   {currentSection === 1 && (
                     <div>
-                      <div style={{ borderLeft: "6px solid #3b82f6", paddingLeft: "32px", marginBottom: "32px" }}>
+                      <div
+                        style={{
+                          borderLeft: "6px solid #3b82f6",
+                          paddingLeft: "32px",
+                          marginBottom: "32px",
+                        }}
+                      >
                         <h3
                           style={{
                             fontSize: "28px",
@@ -388,7 +452,12 @@ export default function NoticePage() {
                             alt="회원가입 버튼"
                             width={1000}
                             height={500}
-                            style={{ maxWidth: "100%", width: "100%", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{
+                              maxWidth: "100%",
+                              width: "100%",
+                              borderRadius: "12px",
+                              boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+                            }}
                           />
                         </div>
                       </div>
@@ -398,7 +467,13 @@ export default function NoticePage() {
                   {/* 섹션 2: Step 2 */}
                   {currentSection === 2 && (
                     <div>
-                      <div style={{ borderLeft: "6px solid #6366f1", paddingLeft: "32px", marginBottom: "32px" }}>
+                      <div
+                        style={{
+                          borderLeft: "6px solid #6366f1",
+                          paddingLeft: "32px",
+                          marginBottom: "32px",
+                        }}
+                      >
                         <h3
                           style={{
                             fontSize: "28px",
@@ -442,7 +517,12 @@ export default function NoticePage() {
                             alt="약관 동의"
                             width={1000}
                             height={500}
-                            style={{ maxWidth: "50%", width: "50%", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{
+                              maxWidth: "50%",
+                              width: "50%",
+                              borderRadius: "12px",
+                              boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+                            }}
                           />
                         </div>
                       </div>
@@ -452,7 +532,13 @@ export default function NoticePage() {
                   {/* 섹션 3: Step 3 */}
                   {currentSection === 3 && (
                     <div>
-                      <div style={{ borderLeft: "6px solid #a855f7", paddingLeft: "32px", marginBottom: "32px" }}>
+                      <div
+                        style={{
+                          borderLeft: "6px solid #a855f7",
+                          paddingLeft: "32px",
+                          marginBottom: "32px",
+                        }}
+                      >
                         <h3
                           style={{
                             fontSize: "28px",
@@ -496,7 +582,12 @@ export default function NoticePage() {
                             alt="심사원 가입"
                             width={800}
                             height={600}
-                            style={{ maxWidth: "50%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{
+                              maxWidth: "50%",
+                              width: "auto",
+                              borderRadius: "12px",
+                              boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+                            }}
                           />
                         </div>
                       </div>
@@ -506,7 +597,13 @@ export default function NoticePage() {
                   {/* 섹션 4: Step 4 */}
                   {currentSection === 4 && (
                     <div>
-                      <div style={{ borderLeft: "6px solid #22c55e", paddingLeft: "32px", marginBottom: "32px" }}>
+                      <div
+                        style={{
+                          borderLeft: "6px solid #22c55e",
+                          paddingLeft: "32px",
+                          marginBottom: "32px",
+                        }}
+                      >
                         <h3
                           style={{
                             fontSize: "28px",
@@ -551,7 +648,12 @@ export default function NoticePage() {
                             alt="회원 정보 입력"
                             width={700}
                             height={900}
-                            style={{ maxWidth: "50%", width: "auto", borderRadius: "12px", boxShadow: "0 6px 12px rgba(0,0,0,0.15)" }}
+                            style={{
+                              maxWidth: "50%",
+                              width: "auto",
+                              borderRadius: "12px",
+                              boxShadow: "0 6px 12px rgba(0,0,0,0.15)",
+                            }}
                           />
                         </div>
 
@@ -563,43 +665,154 @@ export default function NoticePage() {
                             marginTop: "24px",
                           }}
                         >
-                          <h4 style={{ fontWeight: "bold", color: "#1f2937", marginBottom: "20px", fontSize: "22px" }}>
+                          <h4
+                            style={{
+                              fontWeight: "bold",
+                              color: "#1f2937",
+                              marginBottom: "20px",
+                              fontSize: "22px",
+                            }}
+                          >
                             📝 입력 정보 안내
                           </h4>
-                          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px", marginBottom: "16px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
+                          <ul
+                            style={{ listStyle: "none", padding: 0, margin: 0 }}
+                          >
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                                marginBottom: "16px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
                                 <strong>이름:</strong> 3글자 이상 이름
                               </span>
                             </li>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px", marginBottom: "16px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                                marginBottom: "16px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
                                 <strong>아이디:</strong> 중복 불가, 4자 이상
                               </span>
                             </li>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px", marginBottom: "16px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
-                                <strong>비밀번호:</strong> 영문, 숫자, 특수문자를 포함한 8자 이상
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                                marginBottom: "16px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
+                                <strong>비밀번호:</strong> 영문, 숫자,
+                                특수문자를 포함한 8자 이상
                               </span>
                             </li>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px", marginBottom: "16px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                                marginBottom: "16px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
                                 <strong>휴대폰:</strong> 01012345678
                               </span>
                             </li>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px", marginBottom: "16px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                                marginBottom: "16px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
                                 <strong>주민등록번호:</strong> 앞6자리 + 뒷1자리
                               </span>
                             </li>
-                            <li style={{ display: "flex", alignItems: "start", gap: "12px" }}>
-                              <span style={{ color: "#2563eb", fontWeight: "bold", fontSize: "18px" }}>•</span>
-                              <span style={{ color: "#374151", fontSize: "17px" }}>
+                            <li
+                              style={{
+                                display: "flex",
+                                alignItems: "start",
+                                gap: "12px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  color: "#2563eb",
+                                  fontWeight: "bold",
+                                  fontSize: "18px",
+                                }}
+                              >
+                                •
+                              </span>
+                              <span
+                                style={{ color: "#374151", fontSize: "17px" }}
+                              >
                                 <strong>추천인ID:</strong> 회원가입된 회원의 ID
                               </span>
                             </li>
@@ -636,7 +849,7 @@ export default function NoticePage() {
                       ←
                     </button>
                   )}
-                  
+
                   {currentSection < totalSections - 1 && (
                     <button
                       onClick={handleNextSection}
@@ -666,9 +879,21 @@ export default function NoticePage() {
                 </div>
 
                 {/* 진행 표시 및 버튼 영역 */}
-                <div style={{ padding: "24px 48px 48px", borderTop: "1px solid #e5e7eb" }}>
+                <div
+                  style={{
+                    padding: "24px 48px 48px",
+                    borderTop: "1px solid #e5e7eb",
+                  }}
+                >
                   {/* 진행 표시 점 */}
-                  <div style={{ display: "flex", justifyContent: "center", gap: "12px", marginBottom: "24px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: "12px",
+                      marginBottom: "24px",
+                    }}
+                  >
                     {[...Array(totalSections)].map((_, idx) => (
                       <div
                         key={idx}
@@ -676,7 +901,8 @@ export default function NoticePage() {
                           width: "12px",
                           height: "12px",
                           borderRadius: "50%",
-                          backgroundColor: idx === currentSection ? "#2563eb" : "#d1d5db",
+                          backgroundColor:
+                            idx === currentSection ? "#2563eb" : "#d1d5db",
                           cursor: "pointer",
                           transition: "all 0.3s",
                         }}
@@ -686,7 +912,13 @@ export default function NoticePage() {
                   </div>
 
                   {/* 하단 버튼 */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
                     <button
                       onClick={() => {
                         setSelectedNotice(null);
@@ -725,7 +957,7 @@ export default function NoticePage() {
                           이전
                         </button>
                       )}
-                      
+
                       {currentSection < totalSections - 1 && (
                         <button
                           onClick={handleNextSection}
@@ -755,7 +987,9 @@ export default function NoticePage() {
                     <input
                       type="text"
                       value={editData.title}
-                      onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({ ...editData, title: e.target.value })
+                      }
                       style={{
                         width: "100%",
                         padding: "10px",
@@ -766,7 +1000,9 @@ export default function NoticePage() {
                     />
                     <textarea
                       value={editData.content}
-                      onChange={(e) => setEditData({ ...editData, content: e.target.value })}
+                      onChange={(e) =>
+                        setEditData({ ...editData, content: e.target.value })
+                      }
                       style={{
                         width: "100%",
                         height: "200px",
@@ -806,15 +1042,21 @@ export default function NoticePage() {
                   </>
                 ) : (
                   <>
-                    <h2 style={{ color: "#007bff", marginBottom: "10px" }}>{selectedNotice.title}</h2>
-                    <p style={{ color: "#666", marginBottom: "4px" }}>{selectedNotice.author}</p>
+                    <h2 style={{ color: "#007bff", marginBottom: "10px" }}>
+                      {selectedNotice.title}
+                    </h2>
+                    <p style={{ color: "#666", marginBottom: "4px" }}>
+                      {selectedNotice.author}
+                    </p>
                     <p style={{ color: "#999", marginBottom: "15px" }}>
                       작성일: {formatDate(selectedNotice.createdAt)}
                       {selectedNotice.updatedAt !== selectedNotice.createdAt &&
                         ` | 수정일: ${formatDate(selectedNotice.updatedAt)}`}
                     </p>
                     <hr />
-                    <p style={{ whiteSpace: "pre-wrap", marginTop: "20px" }}>{selectedNotice.content}</p>
+                    <p style={{ whiteSpace: "pre-wrap", marginTop: "20px" }}>
+                      {selectedNotice.content}
+                    </p>
 
                     {isAdmin && (
                       <>
@@ -849,7 +1091,9 @@ export default function NoticePage() {
                             }}
                           >
                             <p>정말 삭제하시겠습니까?</p>
-                            <div style={{ textAlign: "right", marginTop: "10px" }}>
+                            <div
+                              style={{ textAlign: "right", marginTop: "10px" }}
+                            >
                               <button
                                 onClick={() => deleteNotice(selectedNotice.id)}
                                 style={{
@@ -883,7 +1127,10 @@ export default function NoticePage() {
                           <button
                             onClick={() => {
                               setEditingNoticeId(selectedNotice.id);
-                              setEditData({ title: selectedNotice.title, content: selectedNotice.content });
+                              setEditData({
+                                title: selectedNotice.title,
+                                content: selectedNotice.content,
+                              });
                             }}
                             style={{
                               backgroundColor: "#ffc107",
@@ -954,7 +1201,9 @@ export default function NoticePage() {
               type="text"
               placeholder="제목"
               value={newNotice.title}
-              onChange={(e) => setNewNotice({ ...newNotice, title: e.target.value })}
+              onChange={(e) =>
+                setNewNotice({ ...newNotice, title: e.target.value })
+              }
               style={{
                 width: "100%",
                 padding: "10px",
@@ -966,7 +1215,9 @@ export default function NoticePage() {
             <textarea
               placeholder="내용"
               value={newNotice.content}
-              onChange={(e) => setNewNotice({ ...newNotice, content: e.target.value })}
+              onChange={(e) =>
+                setNewNotice({ ...newNotice, content: e.target.value })
+              }
               style={{
                 width: "100%",
                 height: "150px",
