@@ -33,8 +33,8 @@ interface ReviewerRaw {
   bankname: string;
   account: string;
   expertises?: string;
-  reviewergrade?: "심사원보" | "심사위원" | "수석심사위원";
-  reviewerGrade?: "심사원보" | "심사위원" | "수석심사위원";
+  reviewergrade?: string;
+  reviewerGrade?: string;
   referralID?: string;
   referralGrade?: string;
   created_at: string;
@@ -108,7 +108,7 @@ export default function ReviewerDashboard() {
   const [openToggles, setOpenToggles] = useState<Set<string>>(new Set());
   const [downlineData, setDownlineData] = useState<Record<string, DownlineMember[]>>({});
   const [loadingDownline, setLoadingDownline] = useState<Set<string>>(new Set());
-  const [selectedReviewer, setSelectedReviewer] = useState<Reviewer |ixinull>(null);
+  const [selectedReviewer, setSelectedReviewer] = useState<Reviewer | null>(null);
 
   const roleOrder: Record<Reviewer["reviewergrade"], number> = {
     심사원보: 1,
@@ -116,25 +116,32 @@ export default function ReviewerDashboard() {
     수석심사위원: 3,
   };
 
-  // CSV 다운로드 (전화번호, 계좌번호 앞자리 0 보존)
+  // CSV 다운로드 (전화번호, 계좌번호 앞자리 0 보존) - 수정됨
   const exportToCSV = (data: Reviewer[]) => {
     const headers = [
       "이름", "아이디", "전화번호", "직책", "추천인ID", "주소",
       "은행명", "계좌번호", "전문분야", "가입일"
     ];
 
-    const csvContent = data.map(r => [
-      r.name,
-      r.loginID,
-      `="${r.phnum}"`,
-      r.reviewergrade,
-      r.referralID || "",
-      `"${(r.address || "").replace(/"/g, '""')}"`,
-      r.bankname || "",
-      `="${r.account}"`,
-      `"${(r.expertises || "").replace(/"/g, '""')}"`,
-      r.created_at,
-    ].join(',')).join('\n');
+    const csvContent = data.map(r => {
+      // 직책 검증 추가
+      const validGrade = ["심사원보", "심사위원", "수석심사위원"].includes(r.reviewergrade) 
+        ? r.reviewergrade 
+        : "심사원보";
+
+      return [
+        r.name,
+        r.loginID,
+        `="${r.phnum}"`,
+        validGrade, // 검증된 직책 사용
+        r.referralID || "",
+        `"${(r.address || "").replace(/"/g, '""')}"`,
+        r.bankname || "",
+        `="${r.account}"`,
+        `"${(r.expertises || "").replace(/"/g, '""')}"`,
+        r.created_at,
+      ].join(',');
+    }).join('\n');
 
     const finalCsv = '\uFEFF' + headers.join(',') + '\n' + csvContent;
 
@@ -150,6 +157,7 @@ export default function ReviewerDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // 데이터 로딩 + 직책 정규화 및 검증 (수정됨)
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
@@ -161,11 +169,26 @@ export default function ReviewerDashboard() {
         });
         if (res.ok) {
           const rawData: ReviewerRaw[] = await res.json();
-          const data: Reviewer[] = rawData.map(r => ({
-            ...r,
-            reviewergrade: r.reviewergrade || r.reviewerGrade || "심사원보",
-            expertises: r.expertises || "-",
-          }));
+          const data: Reviewer[] = rawData.map(r => {
+            // 직책 검증 및 정규화
+            const gradeRaw = (r.reviewergrade || r.reviewerGrade || "").trim();
+            
+            // 유효한 직책인지 확인
+            let normalizedGrade: Reviewer["reviewergrade"];
+            if (gradeRaw === "심사원보" || gradeRaw === "심사위원" || gradeRaw === "수석심사위원") {
+              normalizedGrade = gradeRaw;
+            } else {
+              console.warn(`Invalid grade for ${r.name} (${r.loginID}): "${gradeRaw}"`);
+              normalizedGrade = "심사원보"; // 기본값
+            }
+
+            return {
+              ...r,
+              reviewergrade: normalizedGrade,
+              expertises: (r.expertises?.trim() || "-"),
+            };
+          });
+
           setReviewers(data);
           setOriginalReviewers(data);
           setFilteredReviewers(data);
@@ -180,6 +203,7 @@ export default function ReviewerDashboard() {
     fetchReviewers();
   }, []);
 
+  // 검색 + 필터링
   useEffect(() => {
     let filtered = reviewers;
     if (searchTerm.trim()) {
@@ -204,7 +228,7 @@ export default function ReviewerDashboard() {
         ? roleOrder[a.reviewergrade] - roleOrder[b.reviewergrade]
         : roleOrder[b.reviewergrade] - roleOrder[a.reviewergrade]
     );
-  }, [filteredReviewers, sortAsc, roleOrder]);
+  }, [filteredReviewers, sortAsc]);
 
   const { newReviewersCount, totalReviewersCount } = useMemo(() => {
     const now = new Date();
@@ -295,7 +319,7 @@ export default function ReviewerDashboard() {
   const closeModal = () => setSelectedReviewer(null);
 
   return (
-    <div className="flex-1 w-full max-w-[calc(100vw-2rem)] p-4 md:p-6">
+    <div className="flex-1 w-full p-4 md:p-6">
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm w-full">
 
         {/* 헤더 */}
@@ -355,120 +379,118 @@ export default function ReviewerDashboard() {
         </div>
 
         {/* 메인 테이블 */}
-        <div className="overflow-x-auto w-full">
-          <div className="inline-block min-w-full align-middle">
-            <table className="min-w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">이름</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">아이디</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">전화번호</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">추천인 ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">상위 심사원</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">관리</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">직책</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {sortedReviewers.map((r) => {
-                  const isNew = r.created_at && new Date(r.created_at + "T00:00:00").getMonth() === new Date().getMonth() && new Date(r.created_at + "T00:00:00").getFullYear() === new Date().getFullYear();
-                  const isOpen = openToggles.has(r.loginID);
-                  const downline = downlineData[r.loginID] || [];
-                  const isLoading = loadingDownline.has(r.loginID);
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">이름</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">아이디</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">전화번호</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">추천인 ID</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">상위 심사원</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">관리</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700 text-sm whitespace-nowrap">직책</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {sortedReviewers.map((r) => {
+                const isNew = r.created_at && new Date(r.created_at + "T00:00:00").getMonth() === new Date().getMonth() && new Date(r.created_at + "T00:00:00").getFullYear() === new Date().getFullYear();
+                const isOpen = openToggles.has(r.loginID);
+                const downline = downlineData[r.loginID] || [];
+                const isLoading = loadingDownline.has(r.loginID);
 
-                  return (
-                    <React.Fragment key={r.loginID}>
-                      <tr className="hover:bg-blue-50 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => toggleDownline(r.loginID)} className="text-gray-500 hover:text-indigo-600 transition flex-shrink-0">
-                              {isLoading ? <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" /> : isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />}
-                            </button>
-                            <div className="flex items-center gap-1.5 text-xs">
-                              <span className="font-semibold text-gray-900 whitespace-nowrap">{r.name}</span>
-                              {isNew && <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-red-600 rounded whitespace-nowrap">NEW</span>}
-                              {downline.length > 0 && <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded whitespace-nowrap">리더</span>}
-                            </div>
+                return (
+                  <React.Fragment key={r.loginID}>
+                    <tr className="hover:bg-blue-50 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => toggleDownline(r.loginID)} className="text-gray-500 hover:text-indigo-600 transition flex-shrink-0">
+                            {isLoading ? <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" /> : isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />}
+                          </button>
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="font-semibold text-gray-900 whitespace-nowrap">{r.name}</span>
+                            {isNew && <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-red-600 rounded whitespace-nowrap">NEW</span>}
+                            {downline.length > 0 && <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded whitespace-nowrap">리더</span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.loginID}</td>
+                      <td className="py-3 px-4 text-xs text-gray-700 whitespace-nowrap">{r.phnum}</td>
+                      <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.referralID || "-"}</td>
+                      <td className="py-3 px-4 text-xs whitespace-nowrap">
+                        <span className={`font-medium ${findUplineName(r.referralID) === "-" ? "text-gray-400" : "text-indigo-700"}`}>
+                          {findUplineName(r.referralID)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => openModal(r)}
+                          className="text-sm px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+                        >
+                          <FaEye className="w-4 h-4" />
+                          상세
+                        </button>
+                      </td>
+                      <td className="py-3 px-4">
+                        <select
+                          value={r.reviewergrade}
+                          onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewergrade"])}
+                          className="px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                        >
+                          <option value="심사원보">심사원보</option>
+                          <option value="심사위원">심사위원</option>
+                          <option value="수석심사위원">수석심사위원</option>
+                        </select>
+                      </td>
+                    </tr>
+
+                    {/* 하위 심사원 펼침 영역 */}
+                    {isOpen && (
+                      <tr>
+                        <td colSpan={7} className="p-0">
+                          <div className="border-t border-gray-200 bg-gray-50/50 p-6">
+                            {downline.length === 0 ? (
+                              <p className="text-center py-12 text-gray-500 italic text-lg">아직 하위 심사원이 없습니다</p>
+                            ) : (
+                              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                                <table className="w-full min-w-[900px] bg-white text-sm">
+                                  <thead className="bg-gray-100">
+                                    <tr>
+                                      <th className="text-left py-4 px-6 font-medium text-gray-700">이름</th>
+                                      <th className="text-left py-4 px-6 font-medium text-gray-700">아이디</th>
+                                      <th className="text-left py-4 px-6 font-medium text-gray-700">전화번호</th>
+                                      <th className="text-left py-4 px-6 font-medium text-gray-700">직책</th>
+                                      <th className="text-left py-4 px-6 font-medium text-gray-700">구분</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200">
+                                    {downline.map((member, idx) => (
+                                      <tr key={idx} className="hover:bg-blue-50 transition">
+                                        <td className="py-4 px-6">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-gray-900">{member.name}</span>
+                                            <span className="px-2.5 py-1 text-xs font-bold text-white bg-gray-500 rounded">일반</span>
+                                          </div>
+                                        </td>
+                                        <td className="py-4 px-6 text-gray-600">{member.loginID || "-"}</td>
+                                        <td className="py-4 px-6 text-gray-700">{member.phnum}</td>
+                                        <td className="py-4 px-6"><span className="px-3 py-1.5 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">{member.reviewerGrade}</span></td>
+                                        <td className="py-4 px-6"><span className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-full">하위 심사원</span></td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.loginID}</td>
-                        <td className="py-3 px-4 text-xs text-gray-700 whitespace-nowrap">{r.phnum}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600 whitespace-nowrap">{r.referralID || "-"}</td>
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          <span className={`font-medium ${findUplineName(r.referralID) === "-" ? "text-gray-400" : "text-indigo-700"}`}>
-                            {findUplineName(r.referralID)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <button
-                            onClick={() => openModal(r)}
-                            className="text-sm px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
-                          >
-                            <FaEye className="w-4 h-4" />
-                            상세
-                          </button>
-                        </td>
-                        <td className="py-3 px-4">
-                          <select
-                            value={r.reviewergrade}
-                            onChange={(e) => handleRoleChange(r.loginID, e.target.value as Reviewer["reviewergrade"])}
-                            className="px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
-                          >
-                            <option value="심사원보">심사원보</option>
-                            <option value="심사위원">심사위원</option>
-                            <option value="수석심사위원">수석심사위원</option>
-                          </select>
-                        </td>
                       </tr>
-
-                      {/* 하위 심사원 펼침 영역 */}
-                      {isOpen && (
-                        <tr>
-                          <td colSpan={7} className="p-0">
-                            <div className="border-t border-gray-200 bg-gray-50/50 p-6">
-                              {downline.length === 0 ? (
-                                <p className="text-center py-12 text-gray-500 italic text-lg">아직 하위 심사원이 없습니다</p>
-                              ) : (
-                                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                                  <table className="w-full min-w-[900px] bg-white text-sm">
-                                    <thead className="bg-gray-100">
-                                      <tr>
-                                        <th className="text-left py-4 px-6 font-medium text-gray-700">이름</th>
-                                        <th className="text-left py-4 px-6 font-medium text-gray-700">아이디</th>
-                                        <th className="text-left py-4 px-6 font-medium text-gray-700">전화번호</th>
-                                        <th className="text-left py-4 px-6 font-medium text-gray-700">직책</th>
-                                        <th className="text-left py-4 px-6 font-medium text-gray-700">구분</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                      {downline.map((member, idx) => (
-                                        <tr key={idx} className="hover:bg-blue-50 transition">
-                                          <td className="py-4 px-6">
-                                            <div className="flex items-center gap-2">
-                                              <span className="font-semibold text-gray-900">{member.name}</span>
-                                              <span className="px-2.5 py-1 text-xs font-bold text-white bg-gray-500 rounded">일반</span>
-                                            </div>
-                                          </td>
-                                          <td className="py-4 px-6 text-gray-600">{member.loginID || "-"}</td>
-                                          <td className="py-4 px-6 text-gray-700">{member.phnum}</td>
-                                          <td className="py-4 px-6"><span className="px-3 py-1.5 text-xs font-bold bg-blue-100 text-blue-700 rounded-full">{member.reviewerGrade}</span></td>
-                                          <td className="py-4 px-6"><span className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-full">하위 심사원</span></td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* 저장 버튼 */}
