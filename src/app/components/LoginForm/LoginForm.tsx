@@ -43,7 +43,7 @@ export default function LoginForm({ onLoginSuccess, onClose }: LoginFormProps) {
 
     try {
       const response = await axios.post<LoginResponse>(
-        "https://www.kcci.co.kr/back/api/auth/login",
+        "http://petback.hysu.kr/back/api/auth/login",
         {
           loginID: email,
           password,

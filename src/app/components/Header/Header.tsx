@@ -126,7 +126,7 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "https://www.kcci.co.kr/back/api/auth/logout",
+        "http://petback.hysu.kr/back/api/auth/logout",
         {},
         { withCredentials: true }
       );

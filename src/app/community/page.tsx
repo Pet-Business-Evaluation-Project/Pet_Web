@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 
-const BASE_URL = "https://www.kcci.co.kr/back/community/board";
+const BASE_URL = "http://petback.hysu.kr/back/community/board";
 
 interface CommunityPost {
   id: number;

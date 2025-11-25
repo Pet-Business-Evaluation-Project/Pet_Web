@@ -143,7 +143,7 @@ export default function SignupReviewer() {
     const fetchExpertises = async () => {
       try {
         const res = await fetch(
-          "https://www.kcci.co.kr/back/expertise/categories"
+          "http://petback.hysu.kr/back/expertise/categories"
         );
         if (!res.ok) throw new Error("전문분야 조회 실패");
         const data = await res.json();
@@ -214,7 +214,7 @@ export default function SignupReviewer() {
     }
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/loginInfo");
+      const res = await fetch("http://petback.hysu.kr/back/user/loginInfo");
       if (!res.ok) throw new Error("유저 조회 실패");
 
       const data = await res.json();
@@ -392,7 +392,7 @@ export default function SignupReviewer() {
     delete payload.addressDetail;
 
     try {
-      const res = await fetch("https://www.kcci.co.kr/back/user/signup", {
+      const res = await fetch("http://petback.hysu.kr/back/user/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
