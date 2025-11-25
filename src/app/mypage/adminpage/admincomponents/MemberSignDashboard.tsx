@@ -62,7 +62,7 @@ export default function MemberSignDashboard() {
   const [adminUserId, setAdminUserId] = useState<number | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
 
-  const BASE_URL = "http://petback.hysu.kr/back";
+  const BASE_URL = "https://www.kcci.co.kr/back";
 
   // 🔥 공통 fetch 함수 - credentials를 항상 포함
   const fetchWithAuth = (url: string, options: RequestInit = {}) => {

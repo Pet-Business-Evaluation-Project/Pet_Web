@@ -80,7 +80,7 @@ export default function ReviewerDashboard() {
   useEffect(() => {
     const fetchReviewers = async () => {
       try {
-        const res = await fetch("http://petback.hysu.kr/back/mypage/admin", {
+        const res = await fetch("https://www.kcci.co.kr/back/mypage/admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ classification: "관리자" }),
@@ -184,7 +184,7 @@ export default function ReviewerDashboard() {
     setLoadingDownline((prev) => new Set(prev).add(loginID));
     try {
       const res = await fetch(
-        "http://petback.hysu.kr/back/mypage/reviewer/invite",
+        "https://www.kcci.co.kr/back/mypage/reviewer/invite",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -242,7 +242,7 @@ export default function ReviewerDashboard() {
 
     try {
       const res = await fetch(
-        "http://petback.hysu.kr/back/mypage/admin/update",
+        "https://www.kcci.co.kr/back/mypage/admin/update",
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

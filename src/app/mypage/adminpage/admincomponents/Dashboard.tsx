@@ -50,7 +50,7 @@ export default function Dashboard() {
 
         // ✅ 실제 API 호출
         const response = await fetch(
-          "http://petback.hysu.kr/back/admin/dashboard/stats",
+          "https://www.kcci.co.kr/back/admin/dashboard/stats",
           {
             credentials: "include",
           }

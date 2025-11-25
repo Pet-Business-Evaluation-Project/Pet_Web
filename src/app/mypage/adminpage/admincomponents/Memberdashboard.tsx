@@ -48,7 +48,7 @@ export default function MemberDashboard() {
     setLoading(true);
     try {
       const res = await fetch(
-        "http://petback.hysu.kr/back/mypage/admin/members",
+        "https://www.kcci.co.kr/back/mypage/admin/members",
         {
           method: "POST",
           headers: {
@@ -109,7 +109,7 @@ export default function MemberDashboard() {
 
     try {
       const res = await fetch(
-        "http://petback.hysu.kr/back/mypage/admin/members/update",
+        "https://www.kcci.co.kr/back/mypage/admin/members/update",
         {
           method: "PUT",
           headers: {

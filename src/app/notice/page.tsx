@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 
-const BASE_URL = "http://petback.hysu.kr/back/community/notice";
+const BASE_URL = "https://www.kcci.co.kr/back/community/notice";
 
 interface CommunityPost {
   id: number;
