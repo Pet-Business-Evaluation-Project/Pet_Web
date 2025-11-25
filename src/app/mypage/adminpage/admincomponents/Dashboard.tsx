@@ -103,7 +103,7 @@ export default function Dashboard() {
       setLoading(true);
 
       const response = await fetch(
-        "http://petback.hysu.kr/back/admin/dashboard/all",
+        "https://www.kcci.co.kr/back/admin/dashboard/all",
         {
           credentials: "include",
         }
@@ -146,7 +146,7 @@ export default function Dashboard() {
 
       const statisticsPromises = costTypes.map(async ({ type, name }) => {
         const response = await fetch(
-          `http://petback.hysu.kr/back/costs/${type}/payment-statistics`,
+          `https://www.kcci.co.kr/back/costs/${type}/payment-statistics`,
           { credentials: "include" }
         );
 
@@ -180,7 +180,7 @@ export default function Dashboard() {
       setDetailsLoading({ ...detailsLoading, [costType]: true });
 
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/with-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/with-status`,
         { credentials: "include" }
       );
 
@@ -213,7 +213,7 @@ export default function Dashboard() {
   ) => {
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}/payment-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}/payment-status`,
         {
           method: "PATCH",
           headers: {
