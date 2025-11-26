@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import { FaUserCircle, FaTachometerAlt, FaUserTie, FaBuilding, FaFileSignature } from "react-icons/fa";
-import { Dashboard, ReviewerDashboard, MemberDashboard, MemberSignDashboard } from "./admincomponents";
+import { AiFillDollarCircle } from "react-icons/ai";
+import { Dashboard, ReviewerDashboard, MemberDashboard, MemberSignDashboard ,InsertCostDashboard } from "./admincomponents";
+import { Calculator } from "lucide-react";
 
-type ViewType = "main" | "reviewer" | "member" | "dashboard" | "memberSign";
+type ViewType = "main" | "reviewer" | "member" | "dashboard" | "memberSign" | "InsertCost";
 
 export default function AdminPage() {
   const [currentView, setCurrentView] = useState<ViewType>("main");
@@ -27,6 +29,8 @@ export default function AdminPage() {
         return <Dashboard />;
       case "memberSign":
         return <MemberSignDashboard />;
+      case "InsertCost":
+        return <InsertCostDashboard/>;
       default:
         return (
           <div className="flex-1 flex items-center justify-center">
@@ -112,6 +116,18 @@ export default function AdminPage() {
               >
                 <FaFileSignature className="w-5 h-5" />
                 <span>기업 인증 관리</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView("InsertCost")}
+                className={`w-full text-left px-4 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+                  currentView === "InsertCost"
+                    ? "bg-blue-500 text-white font-semibold"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <Calculator className="w-5 h-5" />
+                <span>비용 계산기</span>
               </button>
             </div>
           </div>
