@@ -29,7 +29,7 @@ interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
-const BASE_URL = "http://petback.hysu.kr/back";
+const BASE_URL = "https://www.kcci.co.kr/back";
 
 const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
   const token = localStorage.getItem("accessToken");

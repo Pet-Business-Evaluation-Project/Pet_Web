@@ -162,7 +162,7 @@ export default function Dashboard() {
       const month = today.getMonth() + 1;
 
       const response = await fetch(
-        `http://petback.hysu.kr/back/settlements/${year}/${month}`,
+        `https://www.kcci.co.kr/back/settlements/${year}/${month}`,
         { credentials: "include" }
       );
 
@@ -178,7 +178,7 @@ export default function Dashboard() {
   // 정산 히스토리 조회
   const fetchSettlementHistory = async () => {
     try {
-      const response = await fetch("http://petback.hysu.kr/back/settlements", {
+      const response = await fetch("https://www.kcci.co.kr/back/settlements", {
         credentials: "include",
       });
 
@@ -206,7 +206,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await fetch("http://petback.hysu.kr/back/settlements", {
+      const response = await fetch("https://www.kcci.co.kr/back/settlements", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -247,7 +247,7 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/settlements/${currentSettlement.settlementId}/confirm`,
+        `https://www.kcci.co.kr/back/settlements/${currentSettlement.settlementId}/confirm`,
         {
           method: "POST",
           headers: {
@@ -280,7 +280,7 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/settlements/${settlementId}`,
+        `https://www.kcci.co.kr/back/settlements/${settlementId}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -305,7 +305,7 @@ export default function Dashboard() {
       setLoading(true);
 
       const response = await fetch(
-        "http://petback.hysu.kr/back/admin/dashboard/all",
+        "https://www.kcci.co.kr/back/admin/dashboard/all",
         {
           credentials: "include",
         }
@@ -348,7 +348,7 @@ export default function Dashboard() {
 
       const statisticsPromises = costTypes.map(async ({ type, name }) => {
         const response = await fetch(
-          `http://petback.hysu.kr/back/costs/${type}/payment-statistics`,
+          `https://www.kcci.co.kr/back/costs/${type}/payment-statistics`,
           { credentials: "include" }
         );
 
@@ -395,7 +395,7 @@ export default function Dashboard() {
       setDetailsLoading({ ...detailsLoading, [costType]: true });
 
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/with-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/with-status`,
         { credentials: "include" }
       );
 
@@ -428,7 +428,7 @@ export default function Dashboard() {
   ) => {
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}/payment-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}/payment-status`,
         {
           method: "PATCH",
           headers: {
@@ -459,7 +459,7 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}`,
         {
           method: "DELETE",
           credentials: "include",
