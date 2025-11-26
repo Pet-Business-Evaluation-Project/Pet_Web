@@ -8,6 +8,7 @@ import {
   FaClipboardCheck,
   FaChevronDown,
   FaChevronUp,
+  FaTrash,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -60,7 +61,6 @@ interface PaymentStatistics {
   totalAmount: number;
 }
 
-// ✅ 차트용 데이터 타입 추가
 interface ChartData {
   name: string;
   지급: number;
@@ -233,7 +233,41 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ 차트 데이터 생성 함수
+  // ✅ 삭제 핸들러 추가
+  const handleDeleteCost = async (
+    costType: string,
+    id: number,
+    userName: string
+  ) => {
+    if (!confirm(`${userName}의 비용 항목을 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (response.ok || response.status === 204) {
+        // 성공 메시지
+        alert("삭제되었습니다.");
+        // 상세 데이터 다시 불러오기
+        await fetchCostDetails(costType);
+        // 전체 통계도 다시 불러오기
+        await fetchPaymentStatistics();
+      } else {
+        alert("삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Failed to delete cost:", error);
+      alert("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const getChartData = (): ChartData[] => {
     return paymentData.map((item) => ({
       name: item.name,
@@ -242,7 +276,6 @@ export default function Dashboard() {
     }));
   };
 
-  // ✅ 필터링된 데이터
   const getFilteredPaymentData = () => {
     if (activePaymentTab === "paid") {
       return paymentData.filter((item) => item.paidAmount > 0);
@@ -252,7 +285,6 @@ export default function Dashboard() {
     return paymentData;
   };
 
-  // ✅ 총계 계산
   const getTotalStats = () => {
     const totalPaid = paymentData.reduce(
       (sum, item) => sum + item.paidAmount,
@@ -338,7 +370,7 @@ export default function Dashboard() {
               </h3>
             </div>
 
-            {/* ✅ 총계 표시 */}
+            {/* 총계 표시 */}
             <div className="flex gap-6 text-sm">
               <div>
                 <span className="text-gray-600">총 지출: </span>
@@ -395,7 +427,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* ✅ 스택형 바 차트 */}
+          {/* 스택형 바 차트 */}
           <div className="bg-white rounded-lg p-6 mb-6">
             {loading ? (
               <div className="flex items-center justify-center h-[300px]">
@@ -522,6 +554,9 @@ export default function Dashboard() {
                                           <th className="text-center py-2 px-4 text-sm font-semibold text-gray-700">
                                             지급 상태
                                           </th>
+                                          <th className="text-center py-2 px-4 text-sm font-semibold text-gray-700">
+                                            삭제
+                                          </th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -567,6 +602,22 @@ export default function Dashboard() {
                                                     {detail.paymentStatus}
                                                   </span>
                                                 </label>
+                                              </td>
+                                              {/* ✅ 삭제 버튼 추가 */}
+                                              <td className="py-2 px-4 text-center">
+                                                <button
+                                                  onClick={() =>
+                                                    handleDeleteCost(
+                                                      item.costType,
+                                                      detail.id,
+                                                      detail.userName
+                                                    )
+                                                  }
+                                                  className="text-red-600 hover:text-red-800 transition-colors p-1"
+                                                  title="삭제"
+                                                >
+                                                  <FaTrash className="inline" />
+                                                </button>
                                               </td>
                                             </tr>
                                           )

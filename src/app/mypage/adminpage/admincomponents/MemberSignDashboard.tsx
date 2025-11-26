@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { FaFileSignature } from "react-icons/fa";
 
 interface Member {
   memberId: number;
@@ -388,8 +389,10 @@ export default function MemberSignDashboard() {
   return (
     <div className="flex-1 max-w-full">
       <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 p-6">기업 인증 배정</h2>
-
+        <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-800 p-6">
+          <FaFileSignature className="text-blue-500 w-6 h-6" />
+          기업 인증 배정
+        </h2>
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <div className="flex-1 flex flex-col">
             <label className="font-semibold text-gray-600 mb-2">
