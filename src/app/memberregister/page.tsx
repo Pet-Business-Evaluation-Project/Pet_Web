@@ -72,7 +72,7 @@ export default function MemberRegister() {
 
   // 🔥 Axios 인스턴스 생성 - withCredentials를 항상 포함
   const axiosInstance = axios.create({
-    baseURL: "http://petback.hysu.kr/back",
+    baseURL: "https://www.kcci.co.kr/back",
     withCredentials: true, // 세션 쿠키 자동 포함
     headers: {
       "Content-Type": "application/json",

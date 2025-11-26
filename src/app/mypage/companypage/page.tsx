@@ -103,7 +103,7 @@ export default function CompanyPage() {
     const fetchCompany = async () => {
       try {
         const response = await axios.get(
-          `http://petback.hysu.kr/back/mypage/member/${userId}`,
+          `https://www.kcci.co.kr/back/mypage/member/${userId}`,
           { withCredentials: true }
         );
         if (response.data) setCompany(response.data);
@@ -118,7 +118,7 @@ export default function CompanyPage() {
         console.log("Fetching sign status for userId:", userId);
 
         const response = await axios.get<SignStatus[]>(
-          `http://petback.hysu.kr/back/mypage/member/signstatus/${userId}`,
+          `https://www.kcci.co.kr/back/mypage/member/signstatus/${userId}`,
           { withCredentials: true }
         );
 
@@ -166,7 +166,7 @@ export default function CompanyPage() {
     setProfileImageFile(null);
     setProfileImagePreview(
       company.profileImage
-        ? `http://petback.hysu.kr/back/uploads/profiles/${company.profileImage}`
+        ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
         : ""
     );
     setShowEditModal(true);
@@ -203,7 +203,7 @@ export default function CompanyPage() {
       formData.append("file", profileImageFile);
 
       const response = await axios.post(
-        "http://petback.hysu.kr/back/mypage/member/uploadProfile",
+        "https://www.kcci.co.kr/back/mypage/member/uploadProfile",
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -248,7 +248,7 @@ export default function CompanyPage() {
       console.log("전송 데이터:", updateData);
 
       const response = await axios.put(
-        "http://petback.hysu.kr/back/mypage/member/update",
+        "https://www.kcci.co.kr/back/mypage/member/update",
         updateData,
         {
           withCredentials: true,
@@ -308,7 +308,7 @@ export default function CompanyPage() {
 
   const getProfileImageUrl = () =>
     company.profileImage
-      ? `http://petback.hysu.kr/back/uploads/profiles/${company.profileImage}`
+      ? `https://www.kcci.co.kr/back/uploads/profiles/${company.profileImage}`
       : "";
 
   return (
