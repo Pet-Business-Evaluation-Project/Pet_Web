@@ -2,18 +2,36 @@
 
 import { useEffect, useState } from "react";
 import Select from "react-select";
-import { Calculator, Users, TrendingUp, DollarSign, BookOpen, Award } from "lucide-react";
+import {
+  Calculator,
+  Users,
+  TrendingUp,
+  DollarSign,
+  BookOpen,
+  Award,
+} from "lucide-react";
 
-// 심사원 타입
+// 타입 정의
 interface Reviewer {
   user_id: number;
   name: string;
   loginID: string;
 }
 
+interface ReviewerData {
+  user_id: number;
+  name?: string;
+  loginID: string;
+  reviewer_id: number;
+}
+
+interface FetchOptions extends RequestInit {
+  headers?: Record<string, string>;
+}
+
 const BASE_URL = "http://petback.hysu.kr/back";
 
-const fetchWithAuth = async (url: string, options: any = {}) => {
+const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
   const token = localStorage.getItem("accessToken");
   return fetch(url, {
     ...options,
@@ -33,7 +51,9 @@ export default function CostCalculator() {
   const [chargeGrade, setChargeGrade] = useState<number | "">("");
   const [inviteGrade, setInviteGrade] = useState<number | "">("");
   const [newSubReviewerCount, setNewSubReviewerCount] = useState<number>(0);
-  const [reviewerRank, setReviewerRank] = useState<"심사원보" | "심사위원" | "수석심사위원" | "">("");
+  const [reviewerRank, setReviewerRank] = useState<
+    "심사원보" | "심사위원" | "수석심사위원" | ""
+  >("");
   const [studyCostInput, setStudyCostInput] = useState<number>(0);
 
   const gradeCostMap = [2000000, 2500000, 3500000, 10000000, 20000000];
@@ -44,13 +64,13 @@ export default function CostCalculator() {
       method: "POST",
       body: JSON.stringify({ classification: "관리자" }),
     })
-      .then(res => res.json())
-      .then((data: any[]) => {
+      .then((res) => res.json())
+      .then((data: ReviewerData[]) => {
         const list = Array.isArray(data) ? data : [];
         setReviewerList(
           list
-            .filter(d => d.reviewer_id != null)
-            .map(d => ({
+            .filter((d) => d.reviewer_id != null)
+            .map((d) => ({
               user_id: d.user_id,
               name: d.name || `심사원${d.reviewer_id}`,
               loginID: d.loginID,
@@ -102,8 +122,17 @@ export default function CostCalculator() {
     }
   };
 
+  // 🔹 타입 변경 핸들러
+  const handleLeaderTypeChange = (value: string) => {
+    setLeaderType(value as "리더" | "일반");
+  };
+
+  const handleReviewerRankChange = (value: string) => {
+    setReviewerRank(value as "심사원보" | "심사위원" | "수석심사위원" | "");
+  };
+
   // 🔹 react-select 옵션 변환
-  const reviewerOptions = reviewerList.map(r => ({
+  const reviewerOptions = reviewerList.map((r) => ({
     value: r.user_id,
     label: `${r.name} (${r.loginID})`,
   }));
@@ -118,7 +147,7 @@ export default function CostCalculator() {
         <div className="flex items-center gap-4 w-full">
           <select
             value={leaderType}
-            onChange={e => setLeaderType(e.target.value as any)}
+            onChange={(e) => handleLeaderTypeChange(e.target.value)}
             className="w-32 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="리더">리더</option>
@@ -127,11 +156,15 @@ export default function CostCalculator() {
 
           <select
             value={chargeGrade}
-            onChange={e => setChargeGrade(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={(e) =>
+              setChargeGrade(
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
+            }
             className="w-32 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="">단계 선택</option>
-            {[1, 2, 3, 4, 5].map(n => (
+            {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
                 {n}단계
               </option>
@@ -159,11 +192,15 @@ export default function CostCalculator() {
         <div className="flex items-center gap-4 w-full">
           <select
             value={inviteGrade}
-            onChange={e => setInviteGrade(e.target.value === "" ? "" : Number(e.target.value))}
+            onChange={(e) =>
+              setInviteGrade(
+                e.target.value === "" ? "" : Number(e.target.value)
+              )
+            }
             className="w-32 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="">단계 선택</option>
-            {[1, 2, 3, 4, 5].map(n => (
+            {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
                 {n}단계
               </option>
@@ -194,7 +231,7 @@ export default function CostCalculator() {
           <input
             type="number"
             value={newSubReviewerCount}
-            onChange={e => setNewSubReviewerCount(Number(e.target.value))}
+            onChange={(e) => setNewSubReviewerCount(Number(e.target.value))}
             className="w-32 border border-gray-300 rounded-lg px-3 py-2"
             min="0"
           />
@@ -220,7 +257,7 @@ export default function CostCalculator() {
         <div className="flex items-center gap-4 w-full">
           <select
             value={reviewerRank}
-            onChange={e => setReviewerRank(e.target.value as any)}
+            onChange={(e) => handleReviewerRankChange(e.target.value)}
             className="w-40 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="">직급 선택</option>
@@ -253,7 +290,7 @@ export default function CostCalculator() {
           <input
             type="number"
             value={studyCostInput}
-            onChange={e => setStudyCostInput(Number(e.target.value))}
+            onChange={(e) => setStudyCostInput(Number(e.target.value))}
             className="w-40 border border-gray-300 rounded-lg px-3 py-2"
             min="0"
           />
@@ -275,10 +312,8 @@ export default function CostCalculator() {
 
   return (
     <div className="flex-1 max-w-full p-2">
-
       {/* 헤더 박스 */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-
         {/* 아이콘 + 제목 */}
         <div className="flex items-center gap-3 mb-4">
           <Calculator className="w-8 h-8 text-blue-600" />
@@ -293,32 +328,37 @@ export default function CostCalculator() {
 
           <Select
             options={reviewerOptions}
-            onChange={option => setSelectedReviewer(option?.value ?? "")}
+            onChange={(option) => setSelectedReviewer(option?.value ?? "")}
             placeholder="검색하여 심사원을 선택하세요…"
             isClearable
             className="text-black"
           />
         </div>
-
       </div>
 
       {/* 비용 섹션 */}
       <div className="space-y-4 mb-6">
         {costSections.map((section, idx) => (
-          <div key={idx} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+          <div
+            key={idx}
+            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow"
+          >
             <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg bg-${section.color}-100 text-${section.color}-600`}>
+              <div
+                className={`p-2 rounded-lg bg-${section.color}-100 text-${section.color}-600`}
+              >
                 {section.icon}
               </div>
 
-              <h2 className="text-xl font-bold text-gray-800 w-24">{section.title}</h2>
+              <h2 className="text-xl font-bold text-gray-800 w-24">
+                {section.title}
+              </h2>
 
               <div className="flex-1">{section.content}</div>
             </div>
           </div>
         ))}
       </div>
-
     </div>
   );
 }
