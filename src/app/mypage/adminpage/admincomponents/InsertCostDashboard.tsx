@@ -11,16 +11,27 @@ import {
   Award,
 } from "lucide-react";
 
-// 심사원 타입
+// 타입 정의
 interface Reviewer {
   user_id: number;
   name: string;
   loginID: string;
 }
 
+interface ReviewerData {
+  user_id: number;
+  name?: string;
+  loginID: string;
+  reviewer_id: number;
+}
+
+interface FetchOptions extends RequestInit {
+  headers?: Record<string, string>;
+}
+
 const BASE_URL = "https://www.kcci.co.kr/back";
 
-const fetchWithAuth = async (url: string, options: any = {}) => {
+const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
   const token = localStorage.getItem("accessToken");
   return fetch(url, {
     ...options,
@@ -54,7 +65,7 @@ export default function CostCalculator() {
       body: JSON.stringify({ classification: "관리자" }),
     })
       .then((res) => res.json())
-      .then((data: any[]) => {
+      .then((data: ReviewerData[]) => {
         const list = Array.isArray(data) ? data : [];
         setReviewerList(
           list
@@ -111,6 +122,15 @@ export default function CostCalculator() {
     }
   };
 
+  // 🔹 타입 변경 핸들러
+  const handleLeaderTypeChange = (value: string) => {
+    setLeaderType(value as "리더" | "일반");
+  };
+
+  const handleReviewerRankChange = (value: string) => {
+    setReviewerRank(value as "심사원보" | "심사위원" | "수석심사위원" | "");
+  };
+
   // 🔹 react-select 옵션 변환
   const reviewerOptions = reviewerList.map((r) => ({
     value: r.user_id,
@@ -127,7 +147,7 @@ export default function CostCalculator() {
         <div className="flex items-center gap-4 w-full">
           <select
             value={leaderType}
-            onChange={(e) => setLeaderType(e.target.value as any)}
+            onChange={(e) => handleLeaderTypeChange(e.target.value)}
             className="w-32 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="리더">리더</option>
@@ -237,7 +257,7 @@ export default function CostCalculator() {
         <div className="flex items-center gap-4 w-full">
           <select
             value={reviewerRank}
-            onChange={(e) => setReviewerRank(e.target.value as any)}
+            onChange={(e) => handleReviewerRankChange(e.target.value)}
             className="w-40 border border-gray-300 rounded-lg px-3 py-2"
           >
             <option value="">직급 선택</option>

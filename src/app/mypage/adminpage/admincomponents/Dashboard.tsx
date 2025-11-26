@@ -9,6 +9,10 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaTrash,
+  FaSyncAlt,
+  FaCheck,
+  FaLock,
+  FaHistory,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -67,6 +71,24 @@ interface ChartData {
   미지급: number;
 }
 
+interface SettlementDto {
+  settlementId: number;
+  year: number;
+  month: number;
+  totalAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+  chargeCost: number;
+  inviteCost: number;
+  referralCost: number;
+  reviewCost: number;
+  studyCost: number;
+  settlementStatus: string;
+  confirmedBy: string;
+  confirmedAt: string;
+  createdAt: string;
+}
+
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalReviewers: 0,
@@ -85,6 +107,7 @@ export default function Dashboard() {
     "all" | "paid" | "unpaid"
   >("all");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [costDetails, setCostDetails] = useState<Record<string, CostDetail[]>>(
@@ -94,9 +117,188 @@ export default function Dashboard() {
     {}
   );
 
+  // 정산 관련 상태
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [settlementDate, setSettlementDate] = useState<Date | null>(null);
+  const [currentSettlement, setCurrentSettlement] =
+    useState<SettlementDto | null>(null);
+  const [settlements, setSettlements] = useState<SettlementDto[]>([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
   useEffect(() => {
     fetchStats();
+    calculateNextSettlementDate();
+    checkCurrentMonthSettlement();
+    fetchSettlementHistory();
   }, []);
+
+  const calculateNextSettlementDate = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+
+    let nextSettlement = new Date(currentYear, currentMonth, 10);
+
+    if (today.getDate() > 10) {
+      nextSettlement = new Date(currentYear, currentMonth + 1, 10);
+    }
+
+    setSettlementDate(nextSettlement);
+  };
+
+  const getDaysUntilSettlement = (): number => {
+    if (!settlementDate) return 0;
+    const today = new Date();
+    const diffTime = settlementDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  // 이번 달 정산 확인
+  const checkCurrentMonthSettlement = async () => {
+    try {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;
+
+      const response = await fetch(
+        `https://www.kcci.co.kr/back/settlements/${year}/${month}`,
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentSettlement(data);
+      }
+    } catch (error) {
+      console.error("Failed to check current settlement:", error);
+    }
+  };
+
+  // 정산 히스토리 조회
+  const fetchSettlementHistory = async () => {
+    try {
+      const response = await fetch("https://www.kcci.co.kr/back/settlements", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSettlements(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch settlement history:", error);
+    }
+  };
+
+  // 정산 생성
+  const handleCreateSettlement = async () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+
+    if (
+      !confirm(
+        `${year}년 ${month}월 정산을 생성하시겠습니까?\n\n현재 금액으로 스냅샷이 저장됩니다.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch("https://www.kcci.co.kr/back/settlements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ year, month }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentSettlement(data);
+        alert("정산이 생성되었습니다.");
+        await fetchSettlementHistory();
+      } else {
+        const error = await response.text();
+        alert(`정산 생성 실패: ${error}`);
+      }
+    } catch (error) {
+      console.error("Failed to create settlement:", error);
+      alert("정산 생성 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 정산 확정
+  const handleConfirmSettlement = async () => {
+    if (!currentSettlement) return;
+
+    const confirmedBy = prompt("확정자 이름을 입력하세요:");
+    if (!confirmedBy) return;
+
+    if (
+      !confirm(
+        `정산을 확정하시겠습니까?\n\n확정 후에는 수정할 수 없습니다.\n확정자: ${confirmedBy}`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.kcci.co.kr/back/settlements/${currentSettlement.settlementId}/confirm`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ confirmedBy }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentSettlement(data);
+        alert("정산이 확정되었습니다.");
+        await fetchSettlementHistory();
+      } else {
+        alert("정산 확정에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Failed to confirm settlement:", error);
+      alert("정산 확정 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 정산 삭제
+  const handleDeleteSettlement = async (settlementId: number) => {
+    if (!confirm("정산을 삭제하시겠습니까?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://www.kcci.co.kr/back/settlements/${settlementId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      if (response.ok || response.status === 204) {
+        alert("정산이 삭제되었습니다.");
+        setCurrentSettlement(null);
+        await fetchSettlementHistory();
+      } else {
+        alert("정산 삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Failed to delete settlement:", error);
+      alert("정산 삭제 중 오류가 발생했습니다.");
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -173,6 +375,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchStats();
+      await checkCurrentMonthSettlement();
+      setLastRefreshTime(new Date());
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const fetchCostDetails = async (costType: string) => {
     if (detailsLoading[costType]) return;
 
@@ -233,7 +448,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ 삭제 핸들러 추가
   const handleDeleteCost = async (
     costType: string,
     id: number,
@@ -253,11 +467,8 @@ export default function Dashboard() {
       );
 
       if (response.ok || response.status === 204) {
-        // 성공 메시지
         alert("삭제되었습니다.");
-        // 상세 데이터 다시 불러오기
         await fetchCostDetails(costType);
-        // 전체 통계도 다시 불러오기
         await fetchPaymentStatistics();
       } else {
         alert("삭제에 실패했습니다.");
@@ -302,6 +513,7 @@ export default function Dashboard() {
   const filteredPaymentData = getFilteredPaymentData();
   const chartData = getChartData();
   const { totalPaid, totalUnpaid, total } = getTotalStats();
+  const daysUntilSettlement = getDaysUntilSettlement();
 
   const StatCard = ({
     icon: Icon,
@@ -333,10 +545,142 @@ export default function Dashboard() {
     <div className="flex-1 w-full">
       <div className="bg-white rounded-2xl shadow-lg p-8">
         {/* 헤더 */}
-        <div className="flex items-center gap-3 mb-8">
-          <FaChartLine className="text-blue-500 w-7 h-7" />
-          <h2 className="text-2xl font-bold text-gray-800">관리자 대시보드</h2>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <FaChartLine className="text-blue-500 w-7 h-7" />
+            <h2 className="text-2xl font-bold text-gray-800">
+              관리자 대시보드
+            </h2>
+          </div>
+
+          {/* 버튼 그룹 */}
+          <div className="flex gap-3">
+            {/* 정산 히스토리 버튼 */}
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-gray-500 text-white hover:bg-gray-600 shadow-md"
+            >
+              <FaHistory />
+              정산 히스토리
+            </button>
+
+            {/* 새로고침 버튼 */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                refreshing
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-500 text-white hover:bg-blue-600 shadow-md"
+              }`}
+            >
+              <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "새로고침 중..." : "새로고침"}
+            </button>
+
+            {/* 정산 버튼 */}
+            {currentSettlement ? (
+              currentSettlement.settlementStatus === "대기중" ? (
+                <button
+                  onClick={handleConfirmSettlement}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-green-500 text-white hover:bg-green-600 shadow-md"
+                >
+                  <FaCheck />
+                  정산 확정
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-gray-300 text-gray-500 cursor-not-allowed"
+                >
+                  <FaLock />
+                  정산 완료
+                </button>
+              )
+            ) : (
+              <button
+                onClick={handleCreateSettlement}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-orange-500 text-white hover:bg-orange-600 shadow-md"
+              >
+                <FaCheck />
+                정산 생성
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* 정산 상태 카드 */}
+        {currentSettlement && (
+          <div
+            className={`border-l-4 p-4 mb-6 rounded-lg ${
+              currentSettlement.settlementStatus === "확정"
+                ? "bg-green-50 border-green-400"
+                : "bg-blue-50 border-blue-400"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-gray-800">
+                  {currentSettlement.year}년 {currentSettlement.month}월 정산 -{" "}
+                  {currentSettlement.settlementStatus}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  총 금액: {currentSettlement.totalAmount.toLocaleString()}원 |
+                  지급: {currentSettlement.paidAmount.toLocaleString()}원 |
+                  미지급: {currentSettlement.unpaidAmount.toLocaleString()}원
+                </p>
+                {currentSettlement.confirmedBy && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    확정자: {currentSettlement.confirmedBy} |{" "}
+                    {new Date(currentSettlement.confirmedAt).toLocaleString(
+                      "ko-KR"
+                    )}
+                  </p>
+                )}
+              </div>
+              {currentSettlement.settlementStatus === "대기중" && (
+                <button
+                  onClick={() =>
+                    handleDeleteSettlement(currentSettlement.settlementId)
+                  }
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <FaTrash />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 정산일 알림 */}
+        {daysUntilSettlement <= 7 && daysUntilSettlement > 0 && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="text-yellow-600">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-yellow-800">
+                  정산일이 {daysUntilSettlement}일 남았습니다
+                </p>
+                <p className="text-sm text-yellow-700">
+                  {settlementDate?.toLocaleDateString("ko-KR")}까지 최종 금액을
+                  확인해주세요.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 통계 카드 그리드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -370,25 +714,32 @@ export default function Dashboard() {
               </h3>
             </div>
 
-            {/* 총계 표시 */}
-            <div className="flex gap-6 text-sm">
-              <div>
-                <span className="text-gray-600">총 지출: </span>
-                <span className="font-bold text-gray-900">
-                  {total.toLocaleString()}원
-                </span>
-              </div>
-              <div>
-                <span className="text-green-600">지급 완료: </span>
-                <span className="font-bold text-green-700">
-                  {totalPaid.toLocaleString()}원
-                </span>
-              </div>
-              <div>
-                <span className="text-red-600">미지급: </span>
-                <span className="font-bold text-red-700">
-                  {totalUnpaid.toLocaleString()}원
-                </span>
+            <div className="flex items-center gap-6">
+              {lastRefreshTime && (
+                <div className="text-xs text-gray-500">
+                  마지막 업데이트: {lastRefreshTime.toLocaleTimeString("ko-KR")}
+                </div>
+              )}
+
+              <div className="flex gap-6 text-sm">
+                <div>
+                  <span className="text-gray-600">총 지출: </span>
+                  <span className="font-bold text-gray-900">
+                    {total.toLocaleString()}원
+                  </span>
+                </div>
+                <div>
+                  <span className="text-green-600">지급 완료: </span>
+                  <span className="font-bold text-green-700">
+                    {totalPaid.toLocaleString()}원
+                  </span>
+                </div>
+                <div>
+                  <span className="text-red-600">미지급: </span>
+                  <span className="font-bold text-red-700">
+                    {totalUnpaid.toLocaleString()}원
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -460,7 +811,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* 테이블 */}
+          {/* ✅ 테이블 - 원래 있던 부분 */}
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -603,7 +954,6 @@ export default function Dashboard() {
                                                   </span>
                                                 </label>
                                               </td>
-                                              {/* ✅ 삭제 버튼 추가 */}
                                               <td className="py-2 px-4 text-center">
                                                 <button
                                                   onClick={() =>
@@ -660,6 +1010,72 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* 정산 히스토리 모달 */}
+        {showHistoryModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm transition-all duration-300">
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">정산 히스토리</h3>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {settlements.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    정산 내역이 없습니다.
+                  </p>
+                ) : (
+                  settlements.map((settlement) => (
+                    <div
+                      key={settlement.settlementId}
+                      className={`border rounded-lg p-4 ${
+                        settlement.settlementStatus === "확정"
+                          ? "border-green-300 bg-green-50"
+                          : "border-gray-300 bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">
+                            {settlement.year}년 {settlement.month}월 -{" "}
+                            {settlement.settlementStatus}
+                          </p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            총액: {settlement.totalAmount.toLocaleString()}원 |
+                            지급: {settlement.paidAmount.toLocaleString()}원 |
+                            미지급: {settlement.unpaidAmount.toLocaleString()}원
+                          </p>
+                          {settlement.confirmedBy && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              확정자: {settlement.confirmedBy} |{" "}
+                              {new Date(settlement.confirmedAt).toLocaleString(
+                                "ko-KR"
+                              )}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500">
+                            생성:{" "}
+                            {new Date(settlement.createdAt).toLocaleDateString(
+                              "ko-KR"
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
