@@ -25,6 +25,16 @@ interface ReviewerData {
   reviewer_id: number;
 }
 
+interface UserCostData {
+  userId: number;
+  chargeCost: number;
+  inviteCost: number;
+  referralCost: number;
+  reviewCost: number;
+  studyCost: number;
+  totalCost: number;
+}
+
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
@@ -46,17 +56,8 @@ const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
 export default function CostCalculator() {
   const [reviewerList, setReviewerList] = useState<Reviewer[]>([]);
   const [selectedReviewer, setSelectedReviewer] = useState<number | "">("");
-
-  const [leaderType, setLeaderType] = useState<"리더" | "일반">("일반");
-  const [chargeGrade, setChargeGrade] = useState<number | "">("");
-  const [inviteGrade, setInviteGrade] = useState<number | "">("");
-  const [newSubReviewerCount, setNewSubReviewerCount] = useState<number>(0);
-  const [reviewerRank, setReviewerRank] = useState<
-    "심사원보" | "심사위원" | "수석심사위원" | ""
-  >("");
   const [studyCostInput, setStudyCostInput] = useState<number>(0);
-
-  const gradeCostMap = [2000000, 2500000, 3500000, 10000000, 20000000];
+  const [costsData, setCostsData] = useState<UserCostData | null>(null);
 
   // 🔹 심사원 로딩
   useEffect(() => {
@@ -80,55 +81,40 @@ export default function CostCalculator() {
       .catch(() => setReviewerList([]));
   }, []);
 
-  // 🔹 각각의 비용 계산 함수
-  const calcChargeCost = () => {
-    if (selectedReviewer && chargeGrade !== "") {
-      const base = gradeCostMap[Number(chargeGrade) - 1];
-      const factor = leaderType === "리더" ? 0.1 : 0.05;
-      return base * factor * 0.2;
+  // 🔹 심사원 선택 시 비용 데이터 로딩
+  useEffect(() => {
+    if (!selectedReviewer) {
+      setCostsData(null);
+      return;
     }
-    return 0;
-  };
 
-  const calcInviteCost = () => {
-    if (inviteGrade !== "") return gradeCostMap[Number(inviteGrade) - 1] * 0.2;
-    return 0;
-  };
+    fetchWithAuth(`${BASE_URL}/costs/user/${selectedReviewer}`)
+      .then((res) => res.json())
+      .then((data: UserCostData) => {
+        setCostsData(data);
+      })
+      .catch(() => setCostsData(null));
+  }, [selectedReviewer]);
 
-  const calcReferralCost = () => newSubReviewerCount * 100000;
-
-  const calcReviewCost = () => {
-    if (reviewerRank === "심사원보") return 300000;
-    if (reviewerRank === "심사위원") return 400000;
-    if (reviewerRank === "수석심사위원") return 500000;
-    return 0;
-  };
-
-  const calcStudyCost = () => studyCostInput;
-
-  // 🔹 비용 POST 저장
-  const saveCost = async (type: string, cost: number) => {
+  // 🔹 강사비 저장
+  const saveStudyCost = async () => {
     if (!selectedReviewer) return alert("심사원을 선택하세요");
 
     try {
-      const res = await fetchWithAuth(`${BASE_URL}/costs/${type}`, {
+      const res = await fetchWithAuth(`${BASE_URL}/costs/study`, {
         method: "POST",
-        body: JSON.stringify({ userId: selectedReviewer, cost }),
+        body: JSON.stringify({ userId: selectedReviewer, cost: studyCostInput }),
       });
       if (!res.ok) return alert("저장 실패");
       alert("저장 완료");
+      // 저장 후 비용 데이터 다시 로딩
+      const costRes = await fetchWithAuth(`${BASE_URL}/costs/user/${selectedReviewer}`);
+      const costData = await costRes.json();
+      setCostsData(costData);
+      setStudyCostInput(0);
     } catch {
       alert("오류 발생");
     }
-  };
-
-  // 🔹 타입 변경 핸들러
-  const handleLeaderTypeChange = (value: string) => {
-    setLeaderType(value as "리더" | "일반");
-  };
-
-  const handleReviewerRankChange = (value: string) => {
-    setReviewerRank(value as "심사원보" | "심사위원" | "수석심사위원" | "");
   };
 
   // 🔹 react-select 옵션 변환
@@ -137,179 +123,6 @@ export default function CostCalculator() {
     label: `${r.name} (${r.loginID})`,
   }));
 
-  // 🔹 비용 항목 UI 구성
-  const costSections = [
-    {
-      title: "수수료",
-      icon: <DollarSign className="w-5 h-5" />,
-      color: "blue",
-      content: (
-        <div className="flex items-center gap-4 w-full">
-          <select
-            value={leaderType}
-            onChange={(e) => handleLeaderTypeChange(e.target.value)}
-            className="w-32 border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="리더">리더</option>
-            <option value="일반">일반</option>
-          </select>
-
-          <select
-            value={chargeGrade}
-            onChange={(e) =>
-              setChargeGrade(
-                e.target.value === "" ? "" : Number(e.target.value)
-              )
-            }
-            className="w-32 border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="">단계 선택</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n}단계
-              </option>
-            ))}
-          </select>
-
-          <span className="text-xl font-bold text-blue-600 ml-auto">
-            {calcChargeCost().toLocaleString()} 원
-          </span>
-
-          <button
-            onClick={() => saveCost("charge", calcChargeCost())}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
-          >
-            저장
-          </button>
-        </div>
-      ),
-    },
-    {
-      title: "영업비",
-      icon: <TrendingUp className="w-5 h-5" />,
-      color: "green",
-      content: (
-        <div className="flex items-center gap-4 w-full">
-          <select
-            value={inviteGrade}
-            onChange={(e) =>
-              setInviteGrade(
-                e.target.value === "" ? "" : Number(e.target.value)
-              )
-            }
-            className="w-32 border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="">단계 선택</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n}단계
-              </option>
-            ))}
-          </select>
-
-          <span className="text-xl font-bold text-green-600 ml-auto">
-            {calcInviteCost().toLocaleString()} 원
-          </span>
-
-          <button
-            onClick={() => saveCost("invite", calcInviteCost())}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
-          >
-            저장
-          </button>
-        </div>
-      ),
-    },
-    {
-      title: "추천비",
-      icon: <Users className="w-5 h-5" />,
-      color: "purple",
-      content: (
-        <div className="flex items-center gap-4 w-full">
-          <label className="text-sm text-gray-600 w-32">신규 심사원 수</label>
-
-          <input
-            type="number"
-            value={newSubReviewerCount}
-            onChange={(e) => setNewSubReviewerCount(Number(e.target.value))}
-            className="w-32 border border-gray-300 rounded-lg px-3 py-2"
-            min="0"
-          />
-
-          <span className="text-xl font-bold text-purple-600 ml-auto">
-            {calcReferralCost().toLocaleString()} 원
-          </span>
-
-          <button
-            onClick={() => saveCost("referral", calcReferralCost())}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg"
-          >
-            저장
-          </button>
-        </div>
-      ),
-    },
-    {
-      title: "심사비",
-      icon: <Award className="w-5 h-5" />,
-      color: "orange",
-      content: (
-        <div className="flex items-center gap-4 w-full">
-          <select
-            value={reviewerRank}
-            onChange={(e) => handleReviewerRankChange(e.target.value)}
-            className="w-40 border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="">직급 선택</option>
-            <option value="심사원보">심사원보</option>
-            <option value="심사위원">심사위원</option>
-            <option value="수석심사위원">수석심사위원</option>
-          </select>
-
-          <span className="text-xl font-bold text-orange-600 ml-auto">
-            {calcReviewCost().toLocaleString()} 원
-          </span>
-
-          <button
-            onClick={() => saveCost("review", calcReviewCost())}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg"
-          >
-            저장
-          </button>
-        </div>
-      ),
-    },
-    {
-      title: "강사비",
-      icon: <BookOpen className="w-5 h-5" />,
-      color: "indigo",
-      content: (
-        <div className="flex items-center gap-4 w-full">
-          <label className="text-sm text-gray-600 w-16">금액</label>
-
-          <input
-            type="number"
-            value={studyCostInput}
-            onChange={(e) => setStudyCostInput(Number(e.target.value))}
-            className="w-40 border border-gray-300 rounded-lg px-3 py-2"
-            min="0"
-          />
-
-          <span className="text-xl font-bold text-indigo-600 ml-auto">
-            {calcStudyCost().toLocaleString()} 원
-          </span>
-
-          <button
-            onClick={() => saveCost("study", calcStudyCost())}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
-          >
-            저장
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="flex-1 max-w-full p-2">
       {/* 헤더 박스 */}
@@ -317,7 +130,7 @@ export default function CostCalculator() {
         {/* 아이콘 + 제목 */}
         <div className="flex items-center gap-3 mb-4">
           <Calculator className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-800">비용 계산기</h1>
+          <h1 className="text-2xl font-bold text-gray-800">비용 관리</h1>
         </div>
 
         {/* 심사원 검색 */}
@@ -336,29 +149,109 @@ export default function CostCalculator() {
         </div>
       </div>
 
-      {/* 비용 섹션 */}
-      <div className="space-y-4 mb-6">
-        {costSections.map((section, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow"
-          >
-            <div className="flex items-center gap-4">
-              <div
-                className={`p-2 rounded-lg bg-${section.color}-100 text-${section.color}-600`}
+      {/* 강사비 입력 섹션 */}
+      {selectedReviewer && (
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 w-24">강사비</h2>
+            <div className="flex items-center gap-4 w-full">
+              <label className="text-sm text-gray-600 w-16">금액</label>
+              <input
+                type="number"
+                value={studyCostInput}
+                onChange={(e) => setStudyCostInput(Number(e.target.value))}
+                className="w-40 border border-gray-300 rounded-lg px-3 py-2"
+                min="0"
+              />
+              <span className="text-xl font-bold text-indigo-600 ml-auto">
+                {studyCostInput.toLocaleString()} 원
+              </span>
+              <button
+                onClick={saveStudyCost}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg"
               >
-                {section.icon}
-              </div>
-
-              <h2 className="text-xl font-bold text-gray-800 w-24">
-                {section.title}
-              </h2>
-
-              <div className="flex-1">{section.content}</div>
+                저장
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* 카테고리별 총 비용 표시 */}
+      {selectedReviewer && costsData && (
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            카테고리별 총 비용
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-6 py-3 text-left font-semibold text-gray-700">
+                    카테고리
+                  </th>
+                  <th className="border px-6 py-3 text-right font-semibold text-gray-700">
+                    총 비용
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    수수료
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-blue-600">
+                    {(costsData.chargeCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    영업비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-green-600">
+                    {(costsData.inviteCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    추천비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-purple-600">
+                    {(costsData.referralCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    심사비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-orange-600">
+                    {(costsData.reviewCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    강사비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-indigo-600">
+                    {(costsData.studyCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="bg-gray-100 font-bold">
+                  <td className="border px-6 py-4 text-gray-900">
+                    총합
+                  </td>
+                  <td className="border px-6 py-4 text-right text-xl text-gray-900">
+                    {(costsData.totalCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
