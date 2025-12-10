@@ -96,6 +96,7 @@ export default function CostCalculator() {
     fetchWithAuth(`${BASE_URL}/mypage/admin`, {
       method: "POST",
       body: JSON.stringify({ classification: "관리자" }),
+      credentials: "include",
     })
       .then((res) => res.json())
       .then((data: ReviewerData[]) => {
@@ -254,6 +255,7 @@ export default function CostCalculator() {
           userId: selectedReviewer,
           cost: studyCostInput,
         }),
+        credentials: "include",
       });
       if (!res.ok) return alert("저장 실패");
       alert("저장 완료");
