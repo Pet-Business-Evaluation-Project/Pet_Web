@@ -56,6 +56,7 @@ export default function MemberSignDashboard() {
   const [reviewers, setReviewers] = useState<Reviewer[]>([]);
   const [reviewerSearch, setReviewerSearch] = useState("");
   const [selectedReviewers, setSelectedReviewers] = useState<number[]>([]);
+  const [selectedSalesReviewer, setSelectedSalesReviewer] = useState<number | null>(null);
   const [selectedGrade, setSelectedGrade] = useState(1);
   const [selectedSignType, setSelectedSignType] = useState<string | null>(null);
   const [assignedSignStarts, setAssignedSignStarts] = useState<SignStart[]>([]);
@@ -268,6 +269,7 @@ export default function MemberSignDashboard() {
     const payload = {
       memberId: selectedMember,
       reviewerIds: selectedReviewers,
+      salesReviewerId: selectedSalesReviewer,
       membergrade: `level${selectedGrade}`,
       signtype: selectedSignType === null ? null : selectedSignType,
     };
@@ -457,6 +459,26 @@ export default function MemberSignDashboard() {
               <option value="친환경기업인증">친환경기업인증</option>
               <option value="동물복지제품인증">동물복지제품인증</option>
               <option value="동물복지기업인증">동물복지기업인증</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <label className="font-semibold text-gray-600">영업 심사원:</label>
+            <select
+              className="border rounded px-3 py-2"
+              value={selectedSalesReviewer === null ? "" : selectedSalesReviewer}
+              onChange={(e) =>
+                setSelectedSalesReviewer(
+                  e.target.value === "" ? null : Number(e.target.value)
+                )
+              }
+            >
+              <option value="">선택하세요</option>
+              {reviewers.map((r) => (
+                <option key={r.reviewer_id} value={r.reviewer_id}>
+                  {r.name}
+                </option>
+              ))}
             </select>
           </div>
         </div>
