@@ -17,7 +17,6 @@ import {
 import {
   BarChart,
   Bar,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -58,15 +57,6 @@ interface CostDetail {
   accountNumber: string;
   referredUserId?: number;
   referredUserName?: string;
-}
-
-interface PaymentStatistics {
-  costType: string;
-  paidCount: number;
-  unpaidCount: number;
-  paidAmount: number;
-  unpaidAmount: number;
-  totalAmount: number;
 }
 
 interface ChartData {
@@ -111,6 +101,26 @@ interface ReferralSummary {
   totalAmount: number;
   totalUsers: number;
   totalReferralCount: number;
+}
+
+interface CostItemDetail {
+  name: string;
+  type: string;
+  costs: CostDetail[];
+  totalAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+}
+
+interface UserReferralGroup {
+  userId: number;
+  userName: string;
+  bankName: string;
+  accountNumber: string;
+  referrals: CostDetail[];
+  totalCost: number;
+  paidAmount: number;
+  unpaidAmount: number;
 }
 
 // 🚀 타임아웃 설정이 있는 fetch 함수
@@ -183,8 +193,9 @@ export default function Dashboard() {
   const [expandedSettlement, setExpandedSettlement] = useState<number | null>(
     null
   );
+
   const [settlementDetails, setSettlementDetails] = useState<
-    Record<number, any>
+    Record<number, CostItemDetail[]>
   >({});
   const [settlementDetailsLoading, setSettlementDetailsLoading] = useState<
     Record<number, boolean>
@@ -222,12 +233,14 @@ export default function Dashboard() {
     checkCurrentMonthSettlement();
     fetchSettlementHistory();
     fetchReferralSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (referralSummary) {
       fetchPaymentStatistics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [referralSummary]);
 
   const calculateNextSettlementDate = () => {
@@ -357,7 +370,7 @@ export default function Dashboard() {
         { credentials: "include" }
       );
 
-      let referralData = null;
+      let referralData: CostItemDetail | null = null;
       if (referralResponse.ok) {
         const data = await referralResponse.json();
         let allReferrals: CostDetail[] = data.costs;
@@ -393,7 +406,9 @@ export default function Dashboard() {
       }
 
       const results = await Promise.all(costPromises);
-      const validResults = results.filter((r) => r !== null);
+      const validResults = results.filter(
+        (r) => r !== null
+      ) as CostItemDetail[];
 
       if (referralData) {
         validResults.push(referralData);
@@ -849,7 +864,7 @@ export default function Dashboard() {
       if (response.ok) {
         const data = await response.json();
         let userReferrals = data.costs.filter(
-          (item: any) => item.userId === userId
+          (item: CostDetail) => item.userId === userId
         );
 
         // 🆕 현재 월의 비용만 필터링
@@ -975,7 +990,7 @@ export default function Dashboard() {
         throw new Error(`상태 변경 실패: ${response.status} - ${errorText}`);
       }
 
-      console.log(`✨ 지급 상태가 "${newStatus}"로 변경되었습니다.`);
+      console.log(`✨ 지급 상태가 &quot;${newStatus}&quot;로 변경되었습니다.`);
 
       // 🔄 데이터 재조회
       if (costType === "referral") {
@@ -1907,8 +1922,8 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <p>
                   📌 현재 월({new Date().getMonth() + 1}월) 비용만 표시 | 과거
-                  데이터는 "정산 히스토리"에서 확인 | 매월 말 스냅샷 반드시
-                  생성!
+                  데이터는 &ldquo;정산 히스토리&rdquo;에서 확인 | 매월 말 스냅샷
+                  반드시 생성!
                 </p>
                 <p>* 매월 말일 마감 후 익월 10일 지급</p>
               </div>
@@ -2008,7 +2023,7 @@ export default function Dashboard() {
                               </h4>
 
                               {settlementDetails[settlement.settlementId].map(
-                                (costItem: any) => {
+                                (costItem) => {
                                   const costKey = `${settlement.settlementId}-${costItem.type}`;
                                   const isExpanded =
                                     expandedHistoryCostType === costKey;
@@ -2082,7 +2097,7 @@ export default function Dashboard() {
                                             (() => {
                                               const userMap = new Map<
                                                 number,
-                                                any
+                                                UserReferralGroup
                                               >();
                                               costItem.costs.forEach(
                                                 (cost: CostDetail) => {
