@@ -80,6 +80,7 @@ const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
       Authorization: `Bearer ${token}`,
       ...options.headers,
     },
+    credentials: "include",
   });
 };
 
