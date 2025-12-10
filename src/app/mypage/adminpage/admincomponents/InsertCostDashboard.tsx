@@ -113,6 +113,136 @@ export default function CostCalculator() {
       .catch(() => setReviewerList([]));
   }, []);
 
+  // 🔹 비용 데이터 로딩 함수
+  const loadCostsData = async (userId: number) => {
+    try {
+      // 각 카테고리별 API 호출
+      const [
+        chargeData,
+        inviteData,
+        referralData,
+        reviewData,
+        studyData,
+      ] = await Promise.all([
+        fetchWithAuth(`${BASE_URL}/costs/charge`).then((res) => res.json()),
+        fetchWithAuth(`${BASE_URL}/costs/invite`).then((res) => res.json()),
+        fetchWithAuth(`${BASE_URL}/costs/referral`).then((res) => res.json()),
+        fetchWithAuth(`${BASE_URL}/costs/review`).then((res) => res.json()),
+        fetchWithAuth(`${BASE_URL}/costs/study`).then((res) => res.json()),
+      ]) as CostListResponse[];
+
+      // 선택된 심사원의 항목만 필터링
+      const userChargeCosts = chargeData.costs.filter(
+        (c) => c.userId === userId
+      );
+      const userInviteCosts = inviteData.costs.filter(
+        (c) => c.userId === userId
+      );
+      const userReferralCosts = referralData.costs.filter(
+        (c) => c.userId === userId
+      );
+      const userReviewCosts = reviewData.costs.filter(
+        (c) => c.userId === userId
+      );
+      const userStudyCosts = studyData.costs.filter(
+        (c) => c.userId === userId
+      );
+
+      // 총 비용 계산
+      const totalChargeCost = userChargeCosts.reduce(
+        (sum, c) => sum + c.cost,
+        0
+      );
+      const totalInviteCost = userInviteCosts.reduce(
+        (sum, c) => sum + c.cost,
+        0
+      );
+      const totalReferralCost = userReferralCosts.reduce(
+        (sum, c) => sum + c.cost,
+        0
+      );
+      const totalReviewCost = userReviewCosts.reduce(
+        (sum, c) => sum + c.cost,
+        0
+      );
+      const totalStudyCost = userStudyCosts.reduce(
+        (sum, c) => sum + c.cost,
+        0
+      );
+
+      setCostsData({
+        userId: userId,
+        chargeCost: totalChargeCost,
+        inviteCost: totalInviteCost,
+        referralCost: totalReferralCost,
+        reviewCost: totalReviewCost,
+        studyCost: totalStudyCost,
+        totalCost:
+          totalChargeCost +
+          totalInviteCost +
+          totalReferralCost +
+          totalReviewCost +
+          totalStudyCost,
+      });
+
+      // 월별로 그룹화
+      const monthlyMap = new Map<string, MonthlyCost>();
+
+      const processCosts = (costs: CostItem[], type: keyof MonthlyCost) => {
+        costs.forEach((cost) => {
+          const date = new Date(cost.createdat);
+          const year = date.getFullYear();
+          const month = date.getMonth() + 1;
+          const key = `${year}-${month}`;
+
+          if (!monthlyMap.has(key)) {
+            monthlyMap.set(key, {
+              year,
+              month,
+              chargeCost: 0,
+              inviteCost: 0,
+              referralCost: 0,
+              reviewCost: 0,
+              studyCost: 0,
+              totalCost: 0,
+            });
+          }
+
+          const monthlyCost = monthlyMap.get(key)!;
+          if (type !== "year" && type !== "month" && type !== "totalCost") {
+            monthlyCost[type] += cost.cost;
+            monthlyCost.totalCost += cost.cost;
+          }
+        });
+      };
+
+      processCosts(userChargeCosts, "chargeCost");
+      processCosts(userInviteCosts, "inviteCost");
+      processCosts(userReferralCosts, "referralCost");
+      processCosts(userReviewCosts, "reviewCost");
+      processCosts(userStudyCosts, "studyCost");
+
+      // 월별 데이터를 배열로 변환 후 정렬 (최신순)
+      const monthlyCostsArray = Array.from(monthlyMap.values()).sort(
+        (a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.month - a.month;
+        }
+      );
+
+      setMonthlyCosts(monthlyCostsArray);
+
+      // 기본적으로 가장 최근 월 선택
+      if (monthlyCostsArray.length > 0) {
+        const latest = monthlyCostsArray[0];
+        setSelectedMonth(`${latest.year}-${latest.month}`);
+      }
+    } catch (error) {
+      setCostsData(null);
+      setMonthlyCosts([]);
+    }
+  };
+
   // 🔹 심사원 선택 시 비용 데이터 로딩
   useEffect(() => {
     if (!selectedReviewer) {
@@ -122,134 +252,7 @@ export default function CostCalculator() {
       return;
     }
 
-    // 각 카테고리별 API 호출
-    Promise.all([
-      fetchWithAuth(`${BASE_URL}/costs/charge`).then((res) => res.json()),
-      fetchWithAuth(`${BASE_URL}/costs/invite`).then((res) => res.json()),
-      fetchWithAuth(`${BASE_URL}/costs/referral`).then((res) => res.json()),
-      fetchWithAuth(`${BASE_URL}/costs/review`).then((res) => res.json()),
-      fetchWithAuth(`${BASE_URL}/costs/study`).then((res) => res.json()),
-    ])
-      .then(
-        ([
-          chargeData,
-          inviteData,
-          referralData,
-          reviewData,
-          studyData,
-        ]: CostListResponse[]) => {
-          // 선택된 심사원의 항목만 필터링
-          const userChargeCosts = chargeData.costs.filter(
-            (c) => c.userId === selectedReviewer
-          );
-          const userInviteCosts = inviteData.costs.filter(
-            (c) => c.userId === selectedReviewer
-          );
-          const userReferralCosts = referralData.costs.filter(
-            (c) => c.userId === selectedReviewer
-          );
-          const userReviewCosts = reviewData.costs.filter(
-            (c) => c.userId === selectedReviewer
-          );
-          const userStudyCosts = studyData.costs.filter(
-            (c) => c.userId === selectedReviewer
-          );
-
-          // 총 비용 계산
-          const totalChargeCost = userChargeCosts.reduce(
-            (sum, c) => sum + c.cost,
-            0
-          );
-          const totalInviteCost = userInviteCosts.reduce(
-            (sum, c) => sum + c.cost,
-            0
-          );
-          const totalReferralCost = userReferralCosts.reduce(
-            (sum, c) => sum + c.cost,
-            0
-          );
-          const totalReviewCost = userReviewCosts.reduce(
-            (sum, c) => sum + c.cost,
-            0
-          );
-          const totalStudyCost = userStudyCosts.reduce(
-            (sum, c) => sum + c.cost,
-            0
-          );
-
-          setCostsData({
-            userId: selectedReviewer,
-            chargeCost: totalChargeCost,
-            inviteCost: totalInviteCost,
-            referralCost: totalReferralCost,
-            reviewCost: totalReviewCost,
-            studyCost: totalStudyCost,
-            totalCost:
-              totalChargeCost +
-              totalInviteCost +
-              totalReferralCost +
-              totalReviewCost +
-              totalStudyCost,
-          });
-
-          // 월별로 그룹화
-          const monthlyMap = new Map<string, MonthlyCost>();
-
-          const processCosts = (costs: CostItem[], type: keyof MonthlyCost) => {
-            costs.forEach((cost) => {
-              const date = new Date(cost.createdat);
-              const year = date.getFullYear();
-              const month = date.getMonth() + 1;
-              const key = `${year}-${month}`;
-
-              if (!monthlyMap.has(key)) {
-                monthlyMap.set(key, {
-                  year,
-                  month,
-                  chargeCost: 0,
-                  inviteCost: 0,
-                  referralCost: 0,
-                  reviewCost: 0,
-                  studyCost: 0,
-                  totalCost: 0,
-                });
-              }
-
-              const monthlyCost = monthlyMap.get(key)!;
-              if (type !== "year" && type !== "month" && type !== "totalCost") {
-                monthlyCost[type] += cost.cost;
-                monthlyCost.totalCost += cost.cost;
-              }
-            });
-          };
-
-          processCosts(userChargeCosts, "chargeCost");
-          processCosts(userInviteCosts, "inviteCost");
-          processCosts(userReferralCosts, "referralCost");
-          processCosts(userReviewCosts, "reviewCost");
-          processCosts(userStudyCosts, "studyCost");
-
-          // 월별 데이터를 배열로 변환 후 정렬 (최신순)
-          const monthlyCostsArray = Array.from(monthlyMap.values()).sort(
-            (a, b) => {
-              if (a.year !== b.year) return b.year - a.year;
-              return b.month - a.month;
-            }
-          );
-
-          setMonthlyCosts(monthlyCostsArray);
-
-          // 기본적으로 가장 최근 월 선택
-          if (monthlyCostsArray.length > 0) {
-            const latest = monthlyCostsArray[0];
-            setSelectedMonth(`${latest.year}-${latest.month}`);
-          }
-        }
-      )
-      .catch(() => {
-        setCostsData(null);
-        setMonthlyCosts([]);
-      });
+    loadCostsData(selectedReviewer);
   }, [selectedReviewer]);
 
   // 🔹 강사비 저장
@@ -265,10 +268,8 @@ export default function CostCalculator() {
       alert("저장 완료");
       setStudyCostInput(0);
 
-      // 강제로 데이터 새로고침 (selectedReviewer를 다시 설정)
-      const currentReviewer = selectedReviewer;
-      setSelectedReviewer("");
-      setTimeout(() => setSelectedReviewer(currentReviewer), 0);
+      // 데이터 새로고침
+      await loadCostsData(selectedReviewer);
     } catch {
       alert("오류 발생");
     }
