@@ -69,7 +69,7 @@ interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
-const BASE_URL = "http://petback.hysu.kr/back";
+const BASE_URL = "https://www.kcci.co.kr/back";
 
 const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
   const token = localStorage.getItem("accessToken");
@@ -117,19 +117,14 @@ export default function CostCalculator() {
   const loadCostsData = async (userId: number) => {
     try {
       // 각 카테고리별 API 호출
-      const [
-        chargeData,
-        inviteData,
-        referralData,
-        reviewData,
-        studyData,
-      ] = await Promise.all([
-        fetchWithAuth(`${BASE_URL}/costs/charge`).then((res) => res.json()),
-        fetchWithAuth(`${BASE_URL}/costs/invite`).then((res) => res.json()),
-        fetchWithAuth(`${BASE_URL}/costs/referral`).then((res) => res.json()),
-        fetchWithAuth(`${BASE_URL}/costs/review`).then((res) => res.json()),
-        fetchWithAuth(`${BASE_URL}/costs/study`).then((res) => res.json()),
-      ]) as CostListResponse[];
+      const [chargeData, inviteData, referralData, reviewData, studyData] =
+        (await Promise.all([
+          fetchWithAuth(`${BASE_URL}/costs/charge`).then((res) => res.json()),
+          fetchWithAuth(`${BASE_URL}/costs/invite`).then((res) => res.json()),
+          fetchWithAuth(`${BASE_URL}/costs/referral`).then((res) => res.json()),
+          fetchWithAuth(`${BASE_URL}/costs/review`).then((res) => res.json()),
+          fetchWithAuth(`${BASE_URL}/costs/study`).then((res) => res.json()),
+        ])) as CostListResponse[];
 
       // 선택된 심사원의 항목만 필터링
       const userChargeCosts = chargeData.costs.filter(
@@ -144,9 +139,7 @@ export default function CostCalculator() {
       const userReviewCosts = reviewData.costs.filter(
         (c) => c.userId === userId
       );
-      const userStudyCosts = studyData.costs.filter(
-        (c) => c.userId === userId
-      );
+      const userStudyCosts = studyData.costs.filter((c) => c.userId === userId);
 
       // 총 비용 계산
       const totalChargeCost = userChargeCosts.reduce(
@@ -165,10 +158,7 @@ export default function CostCalculator() {
         (sum, c) => sum + c.cost,
         0
       );
-      const totalStudyCost = userStudyCosts.reduce(
-        (sum, c) => sum + c.cost,
-        0
-      );
+      const totalStudyCost = userStudyCosts.reduce((sum, c) => sum + c.cost, 0);
 
       setCostsData({
         userId: userId,
@@ -223,12 +213,10 @@ export default function CostCalculator() {
       processCosts(userStudyCosts, "studyCost");
 
       // 월별 데이터를 배열로 변환 후 정렬 (최신순)
-      const monthlyCostsArray = Array.from(monthlyMap.values()).sort(
-        (a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.month - a.month;
-        }
-      );
+      const monthlyCostsArray = Array.from(monthlyMap.values()).sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return b.month - a.month;
+      });
 
       setMonthlyCosts(monthlyCostsArray);
 
@@ -262,7 +250,10 @@ export default function CostCalculator() {
     try {
       const res = await fetchWithAuth(`${BASE_URL}/costs/study`, {
         method: "POST",
-        body: JSON.stringify({ userId: selectedReviewer, cost: studyCostInput }),
+        body: JSON.stringify({
+          userId: selectedReviewer,
+          cost: studyCostInput,
+        }),
       });
       if (!res.ok) return alert("저장 실패");
       alert("저장 완료");
@@ -284,9 +275,7 @@ export default function CostCalculator() {
   // 🔹 선택된 월의 비용 데이터 가져오기
   const getSelectedMonthData = () => {
     if (!selectedMonth) return null;
-    return monthlyCosts.find(
-      (m) => `${m.year}-${m.month}` === selectedMonth
-    );
+    return monthlyCosts.find((m) => `${m.year}-${m.month}` === selectedMonth);
   };
 
   const selectedMonthData = getSelectedMonthData();
@@ -352,9 +341,7 @@ export default function CostCalculator() {
       {selectedReviewer && monthlyCosts.length > 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
-              월별 비용
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-800">월별 비용</h2>
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-gray-700">
                 조회 월:
@@ -365,7 +352,10 @@ export default function CostCalculator() {
                 className="border border-gray-300 rounded-lg px-3 py-2 text-black"
               >
                 {monthlyCosts.map((m) => (
-                  <option key={`${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
+                  <option
+                    key={`${m.year}-${m.month}`}
+                    value={`${m.year}-${m.month}`}
+                  >
                     {m.year}년 {m.month}월
                   </option>
                 ))}
@@ -426,9 +416,7 @@ export default function CostCalculator() {
                   </td>
                 </tr>
                 <tr className="bg-gray-100 font-bold">
-                  <td className="border px-6 py-4 text-gray-900">
-                    총합
-                  </td>
+                  <td className="border px-6 py-4 text-gray-900">총합</td>
                   <td className="border px-6 py-4 text-right text-xl text-gray-900">
                     {(selectedMonthData?.totalCost || 0).toLocaleString()} 원
                   </td>
@@ -499,9 +487,7 @@ export default function CostCalculator() {
                   </td>
                 </tr>
                 <tr className="bg-gray-100 font-bold">
-                  <td className="border px-6 py-4 text-gray-900">
-                    총합
-                  </td>
+                  <td className="border px-6 py-4 text-gray-900">총합</td>
                   <td className="border px-6 py-4 text-right text-xl text-gray-900">
                     {(costsData.totalCost || 0).toLocaleString()} 원
                   </td>
