@@ -17,7 +17,6 @@ import {
 import {
   BarChart,
   Bar,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -54,15 +53,10 @@ interface CostDetail {
   cost: number;
   paymentStatus: "지급" | "미지급";
   createdat: string;
-}
-
-interface PaymentStatistics {
-  costType: string;
-  paidCount: number;
-  unpaidCount: number;
-  paidAmount: number;
-  unpaidAmount: number;
-  totalAmount: number;
+  bankName: string;
+  accountNumber: string;
+  referredUserId?: number;
+  referredUserName?: string;
 }
 
 interface ChartData {
@@ -88,6 +82,71 @@ interface SettlementDto {
   confirmedAt: string;
   createdAt: string;
 }
+
+interface ReferralSummaryItem {
+  userId: number;
+  userName: string;
+  loginId: string;
+  totalReferralCost: number;
+  referralCount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+  lastCreatedAt: string;
+  bankName: string;
+  accountNumber: string;
+}
+
+interface ReferralSummary {
+  costs: ReferralSummaryItem[];
+  totalAmount: number;
+  totalUsers: number;
+  totalReferralCount: number;
+}
+
+interface CostItemDetail {
+  name: string;
+  type: string;
+  costs: CostDetail[];
+  totalAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+}
+
+interface UserReferralGroup {
+  userId: number;
+  userName: string;
+  bankName: string;
+  accountNumber: string;
+  referrals: CostDetail[];
+  totalCost: number;
+  paidAmount: number;
+  unpaidAmount: number;
+}
+
+// 🚀 타임아웃 설정이 있는 fetch 함수
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit,
+  timeout = 10000
+): Promise<Response> => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("요청 시간이 초과되었습니다.");
+    }
+    throw error;
+  }
+};
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -117,7 +176,12 @@ export default function Dashboard() {
     {}
   );
 
-  // 정산 관련 상태
+  const [referralSummary, setReferralSummary] =
+    useState<ReferralSummary | null>(null);
+  const [expandedReferralUser, setExpandedReferralUser] = useState<
+    number | null
+  >(null);
+
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [settlementDate, setSettlementDate] = useState<Date | null>(null);
   const [currentSettlement, setCurrentSettlement] =
@@ -125,12 +189,59 @@ export default function Dashboard() {
   const [settlements, setSettlements] = useState<SettlementDto[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  // 🆕 정산 상세 정보 관련 상태
+  const [expandedSettlement, setExpandedSettlement] = useState<number | null>(
+    null
+  );
+
+  const [settlementDetails, setSettlementDetails] = useState<
+    Record<number, CostItemDetail[]>
+  >({});
+  const [settlementDetailsLoading, setSettlementDetailsLoading] = useState<
+    Record<number, boolean>
+  >({});
+
+  // 🆕 히스토리 내 비용 타입 확장 상태 (settlementId-costType 형식)
+  const [expandedHistoryCostType, setExpandedHistoryCostType] = useState<
+    string | null
+  >(null);
+
+  // 🆕 지급 상태 업데이트 중인 항목 추적
+  const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState<
+    Record<number, boolean>
+  >({});
+
+  // 🆕 Chrome 확장 프로그램 오류 방지
+  useEffect(() => {
+    const preventExtensionError = (event: ErrorEvent) => {
+      if (event.message && event.message.includes("message channel closed")) {
+        event.preventDefault();
+        console.warn("Chrome 확장 프로그램 오류 무시됨");
+      }
+    };
+
+    window.addEventListener("error", preventExtensionError);
+
+    return () => {
+      window.removeEventListener("error", preventExtensionError);
+    };
+  }, []);
+
   useEffect(() => {
     fetchStats();
     calculateNextSettlementDate();
     checkCurrentMonthSettlement();
     fetchSettlementHistory();
+    fetchReferralSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (referralSummary) {
+      fetchPaymentStatistics();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referralSummary]);
 
   const calculateNextSettlementDate = () => {
     const today = new Date();
@@ -154,7 +265,6 @@ export default function Dashboard() {
     return diffDays;
   };
 
-  // 이번 달 정산 확인
   const checkCurrentMonthSettlement = async () => {
     try {
       const today = new Date();
@@ -175,7 +285,6 @@ export default function Dashboard() {
     }
   };
 
-  // 정산 히스토리 조회
   const fetchSettlementHistory = async () => {
     try {
       const response = await fetch("https://www.kcci.co.kr/back/settlements", {
@@ -191,7 +300,165 @@ export default function Dashboard() {
     }
   };
 
-  // 정산 생성
+  // 🆕 특정 월의 비용 상세 정보 조회
+  const fetchSettlementDetails = async (
+    year: number,
+    month: number,
+    settlementId: number
+  ) => {
+    if (settlementDetailsLoading[settlementId]) return;
+
+    try {
+      setSettlementDetailsLoading({
+        ...settlementDetailsLoading,
+        [settlementId]: true,
+      });
+
+      const costTypes = [
+        { type: "charge", name: "영업비" },
+        { type: "review", name: "심사비" },
+        { type: "invite", name: "수수료" },
+        { type: "study", name: "강사비" },
+      ];
+
+      // 각 비용 타입별로 데이터 가져오기
+      const costPromises = costTypes.map(async ({ type, name }) => {
+        const response = await fetch(
+          `https://www.kcci.co.kr/back/costs/${type}/with-status`,
+          { credentials: "include" }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          let costs: CostDetail[] = data.costs;
+
+          // 해당 년/월의 비용만 필터링
+          costs = costs.filter((cost) => {
+            const costDate = new Date(cost.createdat);
+            return (
+              costDate.getFullYear() === year &&
+              costDate.getMonth() + 1 === month
+            );
+          });
+
+          // 지급 완료/미지급 금액 계산
+          let paidAmount = 0;
+          let unpaidAmount = 0;
+          costs.forEach((cost) => {
+            if (cost.paymentStatus === "지급") {
+              paidAmount += cost.cost;
+            } else {
+              unpaidAmount += cost.cost;
+            }
+          });
+
+          return {
+            name,
+            type,
+            costs,
+            totalAmount: paidAmount + unpaidAmount,
+            paidAmount,
+            unpaidAmount,
+          };
+        }
+        return null;
+      });
+
+      // 추천비 데이터 가져오기
+      const referralResponse = await fetch(
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
+        { credentials: "include" }
+      );
+
+      let referralData: CostItemDetail | null = null;
+      if (referralResponse.ok) {
+        const data = await referralResponse.json();
+        let allReferrals: CostDetail[] = data.costs;
+
+        // 해당 년/월의 비용만 필터링
+        allReferrals = allReferrals.filter((referral) => {
+          const referralDate = new Date(referral.createdat);
+          return (
+            referralDate.getFullYear() === year &&
+            referralDate.getMonth() + 1 === month
+          );
+        });
+
+        // 지급 완료/미지급 금액 계산
+        let paidAmount = 0;
+        let unpaidAmount = 0;
+        allReferrals.forEach((referral) => {
+          if (referral.paymentStatus === "지급") {
+            paidAmount += referral.cost;
+          } else {
+            unpaidAmount += referral.cost;
+          }
+        });
+
+        referralData = {
+          name: "추천비",
+          type: "referral",
+          costs: allReferrals,
+          totalAmount: paidAmount + unpaidAmount,
+          paidAmount,
+          unpaidAmount,
+        };
+      }
+
+      const results = await Promise.all(costPromises);
+      const validResults = results.filter(
+        (r) => r !== null
+      ) as CostItemDetail[];
+
+      if (referralData) {
+        validResults.push(referralData);
+      }
+
+      setSettlementDetails({
+        ...settlementDetails,
+        [settlementId]: validResults,
+      });
+    } catch (error) {
+      console.error("Failed to fetch settlement details:", error);
+    } finally {
+      setSettlementDetailsLoading({
+        ...settlementDetailsLoading,
+        [settlementId]: false,
+      });
+    }
+  };
+
+  // 🆕 정산 항목 클릭 핸들러
+  const handleSettlementClick = (settlement: SettlementDto) => {
+    if (expandedSettlement === settlement.settlementId) {
+      setExpandedSettlement(null);
+      setExpandedHistoryCostType(null); // 닫을 때 세부 항목도 초기화
+    } else {
+      setExpandedSettlement(settlement.settlementId);
+      setExpandedHistoryCostType(null); // 다른 정산 열 때 세부 항목 초기화
+      if (!settlementDetails[settlement.settlementId]) {
+        fetchSettlementDetails(
+          settlement.year,
+          settlement.month,
+          settlement.settlementId
+        );
+      }
+    }
+  };
+
+  // 🆕 히스토리 내 비용 타입 클릭 핸들러
+  const handleHistoryCostTypeClick = (
+    settlementId: number,
+    costType: string
+  ) => {
+    const key = `${settlementId}-${costType}`;
+    if (expandedHistoryCostType === key) {
+      setExpandedHistoryCostType(null);
+    } else {
+      setExpandedHistoryCostType(key);
+    }
+  };
+
   const handleCreateSettlement = async () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -230,7 +497,6 @@ export default function Dashboard() {
     }
   };
 
-  // 정산 확정
   const handleConfirmSettlement = async () => {
     if (!currentSettlement) return;
 
@@ -272,7 +538,6 @@ export default function Dashboard() {
     }
   };
 
-  // 정산 삭제
   const handleDeleteSettlement = async (settlementId: number) => {
     if (!confirm("정산을 삭제하시겠습니까?")) {
       return;
@@ -325,7 +590,7 @@ export default function Dashboard() {
           totalCost: data.totalCost || 0,
         });
 
-        await fetchPaymentStatistics();
+        await fetchReferralSummary();
       } else {
         console.error("Failed to fetch stats");
       }
@@ -336,6 +601,91 @@ export default function Dashboard() {
     }
   };
 
+  const fetchReferralSummary = async () => {
+    try {
+      // with-status에서 모든 추천 데이터 가져오기
+      const response = await fetch(
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        let allReferrals: CostDetail[] = data.costs;
+
+        // 🆕 현재 월의 비용만 필터링
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+
+        allReferrals = allReferrals.filter((referral) => {
+          const referralDate = new Date(referral.createdat);
+          return (
+            referralDate.getFullYear() === currentYear &&
+            referralDate.getMonth() + 1 === currentMonth
+          );
+        });
+
+        // userId별로 그룹핑하여 summary 계산
+        const userMap = new Map<number, ReferralSummaryItem>();
+
+        allReferrals.forEach((referral) => {
+          if (!userMap.has(referral.userId)) {
+            userMap.set(referral.userId, {
+              userId: referral.userId,
+              userName: referral.userName,
+              loginId: "", // with-status에는 loginId가 없으므로 빈 문자열
+              totalReferralCost: 0,
+              referralCount: 0,
+              paidAmount: 0,
+              unpaidAmount: 0,
+              lastCreatedAt: referral.createdat,
+              bankName: referral.bankName || "미등록",
+              accountNumber: referral.accountNumber || "미등록",
+            });
+          }
+
+          const userSummary = userMap.get(referral.userId)!;
+          userSummary.totalReferralCost += referral.cost;
+          userSummary.referralCount += 1;
+
+          if (referral.paymentStatus === "지급") {
+            userSummary.paidAmount += referral.cost;
+          } else {
+            userSummary.unpaidAmount += referral.cost;
+          }
+
+          // 최신 생성일 업데이트
+          if (
+            new Date(referral.createdat) > new Date(userSummary.lastCreatedAt)
+          ) {
+            userSummary.lastCreatedAt = referral.createdat;
+          }
+        });
+
+        const costs = Array.from(userMap.values());
+        const totalAmount = costs.reduce(
+          (sum, user) => sum + user.totalReferralCost,
+          0
+        );
+        const totalUsers = costs.length;
+        const totalReferralCount = costs.reduce(
+          (sum, user) => sum + user.referralCount,
+          0
+        );
+
+        setReferralSummary({
+          costs,
+          totalAmount,
+          totalUsers,
+          totalReferralCount,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch referral summary:", error);
+    }
+  };
+
   const fetchPaymentStatistics = async () => {
     try {
       const costTypes = [
@@ -343,25 +693,53 @@ export default function Dashboard() {
         { type: "review", name: "심사비" },
         { type: "invite", name: "수수료" },
         { type: "study", name: "강사비" },
-        { type: "referral", name: "추천비" },
       ];
+
+      // 🆕 현재 월 필터 정보
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1;
 
       const statisticsPromises = costTypes.map(async ({ type, name }) => {
         const response = await fetch(
-          `https://www.kcci.co.kr/back/costs/${type}/payment-statistics`,
+          `https://www.kcci.co.kr/back/costs/${type}/with-status`,
           { credentials: "include" }
         );
 
         if (response.ok) {
-          const data: PaymentStatistics = await response.json();
+          const data = await response.json();
+          let costs: CostDetail[] = data.costs;
+
+          // 🆕 현재 월의 비용만 필터링
+          costs = costs.filter((cost) => {
+            const costDate = new Date(cost.createdat);
+            return (
+              costDate.getFullYear() === currentYear &&
+              costDate.getMonth() + 1 === currentMonth
+            );
+          });
+
+          // 🆕 paidAmount와 unpaidAmount 직접 계산
+          let paidAmount = 0;
+          let unpaidAmount = 0;
+
+          costs.forEach((cost) => {
+            if (cost.paymentStatus === "지급") {
+              paidAmount += cost.cost;
+            } else {
+              unpaidAmount += cost.cost;
+            }
+          });
+
+          const totalAmount = paidAmount + unpaidAmount;
+
           return {
             name,
-            value: data.totalAmount,
-            status:
-              data.unpaidAmount > 0 ? ("미지급" as const) : ("지급" as const),
+            value: totalAmount,
+            status: unpaidAmount > 0 ? ("미지급" as const) : ("지급" as const),
             costType: type,
-            paidAmount: data.paidAmount,
-            unpaidAmount: data.unpaidAmount,
+            paidAmount,
+            unpaidAmount,
           };
         }
         return null;
@@ -369,6 +747,27 @@ export default function Dashboard() {
 
       const results = await Promise.all(statisticsPromises);
       const validResults = results.filter((r) => r !== null) as PaymentData[];
+
+      if (referralSummary) {
+        const paidAmount = referralSummary.costs.reduce(
+          (sum, user) => sum + user.paidAmount,
+          0
+        );
+        const unpaidAmount = referralSummary.costs.reduce(
+          (sum, user) => sum + user.unpaidAmount,
+          0
+        );
+
+        validResults.push({
+          name: "추천비",
+          value: referralSummary.totalAmount,
+          status: unpaidAmount > 0 ? "미지급" : "지급",
+          costType: "referral",
+          paidAmount,
+          unpaidAmount,
+        });
+      }
+
       setPaymentData(validResults);
     } catch (error) {
       console.error("Failed to fetch payment statistics:", error);
@@ -378,8 +777,14 @@ export default function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
+      // 🆕 캐시된 상세 데이터 초기화
+      setCostDetails({});
+      setExpandedItem(null);
+      setExpandedReferralUser(null);
+
       await fetchStats();
       await checkCurrentMonthSettlement();
+      await fetchReferralSummary();
       setLastRefreshTime(new Date());
     } catch (error) {
       console.error("Refresh failed:", error);
@@ -401,7 +806,22 @@ export default function Dashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        setCostDetails({ ...costDetails, [costType]: data.costs });
+        let costs: CostDetail[] = data.costs;
+
+        // 🆕 현재 월의 비용만 필터링
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+
+        costs = costs.filter((cost) => {
+          const costDate = new Date(cost.createdat);
+          return (
+            costDate.getFullYear() === currentYear &&
+            costDate.getMonth() + 1 === currentMonth
+          );
+        });
+
+        setCostDetails({ ...costDetails, [costType]: costs });
       }
     } catch (error) {
       console.error(`Failed to fetch ${costType} details:`, error);
@@ -421,13 +841,135 @@ export default function Dashboard() {
     }
   };
 
+  const handleReferralUserClick = (userId: number) => {
+    if (expandedReferralUser === userId) {
+      setExpandedReferralUser(null);
+    } else {
+      setExpandedReferralUser(userId);
+      if (!costDetails[`referral-${userId}`]) {
+        fetchReferralDetails(userId);
+      }
+    }
+  };
+
+  const fetchReferralDetails = async (userId: number) => {
+    try {
+      setDetailsLoading({ ...detailsLoading, [`referral-${userId}`]: true });
+
+      const response = await fetch(
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
+        { credentials: "include" }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        let userReferrals = data.costs.filter(
+          (item: CostDetail) => item.userId === userId
+        );
+
+        // 🆕 현재 월의 비용만 필터링
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+
+        userReferrals = userReferrals.filter((referral: CostDetail) => {
+          const referralDate = new Date(referral.createdat);
+          return (
+            referralDate.getFullYear() === currentYear &&
+            referralDate.getMonth() + 1 === currentMonth
+          );
+        });
+
+        setCostDetails({
+          ...costDetails,
+          [`referral-${userId}`]: userReferrals,
+        });
+      }
+    } catch (error) {
+      console.error(
+        `Failed to fetch referral details for user ${userId}:`,
+        error
+      );
+    } finally {
+      setDetailsLoading({ ...detailsLoading, [`referral-${userId}`]: false });
+    }
+  };
+
+  // 🔥 개선된 지급 상태 변경 함수
   const handlePaymentStatusChange = async (
     costType: string,
     id: number,
     newStatus: "지급" | "미지급"
   ) => {
+    // 중복 요청 방지
+    if (updatingPaymentStatus[id]) {
+      console.warn("이미 처리 중인 요청입니다.");
+      return;
+    }
+
+    console.log("📌 지급 상태 변경 시작:", { costType, id, newStatus });
+
+    // 로딩 상태 설정
+    setUpdatingPaymentStatus({ ...updatingPaymentStatus, [id]: true });
+
+    // 이전 상태 백업 (롤백용)
+    const previousCostDetails = { ...costDetails };
+    const previousReferralSummary = referralSummary
+      ? { ...referralSummary }
+      : null;
+
     try {
-      const response = await fetch(
+      // 🔄 낙관적 업데이트 (Optimistic Update)
+      if (costType === "referral") {
+        const key = `referral-${expandedReferralUser}`;
+        if (costDetails[key]) {
+          const updatedDetails = costDetails[key].map((item) =>
+            item.id === id ? { ...item, paymentStatus: newStatus } : item
+          );
+          setCostDetails({ ...costDetails, [key]: updatedDetails });
+
+          // 🆕 referralSummary도 낙관적 업데이트
+          if (referralSummary && expandedReferralUser) {
+            const updatedSummary = {
+              ...referralSummary,
+              costs: referralSummary.costs.map((user) => {
+                if (user.userId === expandedReferralUser) {
+                  // updatedDetails를 직접 사용하여 paidAmount와 unpaidAmount 재계산
+                  let paidAmount = 0;
+                  let unpaidAmount = 0;
+                  updatedDetails.forEach((item) => {
+                    if (item.paymentStatus === "지급") {
+                      paidAmount += item.cost;
+                    } else {
+                      unpaidAmount += item.cost;
+                    }
+                  });
+
+                  return {
+                    ...user,
+                    paidAmount,
+                    unpaidAmount,
+                  };
+                }
+                return user;
+              }),
+            };
+            setReferralSummary(updatedSummary);
+          }
+        }
+      } else {
+        if (costDetails[costType]) {
+          const updatedDetails = costDetails[costType].map((item) =>
+            item.id === id ? { ...item, paymentStatus: newStatus } : item
+          );
+          setCostDetails({ ...costDetails, [costType]: updatedDetails });
+        }
+      }
+
+      console.log("🔄 API 요청 전송 중...");
+
+      // API 호출
+      const response = await fetchWithTimeout(
         `https://www.kcci.co.kr/back/costs/${costType}/${id}/payment-status`,
         {
           method: "PATCH",
@@ -436,15 +978,64 @@ export default function Dashboard() {
           },
           credentials: "include",
           body: JSON.stringify({ paymentStatus: newStatus }),
-        }
+        },
+        10000 // 10초 타임아웃
       );
 
-      if (response.ok) {
-        await fetchCostDetails(costType);
-        await fetchPaymentStatistics();
+      console.log("✅ API 응답:", response.status, response.statusText);
+
+      // 응답 상태 확인
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`상태 변경 실패: ${response.status} - ${errorText}`);
       }
+
+      console.log(`✨ 지급 상태가 &quot;${newStatus}&quot;로 변경되었습니다.`);
+
+      // 🔄 데이터 재조회
+      if (costType === "referral") {
+        await Promise.all([
+          fetchReferralSummary(),
+          expandedReferralUser
+            ? fetchReferralDetails(expandedReferralUser)
+            : Promise.resolve(),
+        ]);
+      } else {
+        await fetchCostDetails(costType);
+      }
+
+      await fetchPaymentStatistics();
     } catch (error) {
-      console.error("Failed to update payment status:", error);
+      console.error("❌ 지급 상태 변경 실패:", error);
+
+      // ❌ 에러 시 이전 상태로 롤백
+      setCostDetails(previousCostDetails);
+      if (previousReferralSummary) {
+        setReferralSummary(previousReferralSummary);
+      }
+
+      // 서버 데이터 다시 가져오기
+      if (costType === "referral") {
+        if (expandedReferralUser) {
+          await fetchReferralDetails(expandedReferralUser);
+        }
+        await fetchReferralSummary();
+      } else {
+        await fetchCostDetails(costType);
+      }
+
+      alert(
+        `지급 상태 변경에 실패했습니다.\n${
+          error instanceof Error ? error.message : "알 수 없는 오류"
+        }`
+      );
+    } finally {
+      // 로딩 상태 해제
+      setUpdatingPaymentStatus((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
     }
   };
 
@@ -468,7 +1059,14 @@ export default function Dashboard() {
 
       if (response.ok || response.status === 204) {
         alert("삭제되었습니다.");
-        await fetchCostDetails(costType);
+        if (costType === "referral") {
+          await fetchReferralSummary();
+          if (expandedReferralUser) {
+            await fetchReferralDetails(expandedReferralUser);
+          }
+        } else {
+          await fetchCostDetails(costType);
+        }
         await fetchPaymentStatistics();
       } else {
         alert("삭제에 실패했습니다.");
@@ -477,6 +1075,19 @@ export default function Dashboard() {
       console.error("Failed to delete cost:", error);
       alert("삭제 중 오류가 발생했습니다.");
     }
+  };
+
+  const handleCopyAccount = (bankName: string, accountNumber: string) => {
+    const textToCopy = `${bankName} ${accountNumber}`;
+    navigator.clipboard
+      .writeText(textToCopy)
+      .then(() => {
+        alert("계좌번호가 복사되었습니다!");
+      })
+      .catch((err) => {
+        console.error("복사 실패:", err);
+        alert("복사에 실패했습니다.");
+      });
   };
 
   const getChartData = (): ChartData[] => {
@@ -548,14 +1159,18 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <FaChartLine className="text-blue-500 w-7 h-7" />
-            <h2 className="text-2xl font-bold text-gray-800">
-              관리자 대시보드
-            </h2>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                관리자 대시보드
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                📅 {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
+                비용 현황
+              </p>
+            </div>
           </div>
 
-          {/* 버튼 그룹 */}
           <div className="flex gap-3">
-            {/* 정산 히스토리 버튼 */}
             <button
               onClick={() => setShowHistoryModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all bg-gray-500 text-white hover:bg-gray-600 shadow-md"
@@ -564,7 +1179,6 @@ export default function Dashboard() {
               정산 히스토리
             </button>
 
-            {/* 새로고침 버튼 */}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -578,7 +1192,6 @@ export default function Dashboard() {
               {refreshing ? "새로고침 중..." : "새로고침"}
             </button>
 
-            {/* 정산 버튼 */}
             {currentSettlement ? (
               currentSettlement.settlementStatus === "대기중" ? (
                 <button
@@ -709,9 +1322,14 @@ export default function Dashboard() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <div className="w-1 h-6 bg-orange-500 rounded"></div>
-              <h3 className="text-lg font-semibold text-gray-800">
-                지급 필요 금액
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">
+                  지급 필요 금액
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  * 현재 월({new Date().getMonth() + 1}월) 비용만 표시됩니다
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-6">
@@ -778,7 +1396,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* 스택형 바 차트 */}
+          {/* 차트 */}
           <div className="bg-white rounded-lg p-6 mb-6">
             {loading ? (
               <div className="flex items-center justify-center h-[300px]">
@@ -811,7 +1429,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* ✅ 테이블 - 원래 있던 부분 */}
+          {/* 테이블 */}
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -848,7 +1466,6 @@ export default function Dashboard() {
                     <>
                       {filteredPaymentData.map((item, index) => (
                         <React.Fragment key={`${item.costType}-${index}`}>
-                          {/* 메인 행 */}
                           <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                             <td className="py-4 px-6 font-medium text-gray-800">
                               {item.name}
@@ -884,7 +1501,250 @@ export default function Dashboard() {
                           {expandedItem === item.costType && (
                             <tr>
                               <td colSpan={5} className="bg-gray-50 p-4">
-                                {detailsLoading[item.costType] ? (
+                                {item.costType === "referral" ? (
+                                  referralSummary ? (
+                                    <div className="max-h-96 overflow-y-auto">
+                                      <table className="w-full">
+                                        <thead>
+                                          <tr className="bg-gray-100">
+                                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">
+                                              이름
+                                            </th>
+                                            <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">
+                                              계좌정보
+                                            </th>
+                                            <th className="text-right py-2 px-4 text-sm font-semibold text-gray-700">
+                                              총 추천비
+                                            </th>
+                                            <th className="text-center py-2 px-4 text-sm font-semibold text-gray-700">
+                                              추천 수
+                                            </th>
+                                            <th className="text-right py-2 px-4 text-sm font-semibold text-gray-700">
+                                              지급 완료
+                                            </th>
+                                            <th className="text-right py-2 px-4 text-sm font-semibold text-gray-700">
+                                              미지급
+                                            </th>
+                                            <th className="text-center py-2 px-4 text-sm font-semibold text-gray-700">
+                                              상세
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {referralSummary.costs.map((user) => (
+                                            <React.Fragment key={user.userId}>
+                                              <tr className="border-b border-gray-200 hover:bg-gray-100">
+                                                <td className="py-2 px-4 text-sm">
+                                                  {user.userName}
+                                                </td>
+                                                <td className="py-2 px-4 text-sm">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-gray-700">
+                                                      {user.bankName}
+                                                    </span>
+                                                    {user.accountNumber &&
+                                                      user.accountNumber !==
+                                                        "미등록" && (
+                                                        <>
+                                                          <span className="text-gray-400">
+                                                            |
+                                                          </span>
+                                                          <span className="font-mono text-gray-900">
+                                                            {user.accountNumber}
+                                                          </span>
+                                                          <button
+                                                            onClick={() =>
+                                                              handleCopyAccount(
+                                                                user.bankName,
+                                                                user.accountNumber
+                                                              )
+                                                            }
+                                                            className="text-blue-600 hover:text-blue-800 text-xs"
+                                                            title="복사"
+                                                          >
+                                                            📋
+                                                          </button>
+                                                        </>
+                                                      )}
+                                                    {(!user.accountNumber ||
+                                                      user.accountNumber ===
+                                                        "미등록") && (
+                                                      <span className="text-red-500 text-xs">
+                                                        미등록
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                                <td className="py-2 px-4 text-sm text-right font-semibold">
+                                                  {user.totalReferralCost.toLocaleString()}
+                                                  원
+                                                </td>
+                                                <td className="py-2 px-4 text-sm text-center">
+                                                  {user.referralCount}명
+                                                </td>
+                                                <td className="py-2 px-4 text-sm text-right">
+                                                  <span className="text-green-700 font-semibold">
+                                                    {user.paidAmount.toLocaleString()}
+                                                    원
+                                                  </span>
+                                                </td>
+                                                <td className="py-2 px-4 text-sm text-right">
+                                                  <span className="text-red-700 font-semibold">
+                                                    {user.unpaidAmount.toLocaleString()}
+                                                    원
+                                                  </span>
+                                                </td>
+                                                <td className="py-2 px-4 text-center">
+                                                  <button
+                                                    onClick={() =>
+                                                      handleReferralUserClick(
+                                                        user.userId
+                                                      )
+                                                    }
+                                                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                                                  >
+                                                    {expandedReferralUser ===
+                                                    user.userId ? (
+                                                      <FaChevronUp className="inline" />
+                                                    ) : (
+                                                      <FaChevronDown className="inline" />
+                                                    )}
+                                                  </button>
+                                                </td>
+                                              </tr>
+
+                                              {expandedReferralUser ===
+                                                user.userId && (
+                                                <tr>
+                                                  <td
+                                                    colSpan={7}
+                                                    className="bg-blue-50 p-3"
+                                                  >
+                                                    {detailsLoading[
+                                                      `referral-${user.userId}`
+                                                    ] ? (
+                                                      <div className="text-center py-2 text-gray-400">
+                                                        로딩 중...
+                                                      </div>
+                                                    ) : (
+                                                      <table className="w-full">
+                                                        <thead>
+                                                          <tr className="bg-blue-100">
+                                                            <th className="text-left py-1 px-3 text-xs font-semibold text-gray-700">
+                                                              하위심사원
+                                                            </th>
+                                                            <th className="text-right py-1 px-3 text-xs font-semibold text-gray-700">
+                                                              추천비
+                                                            </th>
+                                                            <th className="text-center py-1 px-3 text-xs font-semibold text-gray-700">
+                                                              생성일
+                                                            </th>
+                                                            <th className="text-center py-1 px-3 text-xs font-semibold text-gray-700">
+                                                              지급 상태
+                                                            </th>
+                                                            <th className="text-center py-1 px-3 text-xs font-semibold text-gray-700">
+                                                              삭제
+                                                            </th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          {costDetails[
+                                                            `referral-${user.userId}`
+                                                          ]?.map((detail) => (
+                                                            <tr
+                                                              key={detail.id}
+                                                              className="border-b border-blue-200 hover:bg-blue-100"
+                                                            >
+                                                              <td className="py-1 px-3 text-xs">
+                                                                {
+                                                                  detail.referredUserName
+                                                                }{" "}
+                                                              </td>
+                                                              <td className="py-1 px-3 text-xs text-right">
+                                                                {detail.cost.toLocaleString()}
+                                                                원
+                                                              </td>
+                                                              <td className="py-1 px-3 text-xs text-center">
+                                                                {new Date(
+                                                                  detail.createdat
+                                                                ).toLocaleDateString(
+                                                                  "ko-KR"
+                                                                )}
+                                                              </td>
+                                                              <td className="py-1 px-3 text-center">
+                                                                <label className="inline-flex items-center cursor-pointer">
+                                                                  <input
+                                                                    type="checkbox"
+                                                                    checked={
+                                                                      detail.paymentStatus ===
+                                                                      "지급"
+                                                                    }
+                                                                    onChange={(
+                                                                      e
+                                                                    ) =>
+                                                                      handlePaymentStatusChange(
+                                                                        "referral",
+                                                                        detail.id,
+                                                                        e.target
+                                                                          .checked
+                                                                          ? "지급"
+                                                                          : "미지급"
+                                                                      )
+                                                                    }
+                                                                    disabled={
+                                                                      updatingPaymentStatus[
+                                                                        detail
+                                                                          .id
+                                                                      ]
+                                                                    }
+                                                                    className="sr-only peer"
+                                                                  />
+                                                                  <div
+                                                                    className={`relative w-8 h-4 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-green-500 ${
+                                                                      updatingPaymentStatus[
+                                                                        detail
+                                                                          .id
+                                                                      ]
+                                                                        ? "opacity-50 cursor-not-allowed"
+                                                                        : ""
+                                                                    }`}
+                                                                  ></div>
+                                                                </label>
+                                                              </td>
+                                                              <td className="py-1 px-3 text-center">
+                                                                <button
+                                                                  onClick={() =>
+                                                                    handleDeleteCost(
+                                                                      "referral",
+                                                                      detail.id,
+                                                                      detail.userName
+                                                                    )
+                                                                  }
+                                                                  className="text-red-600 hover:text-red-800 transition-colors p-1"
+                                                                  title="삭제"
+                                                                >
+                                                                  <FaTrash className="inline text-xs" />
+                                                                </button>
+                                                              </td>
+                                                            </tr>
+                                                          ))}
+                                                        </tbody>
+                                                      </table>
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              )}
+                                            </React.Fragment>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-4 text-gray-400">
+                                      추천비 데이터가 없습니다.
+                                    </div>
+                                  )
+                                ) : detailsLoading[item.costType] ? (
                                   <div className="text-center py-4 text-gray-400">
                                     로딩 중...
                                   </div>
@@ -894,7 +1754,10 @@ export default function Dashboard() {
                                       <thead>
                                         <tr className="bg-gray-100">
                                           <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">
-                                            사용자
+                                            이름
+                                          </th>
+                                          <th className="text-left py-2 px-4 text-sm font-semibold text-gray-700">
+                                            계좌정보
                                           </th>
                                           <th className="text-right py-2 px-4 text-sm font-semibold text-gray-700">
                                             금액
@@ -918,9 +1781,49 @@ export default function Dashboard() {
                                               className="border-b border-gray-200 hover:bg-gray-100"
                                             >
                                               <td className="py-2 px-4 text-sm">
-                                                {detail.userName} (ID:{" "}
-                                                {detail.userId})
+                                                {detail.userName}
                                               </td>
+
+                                              <td className="py-2 px-4 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-gray-700">
+                                                    {detail.bankName ||
+                                                      "미등록"}
+                                                  </span>
+                                                  {detail.accountNumber &&
+                                                    detail.accountNumber !==
+                                                      "미등록" && (
+                                                      <>
+                                                        <span className="text-gray-400">
+                                                          |
+                                                        </span>
+                                                        <span className="font-mono text-gray-900">
+                                                          {detail.accountNumber}
+                                                        </span>
+                                                        <button
+                                                          onClick={() =>
+                                                            handleCopyAccount(
+                                                              detail.bankName,
+                                                              detail.accountNumber
+                                                            )
+                                                          }
+                                                          className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                                                          title="복사"
+                                                        >
+                                                          📋
+                                                        </button>
+                                                      </>
+                                                    )}
+                                                  {(!detail.accountNumber ||
+                                                    detail.accountNumber ===
+                                                      "미등록") && (
+                                                    <span className="text-red-500 text-xs">
+                                                      미등록
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
+
                                               <td className="py-2 px-4 text-sm text-right">
                                                 {detail.cost.toLocaleString()}원
                                               </td>
@@ -946,9 +1849,22 @@ export default function Dashboard() {
                                                           : "미지급"
                                                       )
                                                     }
+                                                    disabled={
+                                                      updatingPaymentStatus[
+                                                        detail.id
+                                                      ]
+                                                    }
                                                     className="sr-only peer"
                                                   />
-                                                  <div className="relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                                  <div
+                                                    className={`relative w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 ${
+                                                      updatingPaymentStatus[
+                                                        detail.id
+                                                      ]
+                                                        ? "opacity-50 cursor-not-allowed"
+                                                        : ""
+                                                    }`}
+                                                  ></div>
                                                   <span className="ml-3 text-sm font-medium text-gray-700">
                                                     {detail.paymentStatus}
                                                   </span>
@@ -1002,11 +1918,15 @@ export default function Dashboard() {
               </table>
             </div>
 
-            {/* 안내 문구 */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <p className="text-sm text-gray-500 text-right">
-                * 매월 말일 마감 후 익월 10일 지급
-              </p>
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <p>
+                  📌 현재 월({new Date().getMonth() + 1}월) 비용만 표시 | 과거
+                  데이터는 &ldquo;정산 히스토리&rdquo;에서 확인 | 매월 말 스냅샷
+                  반드시 생성!
+                </p>
+                <p>* 매월 말일 마감 후 익월 10일 지급</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1018,7 +1938,11 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold">정산 히스토리</h3>
                 <button
-                  onClick={() => setShowHistoryModal(false)}
+                  onClick={() => {
+                    setShowHistoryModal(false);
+                    setExpandedSettlement(null);
+                    setExpandedHistoryCostType(null);
+                  }}
                   className="text-gray-500 hover:text-gray-700 text-2xl"
                 >
                   ✕
@@ -1032,43 +1956,381 @@ export default function Dashboard() {
                   </p>
                 ) : (
                   settlements.map((settlement) => (
-                    <div
-                      key={settlement.settlementId}
-                      className={`border rounded-lg p-4 ${
-                        settlement.settlementStatus === "확정"
-                          ? "border-green-300 bg-green-50"
-                          : "border-gray-300 bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">
-                            {settlement.year}년 {settlement.month}월 -{" "}
-                            {settlement.settlementStatus}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            총액: {settlement.totalAmount.toLocaleString()}원 |
-                            지급: {settlement.paidAmount.toLocaleString()}원 |
-                            미지급: {settlement.unpaidAmount.toLocaleString()}원
-                          </p>
-                          {settlement.confirmedBy && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              확정자: {settlement.confirmedBy} |{" "}
-                              {new Date(settlement.confirmedAt).toLocaleString(
-                                "ko-KR"
-                              )}
+                    <div key={settlement.settlementId}>
+                      <div
+                        onClick={() => handleSettlementClick(settlement)}
+                        className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                          settlement.settlementStatus === "확정"
+                            ? "border-green-300 bg-green-50 hover:bg-green-100"
+                            : "border-gray-300 bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold">
+                                {settlement.year}년 {settlement.month}월 -{" "}
+                                {settlement.settlementStatus}
+                              </p>
+                              <button className="text-blue-600 hover:text-blue-800">
+                                {expandedSettlement ===
+                                settlement.settlementId ? (
+                                  <FaChevronUp className="inline" />
+                                ) : (
+                                  <FaChevronDown className="inline" />
+                                )}
+                              </button>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">
+                              총액: {settlement.totalAmount.toLocaleString()}원
+                              | 지급: {settlement.paidAmount.toLocaleString()}원
+                              | 미지급:{" "}
+                              {settlement.unpaidAmount.toLocaleString()}원
                             </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">
-                            생성:{" "}
-                            {new Date(settlement.createdAt).toLocaleDateString(
-                              "ko-KR"
+                            {settlement.confirmedBy && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                확정자: {settlement.confirmedBy} |{" "}
+                                {new Date(
+                                  settlement.confirmedAt
+                                ).toLocaleString("ko-KR")}
+                              </p>
                             )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">
+                              생성:{" "}
+                              {new Date(
+                                settlement.createdAt
+                              ).toLocaleDateString("ko-KR")}
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* 정산 상세 정보 */}
+                      {expandedSettlement === settlement.settlementId && (
+                        <div className="mt-2 ml-4 p-4 bg-white border border-gray-200 rounded-lg">
+                          {settlementDetailsLoading[settlement.settlementId] ? (
+                            <div className="text-center py-8 text-gray-400">
+                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                              <p className="mt-2">데이터를 불러오는 중...</p>
+                            </div>
+                          ) : settlementDetails[settlement.settlementId] ? (
+                            <div className="space-y-3">
+                              <h4 className="font-semibold text-gray-800 border-b pb-2">
+                                📊 {settlement.year}년 {settlement.month}월 비용
+                                상세
+                              </h4>
+
+                              {settlementDetails[settlement.settlementId].map(
+                                (costItem) => {
+                                  const costKey = `${settlement.settlementId}-${costItem.type}`;
+                                  const isExpanded =
+                                    expandedHistoryCostType === costKey;
+
+                                  return (
+                                    <div
+                                      key={costItem.type}
+                                      className="border border-gray-200 rounded-lg overflow-hidden"
+                                    >
+                                      {/* 비용 타입 요약 (클릭 가능) */}
+                                      <div
+                                        onClick={() =>
+                                          handleHistoryCostTypeClick(
+                                            settlement.settlementId,
+                                            costItem.type
+                                          )
+                                        }
+                                        className="flex items-center justify-between py-3 px-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                                      >
+                                        <div className="flex items-center gap-4">
+                                          <button className="text-blue-600">
+                                            {isExpanded ? (
+                                              <FaChevronUp className="inline" />
+                                            ) : (
+                                              <FaChevronDown className="inline" />
+                                            )}
+                                          </button>
+                                          <span className="font-medium text-gray-700 w-20">
+                                            {costItem.name}
+                                          </span>
+                                          <span className="text-sm text-gray-600">
+                                            {costItem.costs.length}건
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-6 text-sm">
+                                          <div>
+                                            <span className="text-gray-600">
+                                              총액:{" "}
+                                            </span>
+                                            <span className="font-semibold text-gray-900">
+                                              {costItem.totalAmount.toLocaleString()}
+                                              원
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="text-green-600">
+                                              지급:{" "}
+                                            </span>
+                                            <span className="font-semibold text-green-700">
+                                              {costItem.paidAmount.toLocaleString()}
+                                              원
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="text-red-600">
+                                              미지급:{" "}
+                                            </span>
+                                            <span className="font-semibold text-red-700">
+                                              {costItem.unpaidAmount.toLocaleString()}
+                                              원
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* 비용 세부 항목 */}
+                                      {isExpanded && (
+                                        <div className="bg-white p-3">
+                                          {costItem.type === "referral" ? (
+                                            // 추천비는 추천인별로 그룹핑
+                                            (() => {
+                                              const userMap = new Map<
+                                                number,
+                                                UserReferralGroup
+                                              >();
+                                              costItem.costs.forEach(
+                                                (cost: CostDetail) => {
+                                                  if (
+                                                    !userMap.has(cost.userId)
+                                                  ) {
+                                                    userMap.set(cost.userId, {
+                                                      userId: cost.userId,
+                                                      userName: cost.userName,
+                                                      bankName:
+                                                        cost.bankName ||
+                                                        "미등록",
+                                                      accountNumber:
+                                                        cost.accountNumber ||
+                                                        "미등록",
+                                                      referrals: [],
+                                                      totalCost: 0,
+                                                      paidAmount: 0,
+                                                      unpaidAmount: 0,
+                                                    });
+                                                  }
+                                                  const user = userMap.get(
+                                                    cost.userId
+                                                  )!;
+                                                  user.referrals.push(cost);
+                                                  user.totalCost += cost.cost;
+                                                  if (
+                                                    cost.paymentStatus ===
+                                                    "지급"
+                                                  ) {
+                                                    user.paidAmount +=
+                                                      cost.cost;
+                                                  } else {
+                                                    user.unpaidAmount +=
+                                                      cost.cost;
+                                                  }
+                                                }
+                                              );
+
+                                              return (
+                                                <div className="space-y-2">
+                                                  {Array.from(
+                                                    userMap.values()
+                                                  ).map((user) => (
+                                                    <div
+                                                      key={user.userId}
+                                                      className="border-b border-gray-100 pb-2 last:border-0"
+                                                    >
+                                                      <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-3">
+                                                          <span className="text-sm font-medium text-gray-700">
+                                                            {user.userName} (ID:{" "}
+                                                            {user.userId})
+                                                          </span>
+                                                          <span className="text-xs text-gray-500">
+                                                            {user.bankName}
+                                                            {user.accountNumber !==
+                                                              "미등록" &&
+                                                              ` | ${user.accountNumber}`}
+                                                          </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-xs">
+                                                          <span className="text-gray-600">
+                                                            총{" "}
+                                                            {user.totalCost.toLocaleString()}
+                                                            원
+                                                          </span>
+                                                          <span className="text-green-600">
+                                                            지급{" "}
+                                                            {user.paidAmount.toLocaleString()}
+                                                            원
+                                                          </span>
+                                                          <span className="text-red-600">
+                                                            미지급{" "}
+                                                            {user.unpaidAmount.toLocaleString()}
+                                                            원
+                                                          </span>
+                                                        </div>
+                                                      </div>
+                                                      <div className="ml-4 space-y-1">
+                                                        {user.referrals.map(
+                                                          (
+                                                            referral: CostDetail
+                                                          ) => (
+                                                            <div
+                                                              key={referral.id}
+                                                              className="flex items-center justify-between text-xs text-gray-600"
+                                                            >
+                                                              <span>
+                                                                →{" "}
+                                                                {
+                                                                  referral.referredUserName
+                                                                }{" "}
+                                                                (ID:{" "}
+                                                                {
+                                                                  referral.referredUserId
+                                                                }
+                                                                )
+                                                              </span>
+                                                              <div className="flex items-center gap-2">
+                                                                <span>
+                                                                  {referral.cost.toLocaleString()}
+                                                                  원
+                                                                </span>
+                                                                <span
+                                                                  className={`px-2 py-0.5 rounded text-xs ${
+                                                                    referral.paymentStatus ===
+                                                                    "지급"
+                                                                      ? "bg-green-100 text-green-700"
+                                                                      : "bg-red-100 text-red-700"
+                                                                  }`}
+                                                                >
+                                                                  {
+                                                                    referral.paymentStatus
+                                                                  }
+                                                                </span>
+                                                                <span className="text-gray-400">
+                                                                  {new Date(
+                                                                    referral.createdat
+                                                                  ).toLocaleDateString(
+                                                                    "ko-KR"
+                                                                  )}
+                                                                </span>
+                                                              </div>
+                                                            </div>
+                                                          )
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              );
+                                            })()
+                                          ) : (
+                                            // 다른 비용 타입은 일반 리스트
+                                            <div className="space-y-1">
+                                              {costItem.costs.map(
+                                                (cost: CostDetail) => (
+                                                  <div
+                                                    key={cost.id}
+                                                    className="flex items-center justify-between py-1.5 px-2 hover:bg-gray-50 rounded text-sm"
+                                                  >
+                                                    <div className="flex items-center gap-3">
+                                                      <span className="text-gray-700">
+                                                        {cost.userName} (ID:{" "}
+                                                        {cost.userId})
+                                                      </span>
+                                                      <span className="text-xs text-gray-500">
+                                                        {cost.bankName ||
+                                                          "미등록"}
+                                                        {cost.accountNumber &&
+                                                          cost.accountNumber !==
+                                                            "미등록" &&
+                                                          ` | ${cost.accountNumber}`}
+                                                      </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                      <span className="font-medium text-gray-900">
+                                                        {cost.cost.toLocaleString()}
+                                                        원
+                                                      </span>
+                                                      <span
+                                                        className={`px-2 py-0.5 rounded text-xs ${
+                                                          cost.paymentStatus ===
+                                                          "지급"
+                                                            ? "bg-green-100 text-green-700"
+                                                            : "bg-red-100 text-red-700"
+                                                        }`}
+                                                      >
+                                                        {cost.paymentStatus}
+                                                      </span>
+                                                      <span className="text-xs text-gray-400">
+                                                        {new Date(
+                                                          cost.createdat
+                                                        ).toLocaleDateString(
+                                                          "ko-KR"
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                )
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                              )}
+
+                              {/* 합계 */}
+                              <div className="flex items-center justify-between py-3 border-t-2 border-gray-300 bg-gray-50 px-2 rounded mt-2">
+                                <span className="font-bold text-gray-900">
+                                  합계
+                                </span>
+                                <div className="flex items-center gap-6 text-sm">
+                                  <div>
+                                    <span className="text-gray-600">
+                                      총액:{" "}
+                                    </span>
+                                    <span className="font-bold text-gray-900 text-lg">
+                                      {settlement.totalAmount.toLocaleString()}
+                                      원
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-green-600">
+                                      지급:{" "}
+                                    </span>
+                                    <span className="font-bold text-green-700 text-lg">
+                                      {settlement.paidAmount.toLocaleString()}원
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-red-600">
+                                      미지급:{" "}
+                                    </span>
+                                    <span className="font-bold text-red-700 text-lg">
+                                      {settlement.unpaidAmount.toLocaleString()}
+                                      원
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-center text-gray-400 py-4">
+                              데이터를 불러올 수 없습니다.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
