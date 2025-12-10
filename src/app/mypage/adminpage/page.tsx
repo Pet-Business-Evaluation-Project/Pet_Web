@@ -127,7 +127,7 @@ export default function AdminPage() {
                 }`}
               >
                 <Calculator className="w-5 h-5" />
-                <span>비용 계산기</span>
+                <span>비용 관리</span>
               </button>
             </div>
           </div>

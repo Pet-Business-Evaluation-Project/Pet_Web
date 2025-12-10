@@ -35,6 +35,36 @@ interface UserCostData {
   totalCost: number;
 }
 
+interface CostItem {
+  id: number;
+  userId: number;
+  userName?: string;
+  cost: number;
+  paymentStatus?: string;
+  createdat: string;
+  bankName?: string;
+  accountNumber?: string;
+  referredUserId?: number;
+  referredUserName?: string;
+}
+
+interface CostListResponse {
+  costType: string;
+  costs: CostItem[];
+  totalAmount: number;
+}
+
+interface MonthlyCost {
+  year: number;
+  month: number;
+  chargeCost: number;
+  inviteCost: number;
+  referralCost: number;
+  reviewCost: number;
+  studyCost: number;
+  totalCost: number;
+}
+
 interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
@@ -58,6 +88,8 @@ export default function CostCalculator() {
   const [selectedReviewer, setSelectedReviewer] = useState<number | "">("");
   const [studyCostInput, setStudyCostInput] = useState<number>(0);
   const [costsData, setCostsData] = useState<UserCostData | null>(null);
+  const [monthlyCosts, setMonthlyCosts] = useState<MonthlyCost[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   // 🔹 심사원 로딩
   useEffect(() => {
@@ -85,15 +117,139 @@ export default function CostCalculator() {
   useEffect(() => {
     if (!selectedReviewer) {
       setCostsData(null);
+      setMonthlyCosts([]);
+      setSelectedMonth("");
       return;
     }
 
-    fetchWithAuth(`${BASE_URL}/costs/user/${selectedReviewer}`)
-      .then((res) => res.json())
-      .then((data: UserCostData) => {
-        setCostsData(data);
-      })
-      .catch(() => setCostsData(null));
+    // 각 카테고리별 API 호출
+    Promise.all([
+      fetchWithAuth(`${BASE_URL}/costs/charge`).then((res) => res.json()),
+      fetchWithAuth(`${BASE_URL}/costs/invite`).then((res) => res.json()),
+      fetchWithAuth(`${BASE_URL}/costs/referral`).then((res) => res.json()),
+      fetchWithAuth(`${BASE_URL}/costs/review`).then((res) => res.json()),
+      fetchWithAuth(`${BASE_URL}/costs/study`).then((res) => res.json()),
+    ])
+      .then(
+        ([
+          chargeData,
+          inviteData,
+          referralData,
+          reviewData,
+          studyData,
+        ]: CostListResponse[]) => {
+          // 선택된 심사원의 항목만 필터링
+          const userChargeCosts = chargeData.costs.filter(
+            (c) => c.userId === selectedReviewer
+          );
+          const userInviteCosts = inviteData.costs.filter(
+            (c) => c.userId === selectedReviewer
+          );
+          const userReferralCosts = referralData.costs.filter(
+            (c) => c.userId === selectedReviewer
+          );
+          const userReviewCosts = reviewData.costs.filter(
+            (c) => c.userId === selectedReviewer
+          );
+          const userStudyCosts = studyData.costs.filter(
+            (c) => c.userId === selectedReviewer
+          );
+
+          // 총 비용 계산
+          const totalChargeCost = userChargeCosts.reduce(
+            (sum, c) => sum + c.cost,
+            0
+          );
+          const totalInviteCost = userInviteCosts.reduce(
+            (sum, c) => sum + c.cost,
+            0
+          );
+          const totalReferralCost = userReferralCosts.reduce(
+            (sum, c) => sum + c.cost,
+            0
+          );
+          const totalReviewCost = userReviewCosts.reduce(
+            (sum, c) => sum + c.cost,
+            0
+          );
+          const totalStudyCost = userStudyCosts.reduce(
+            (sum, c) => sum + c.cost,
+            0
+          );
+
+          setCostsData({
+            userId: selectedReviewer,
+            chargeCost: totalChargeCost,
+            inviteCost: totalInviteCost,
+            referralCost: totalReferralCost,
+            reviewCost: totalReviewCost,
+            studyCost: totalStudyCost,
+            totalCost:
+              totalChargeCost +
+              totalInviteCost +
+              totalReferralCost +
+              totalReviewCost +
+              totalStudyCost,
+          });
+
+          // 월별로 그룹화
+          const monthlyMap = new Map<string, MonthlyCost>();
+
+          const processCosts = (costs: CostItem[], type: keyof MonthlyCost) => {
+            costs.forEach((cost) => {
+              const date = new Date(cost.createdat);
+              const year = date.getFullYear();
+              const month = date.getMonth() + 1;
+              const key = `${year}-${month}`;
+
+              if (!monthlyMap.has(key)) {
+                monthlyMap.set(key, {
+                  year,
+                  month,
+                  chargeCost: 0,
+                  inviteCost: 0,
+                  referralCost: 0,
+                  reviewCost: 0,
+                  studyCost: 0,
+                  totalCost: 0,
+                });
+              }
+
+              const monthlyCost = monthlyMap.get(key)!;
+              if (type !== "year" && type !== "month" && type !== "totalCost") {
+                monthlyCost[type] += cost.cost;
+                monthlyCost.totalCost += cost.cost;
+              }
+            });
+          };
+
+          processCosts(userChargeCosts, "chargeCost");
+          processCosts(userInviteCosts, "inviteCost");
+          processCosts(userReferralCosts, "referralCost");
+          processCosts(userReviewCosts, "reviewCost");
+          processCosts(userStudyCosts, "studyCost");
+
+          // 월별 데이터를 배열로 변환 후 정렬 (최신순)
+          const monthlyCostsArray = Array.from(monthlyMap.values()).sort(
+            (a, b) => {
+              if (a.year !== b.year) return b.year - a.year;
+              return b.month - a.month;
+            }
+          );
+
+          setMonthlyCosts(monthlyCostsArray);
+
+          // 기본적으로 가장 최근 월 선택
+          if (monthlyCostsArray.length > 0) {
+            const latest = monthlyCostsArray[0];
+            setSelectedMonth(`${latest.year}-${latest.month}`);
+          }
+        }
+      )
+      .catch(() => {
+        setCostsData(null);
+        setMonthlyCosts([]);
+      });
   }, [selectedReviewer]);
 
   // 🔹 강사비 저장
@@ -107,11 +263,12 @@ export default function CostCalculator() {
       });
       if (!res.ok) return alert("저장 실패");
       alert("저장 완료");
-      // 저장 후 비용 데이터 다시 로딩
-      const costRes = await fetchWithAuth(`${BASE_URL}/costs/user/${selectedReviewer}`);
-      const costData = await costRes.json();
-      setCostsData(costData);
       setStudyCostInput(0);
+
+      // 강제로 데이터 새로고침 (selectedReviewer를 다시 설정)
+      const currentReviewer = selectedReviewer;
+      setSelectedReviewer("");
+      setTimeout(() => setSelectedReviewer(currentReviewer), 0);
     } catch {
       alert("오류 발생");
     }
@@ -122,6 +279,16 @@ export default function CostCalculator() {
     value: r.user_id,
     label: `${r.name} (${r.loginID})`,
   }));
+
+  // 🔹 선택된 월의 비용 데이터 가져오기
+  const getSelectedMonthData = () => {
+    if (!selectedMonth) return null;
+    return monthlyCosts.find(
+      (m) => `${m.year}-${m.month}` === selectedMonth
+    );
+  };
+
+  const selectedMonthData = getSelectedMonthData();
 
   return (
     <div className="flex-1 max-w-full p-2">
@@ -180,11 +347,102 @@ export default function CostCalculator() {
         </div>
       )}
 
-      {/* 카테고리별 총 비용 표시 */}
-      {selectedReviewer && costsData && (
+      {/* 월별 비용 표시 */}
+      {selectedReviewer && monthlyCosts.length > 0 && (
         <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">
+              월별 비용
+            </h2>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                조회 월:
+              </label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-black"
+              >
+                {monthlyCosts.map((m) => (
+                  <option key={`${m.year}-${m.month}`} value={`${m.year}-${m.month}`}>
+                    {m.year}년 {m.month}월
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-6 py-3 text-left font-semibold text-gray-700">
+                    카테고리
+                  </th>
+                  <th className="border px-6 py-3 text-right font-semibold text-gray-700">
+                    총 비용
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    수수료
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-blue-600">
+                    {(selectedMonthData?.chargeCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    영업비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-green-600">
+                    {(selectedMonthData?.inviteCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    추천비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-purple-600">
+                    {(selectedMonthData?.referralCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    심사비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-orange-600">
+                    {(selectedMonthData?.reviewCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="border px-6 py-4 font-medium text-gray-800">
+                    강사비
+                  </td>
+                  <td className="border px-6 py-4 text-right text-lg font-bold text-indigo-600">
+                    {(selectedMonthData?.studyCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+                <tr className="bg-gray-100 font-bold">
+                  <td className="border px-6 py-4 text-gray-900">
+                    총합
+                  </td>
+                  <td className="border px-6 py-4 text-right text-xl text-gray-900">
+                    {(selectedMonthData?.totalCost || 0).toLocaleString()} 원
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 전체 기간 총 비용 요약 */}
+      {selectedReviewer && costsData && (
+        <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            카테고리별 총 비용
+            전체 기간 총 비용
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
