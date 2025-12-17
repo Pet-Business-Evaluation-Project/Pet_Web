@@ -1409,7 +1409,9 @@ export default function Dashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value: number) => `${value.toLocaleString()}원`}
+                    formatter={(value: number | undefined) =>
+                      value != null ? `${value.toLocaleString()}원` : "0원"
+                    }
                   />
                   <Legend />
                   <Bar
