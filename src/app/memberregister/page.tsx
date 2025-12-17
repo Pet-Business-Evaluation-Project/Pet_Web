@@ -7,6 +7,8 @@ interface SignStart {
   signstartId: number;
   signId: number;
   reviewerId: number;
+  salesReviewerId?: number | null;
+  salesReviewerName?: string;
   signtype?: string | null;
   membergrade?: string;
   signstate?: string;
@@ -375,6 +377,19 @@ export default function MemberRegister() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* 영업 심사원 */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-600 block">
+                  영업 심사원
+                </label>
+                <input
+                  type="text"
+                  value={currentSign.salesReviewerName || "배정되지 않음"}
+                  readOnly
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none transition-all bg-gray-100 cursor-not-allowed text-gray-700"
+                />
               </div>
 
               {/* 인증 상태 */}
