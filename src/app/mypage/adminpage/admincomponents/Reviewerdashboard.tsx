@@ -530,6 +530,7 @@ export default function ReviewerDashboard() {
                 return (
                   <React.Fragment key={r.loginID}>
                     <tr className="hover:bg-blue-50 transition-colors">
+                      {/* 이름 열 - 변경된 부분 */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <button
@@ -553,9 +554,10 @@ export default function ReviewerDashboard() {
                                 NEW
                               </span>
                             )}
-                            {downline.length > 0 && (
+                            {/* 기존 리더 뱃지 대신 referralGrade 사용 */}
+                            {r.referralGrade && (
                               <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-indigo-600 rounded whitespace-nowrap">
-                                리더
+                                {r.referralGrade}
                               </span>
                             )}
                           </div>
@@ -650,9 +652,12 @@ export default function ReviewerDashboard() {
                                             <span className="font-semibold text-gray-900">
                                               {member.name}
                                             </span>
-                                            <span className="px-2.5 py-1 text-xs font-bold text-white bg-gray-500 rounded">
-                                              일반
-                                            </span>
+                                            {/* 기존 "일반" 대신 referralGrade 사용 */}
+                                            {member.referralGrade && (
+                                              <span className="px-2.5 py-1 text-xs font-bold text-white bg-gray-500 rounded">
+                                                {member.referralGrade}
+                                              </span>
+                                            )}
                                           </div>
                                         </td>
                                         <td className="py-4 px-6 text-gray-600">
