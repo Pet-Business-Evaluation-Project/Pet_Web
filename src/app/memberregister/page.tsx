@@ -285,6 +285,50 @@ export default function MemberRegister() {
     }
   };
 
+  const handleReviewerSigncountChange = (reviewerId: number, value: string) => {
+    if (isNaN(Number(value))) {
+      alert("심사 횟수는 숫자만 입력 가능합니다.");
+      return;
+    }
+    setReviewersList((prev) =>
+      prev.map((r) =>
+        r.reviewerId === reviewerId ? { ...r, signcount: Number(value) } : r
+      )
+    );
+  };
+
+  const handleSaveReviewersSigncount = async () => {
+    if (!currentSign || !currentUser) return;
+    try {
+      // 각 심사원의 signcount를 업데이트
+      await Promise.all(
+        reviewersList.map(async (reviewer) => {
+          // signstartId를 가져오기 위해 다시 조회 (또는 기존에 저장해둔 값 사용)
+          const allSigns = await axiosInstance.get<SignStart[]>(
+            `/signstart/bysign/${currentSign.signId}`
+          );
+          const targetSign = allSigns.data.find(
+            (s) => s.reviewerId === reviewer.reviewerId
+          );
+          if (targetSign) {
+            await axiosInstance.put(
+              `/signstart/update/${targetSign.signstartId}`,
+              {
+                ...targetSign,
+                signcount: reviewer.signcount,
+              }
+            );
+          }
+        })
+      );
+      alert("심사 횟수가 저장되었습니다!");
+      console.log("✅ 심사 횟수 저장 완료");
+    } catch (err) {
+      console.error("❌ 심사 횟수 저장 실패:", err);
+      alert("저장 실패. 관리자에게 문의하세요.");
+    }
+  };
+
   // 접근 권한이 없는 경우
   if (!hasAccess) {
     return (
@@ -342,7 +386,8 @@ export default function MemberRegister() {
                 <select
                   value={currentSign.signtype || "미정"}
                   onChange={(e) => handleChange("signtype", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50"
+                  disabled={isReviewer}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   {signtypeOptions
                     .filter((opt) =>
@@ -467,7 +512,8 @@ export default function MemberRegister() {
                 <select
                   value={currentSign.affairdo || ""}
                   onChange={(e) => handleChange("affairdo", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50"
+                  disabled={isReviewer}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 >
                   {affairdoOptions.map((opt) => (
                     <option key={opt} value={opt}>
@@ -486,8 +532,8 @@ export default function MemberRegister() {
                   <input
                     type="number"
                     value={currentSign.signcount || 0}
-                    onChange={(e) => handleChange("signcount", e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-gray-50"
+                    readOnly
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none transition-all bg-gray-100 cursor-not-allowed text-gray-700"
                   />
                 </div>
               )}
@@ -548,15 +594,31 @@ export default function MemberRegister() {
                         <td className="px-6 py-4 text-gray-800">
                           {r.reviewerName || r.reviewerId}
                         </td>
-                        <td className="px-6 py-4 text-gray-800">
-                          {r.signcount || 0}
+                        <td className="px-6 py-4">
+                          <input
+                            type="number"
+                            value={r.signcount || 0}
+                            onChange={(e) =>
+                              handleReviewerSigncountChange(
+                                r.reviewerId,
+                                e.target.value
+                              )
+                            }
+                            className="w-20 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-end mt-6">
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={handleSaveReviewersSigncount}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-sm hover:shadow-md"
+                >
+                  저장
+                </button>
                 <button
                   onClick={() => setReviewersModalOpen(false)}
                   className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium"
