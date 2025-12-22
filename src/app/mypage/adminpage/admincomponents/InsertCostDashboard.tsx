@@ -9,6 +9,7 @@ import {
   DollarSign,
   BookOpen,
   Award,
+  Settings,
 } from "lucide-react";
 
 // 타입 정의
@@ -69,6 +70,15 @@ interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
+interface CostConfig {
+  configId: number;
+  configType: string;
+  gradeName: string;
+  value: number;
+  createdat: string;
+  updatedat: string;
+}
+
 const BASE_URL = "http://petback.hysu.kr/back";
 
 const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
@@ -84,6 +94,7 @@ const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
 };
 
 export default function CostCalculator() {
+  const [activeTab, setActiveTab] = useState<"management" | "settings">("management");
   const [reviewerList, setReviewerList] = useState<Reviewer[]>([]);
   const [selectedReviewer, setSelectedReviewer] = useState<number | "">("");
   const [studyCostInput, setStudyCostInput] = useState<number>(0);
@@ -91,12 +102,24 @@ export default function CostCalculator() {
   const [monthlyCosts, setMonthlyCosts] = useState<MonthlyCost[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>("");
 
+  // 비용 설정 상태
+  const [certificationConfigs, setCertificationConfigs] = useState<CostConfig[]>([]);
+  const [reviewFeeConfigs, setReviewFeeConfigs] = useState<CostConfig[]>([]);
+  const [commissionConfigs, setCommissionConfigs] = useState<CostConfig[]>([]);
+  const [selectedCertConfig, setSelectedCertConfig] = useState<CostConfig | null>(null);
+  const [selectedReviewFeeConfig, setSelectedReviewFeeConfig] = useState<CostConfig | null>(null);
+  const [selectedCommissionConfig, setSelectedCommissionConfig] = useState<CostConfig | null>(null);
+  const [certValue, setCertValue] = useState<number>(0);
+  const [reviewFeeValue, setReviewFeeValue] = useState<number>(0);
+  const [commissionValue, setCommissionValue] = useState<number>(0);
+
   // 🔹 심사원 로딩
   useEffect(() => {
     fetchWithAuth(`${BASE_URL}/mypage/admin`, {
       method: "POST",
       body: JSON.stringify({ classification: "관리자" }),
-    })
+    },
+)
       .then((res) => res.json())
       .then((data: ReviewerData[]) => {
         const list = Array.isArray(data) ? data : [];
@@ -112,6 +135,58 @@ export default function CostCalculator() {
       })
       .catch(() => setReviewerList([]));
   }, []);
+
+  // 🔹 비용 설정 데이터 로딩
+  useEffect(() => {
+    if (activeTab === "settings") {
+      // 전체 설정 조회 후 프론트에서 필터링
+      fetchWithAuth(`${BASE_URL}/cost-config`, {
+        credentials: 'include'
+      })
+        .then((res) => {
+          console.log("전체 설정 응답 상태:", res.status);
+          return res.json();
+        })
+        .then((data: any) => {
+          console.log("전체 설정 데이터:", JSON.stringify(data, null, 2));
+
+          if (data.message || data.error) {
+            console.error("백엔드 에러 메시지:", data.message || data.error);
+            alert(`비용 설정 로딩 실패: ${data.message || data.error}`);
+            setCertificationConfigs([]);
+            setReviewFeeConfigs([]);
+            setCommissionConfigs([]);
+            return;
+          }
+
+          if (Array.isArray(data)) {
+            // 타입별로 필터링
+            const certConfigs = data.filter((c: CostConfig) => c.configType === "MEMBER_GRADE_CERTIFICATION");
+            const reviewConfigs = data.filter((c: CostConfig) => c.configType === "REVIEWER_GRADE_REVIEW");
+            const commissionConfigs = data.filter((c: CostConfig) => c.configType === "REFERRAL_GRADE_CHARGE_RATE");
+
+            console.log("기업 인증 비용:", certConfigs);
+            console.log("심사비:", reviewConfigs);
+            console.log("수수료 비율:", commissionConfigs);
+
+            setCertificationConfigs(certConfigs);
+            setReviewFeeConfigs(reviewConfigs);
+            setCommissionConfigs(commissionConfigs);
+          } else {
+            console.error("데이터가 배열이 아닙니다:", data);
+            setCertificationConfigs([]);
+            setReviewFeeConfigs([]);
+            setCommissionConfigs([]);
+          }
+        })
+        .catch((error) => {
+          console.error("전체 설정 로딩 실패:", error);
+          setCertificationConfigs([]);
+          setReviewFeeConfigs([]);
+          setCommissionConfigs([]);
+        });
+    }
+  }, [activeTab]);
 
   // 🔹 비용 데이터 로딩 함수
   const loadCostsData = async (userId: number) => {
@@ -275,6 +350,87 @@ export default function CostCalculator() {
     }
   };
 
+  // 🔹 기업 인증 비용 저장
+  const saveCertificationCost = async () => {
+    if (!selectedCertConfig) return alert("등급을 선택하세요");
+
+    try {
+      const res = await fetchWithAuth(`${BASE_URL}/cost-config`, {
+        method: "PUT",
+        body: JSON.stringify({
+          configType: "MEMBER_GRADE_CERTIFICATION",
+          gradeName: selectedCertConfig.gradeName,
+          value: certValue,
+        }),
+      });
+      if (!res.ok) return alert("저장 실패");
+      alert("저장 완료");
+
+      // 데이터 새로고침
+      const updated = await fetchWithAuth(`${BASE_URL}/cost-config/MEMBER_GRADE_CERTIFICATION`);
+      const data = await updated.json();
+      setCertificationConfigs(Array.isArray(data) ? data : []);
+      setSelectedCertConfig(null);
+      setCertValue(0);
+    } catch {
+      alert("오류 발생");
+    }
+  };
+
+  // 🔹 심사비 저장
+  const saveReviewFeeCost = async () => {
+    if (!selectedReviewFeeConfig) return alert("등급을 선택하세요");
+
+    try {
+      const res = await fetchWithAuth(`${BASE_URL}/cost-config`, {
+        method: "PUT",
+        body: JSON.stringify({
+          configType: "REVIEWER_GRADE_REVIEW",
+          gradeName: selectedReviewFeeConfig.gradeName,
+          value: reviewFeeValue,
+        }),
+      });
+      if (!res.ok) return alert("저장 실패");
+      alert("저장 완료");
+
+      // 데이터 새로고침
+      const updated = await fetchWithAuth(`${BASE_URL}/cost-config/REVIEWER_GRADE_REVIEW`);
+      const data = await updated.json();
+      setReviewFeeConfigs(Array.isArray(data) ? data : []);
+      setSelectedReviewFeeConfig(null);
+      setReviewFeeValue(0);
+    } catch {
+      alert("오류 발생");
+    }
+  };
+
+  // 🔹 수수료 비율 저장
+  const saveCommissionRate = async () => {
+    if (!selectedCommissionConfig) return alert("등급을 선택하세요");
+
+    try {
+      const res = await fetchWithAuth(`${BASE_URL}/cost-config`, {
+        method: "PUT",
+        body: JSON.stringify({
+          configType: "REFERRAL_GRADE_CHARGE_RATE",
+          gradeName: selectedCommissionConfig.gradeName,
+          value: commissionValue,
+        }),
+      });
+      if (!res.ok) return alert("저장 실패");
+      alert("저장 완료");
+
+      // 데이터 새로고침
+      const updated = await fetchWithAuth(`${BASE_URL}/cost-config/REFERRAL_GRADE_CHARGE_RATE`);
+      const data = await updated.json();
+      setCommissionConfigs(Array.isArray(data) ? data : []);
+      setSelectedCommissionConfig(null);
+      setCommissionValue(0);
+    } catch {
+      alert("오류 발생");
+    }
+  };
+
   // 🔹 react-select 옵션 변환
   const reviewerOptions = reviewerList.map((r) => ({
     value: r.user_id,
@@ -298,24 +454,55 @@ export default function CostCalculator() {
         {/* 아이콘 + 제목 */}
         <div className="flex items-center gap-3 mb-4">
           <Calculator className="w-8 h-8 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-800">비용 관리</h1>
+          <h1 className="text-2xl font-bold text-gray-800">비용 관리 시스템</h1>
         </div>
 
-        {/* 심사원 검색 */}
-        <div className="flex flex-col mt-8 mb-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            심사원 검색
-          </label>
-
-          <Select
-            options={reviewerOptions}
-            onChange={(option) => setSelectedReviewer(option?.value ?? "")}
-            placeholder="검색하여 심사원을 선택하세요…"
-            isClearable
-            className="text-black"
-          />
+        {/* 탭 버튼 */}
+        <div className="flex gap-2 mt-6">
+          <button
+            onClick={() => setActiveTab("management")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === "management"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            <Calculator className="w-5 h-5" />
+            비용 관리
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === "settings"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            <Settings className="w-5 h-5" />
+            비용 수정
+          </button>
         </div>
       </div>
+
+      {/* 비용 관리 탭 */}
+      {activeTab === "management" && (
+        <>
+          {/* 심사원 검색 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                심사원 검색
+              </label>
+
+              <Select
+                options={reviewerOptions}
+                onChange={(option) => setSelectedReviewer(option?.value ?? "")}
+                placeholder="검색하여 심사원을 선택하세요…"
+                isClearable
+                className="text-black"
+              />
+            </div>
+          </div>
 
       {/* 강사비 입력 섹션 */}
       {selectedReviewer && (
@@ -508,6 +695,233 @@ export default function CostCalculator() {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {/* 비용 수정 탭 */}
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          {/* 기업 인증 비용 수정 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                <Award className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">기업 인증 비용 수정</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  등급 선택
+                </label>
+                <select
+                  value={selectedCertConfig?.configId || ""}
+                  onChange={(e) => {
+                    const config = certificationConfigs.find(
+                      (c) => c.configId === Number(e.target.value)
+                    );
+                    setSelectedCertConfig(config || null);
+                    setCertValue(config?.value || 0);
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-black"
+                >
+                  <option value="">등급을 선택하세요</option>
+                  {Array.isArray(certificationConfigs) && certificationConfigs.length > 0 ? (
+                    certificationConfigs.map((config) => (
+                      <option key={config.configId} value={config.configId}>
+                        {config.gradeName} (현재: {config.value.toLocaleString()}원)
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>데이터 없음</option>
+                  )}
+                </select>
+                {certificationConfigs.length === 0 && (
+                  <p className="mt-2 text-sm text-red-600">
+                    설정 데이터를 불러오지 못했습니다. 콘솔을 확인하세요.
+                  </p>
+                )}
+              </div>
+
+              {selectedCertConfig && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      새로운 비용
+                    </label>
+                    <input
+                      type="number"
+                      value={certValue}
+                      onChange={(e) => setCertValue(Number(e.target.value))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      min="0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <span className="text-lg font-bold text-blue-600">
+                      {certValue.toLocaleString()} 원
+                    </span>
+                    <button
+                      onClick={saveCertificationCost}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 심사비 수정 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+                <Users className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">심사원 등급별 심사비 수정</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  심사원 등급 선택
+                </label>
+                <select
+                  value={selectedReviewFeeConfig?.configId || ""}
+                  onChange={(e) => {
+                    const config = reviewFeeConfigs.find(
+                      (c) => c.configId === Number(e.target.value)
+                    );
+                    setSelectedReviewFeeConfig(config || null);
+                    setReviewFeeValue(config?.value || 0);
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-black"
+                >
+                  <option value="">등급을 선택하세요</option>
+                  {Array.isArray(reviewFeeConfigs) && reviewFeeConfigs.length > 0 ? (
+                    reviewFeeConfigs.map((config) => (
+                      <option key={config.configId} value={config.configId}>
+                        {config.gradeName} (현재: {config.value.toLocaleString()}원)
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>데이터 없음</option>
+                  )}
+                </select>
+                {reviewFeeConfigs.length === 0 && (
+                  <p className="mt-2 text-sm text-red-600">
+                    설정 데이터를 불러오지 못했습니다. 콘솔을 확인하세요.
+                  </p>
+                )}
+              </div>
+
+              {selectedReviewFeeConfig && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      새로운 심사비
+                    </label>
+                    <input
+                      type="number"
+                      value={reviewFeeValue}
+                      onChange={(e) => setReviewFeeValue(Number(e.target.value))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      min="0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <span className="text-lg font-bold text-orange-600">
+                      {reviewFeeValue.toLocaleString()} 원
+                    </span>
+                    <button
+                      onClick={saveReviewFeeCost}
+                      className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 수수료 비율 수정 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">수수료 비율 수정</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  등급 선택 (리더/일반)
+                </label>
+                <select
+                  value={selectedCommissionConfig?.configId || ""}
+                  onChange={(e) => {
+                    const config = commissionConfigs.find(
+                      (c) => c.configId === Number(e.target.value)
+                    );
+                    setSelectedCommissionConfig(config || null);
+                    setCommissionValue(config?.value || 0);
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-black"
+                >
+                  <option value="">등급을 선택하세요</option>
+                  {Array.isArray(commissionConfigs) && commissionConfigs.length > 0 ? (
+                    commissionConfigs.map((config) => (
+                      <option key={config.configId} value={config.configId}>
+                        {config.gradeName} (현재: {config.value}%)
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>데이터 없음</option>
+                  )}
+                </select>
+                {commissionConfigs.length === 0 && (
+                  <p className="mt-2 text-sm text-red-600">
+                    설정 데이터를 불러오지 못했습니다. 콘솔을 확인하세요.
+                  </p>
+                )}
+              </div>
+
+              {selectedCommissionConfig && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      새로운 비율 (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={commissionValue}
+                      onChange={(e) => setCommissionValue(Number(e.target.value))}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <span className="text-lg font-bold text-green-600">
+                      {commissionValue}%
+                    </span>
+                    <button
+                      onClick={saveCommissionRate}
+                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
