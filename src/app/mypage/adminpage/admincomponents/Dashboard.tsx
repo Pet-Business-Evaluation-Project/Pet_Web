@@ -123,7 +123,7 @@ interface UserReferralGroup {
   unpaidAmount: number;
 }
 
-// 🚀 타임아웃 설정이 있는 fetch 함수
+// 타임아웃 설정이 있는 fetch 함수
 const fetchWithTimeout = async (
   url: string,
   options: RequestInit,
@@ -189,7 +189,7 @@ export default function Dashboard() {
   const [settlements, setSettlements] = useState<SettlementDto[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
-  // 🆕 정산 상세 정보 관련 상태
+  // 정산 상세 정보 관련 상태
   const [expandedSettlement, setExpandedSettlement] = useState<number | null>(
     null
   );
@@ -201,17 +201,21 @@ export default function Dashboard() {
     Record<number, boolean>
   >({});
 
-  // 🆕 히스토리 내 비용 타입 확장 상태 (settlementId-costType 형식)
+  // 히스토리 내 비용 타입 확장 상태 (settlementId-costType 형식)
   const [expandedHistoryCostType, setExpandedHistoryCostType] = useState<
     string | null
   >(null);
 
-  // 🆕 지급 상태 업데이트 중인 항목 추적
+  // 지급 상태 업데이트 중인 항목 추적
   const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState<
     Record<number, boolean>
   >({});
 
-  // 🆕 Chrome 확장 프로그램 오류 방지
+  // 🆕 금액 수정 상태
+  const [editingCostId, setEditingCostId] = useState<number | null>(null);
+  const [editingCostValue, setEditingCostValue] = useState<string>("");
+
+  // Chrome 확장 프로그램 오류 방지
   useEffect(() => {
     const preventExtensionError = (event: ErrorEvent) => {
       if (event.message && event.message.includes("message channel closed")) {
@@ -300,7 +304,7 @@ export default function Dashboard() {
     }
   };
 
-  // 🆕 특정 월의 비용 상세 정보 조회
+  // 특정 월의 비용 상세 정보 조회
   const fetchSettlementDetails = async (
     year: number,
     month: number,
@@ -428,14 +432,14 @@ export default function Dashboard() {
     }
   };
 
-  // 🆕 정산 항목 클릭 핸들러
+  // 정산 항목 클릭 핸들러
   const handleSettlementClick = (settlement: SettlementDto) => {
     if (expandedSettlement === settlement.settlementId) {
       setExpandedSettlement(null);
-      setExpandedHistoryCostType(null); // 닫을 때 세부 항목도 초기화
+      setExpandedHistoryCostType(null);
     } else {
       setExpandedSettlement(settlement.settlementId);
-      setExpandedHistoryCostType(null); // 다른 정산 열 때 세부 항목 초기화
+      setExpandedHistoryCostType(null);
       if (!settlementDetails[settlement.settlementId]) {
         fetchSettlementDetails(
           settlement.year,
@@ -446,7 +450,7 @@ export default function Dashboard() {
     }
   };
 
-  // 🆕 히스토리 내 비용 타입 클릭 핸들러
+  // 히스토리 내 비용 타입 클릭 핸들러
   const handleHistoryCostTypeClick = (
     settlementId: number,
     costType: string
@@ -613,7 +617,7 @@ export default function Dashboard() {
         const data = await response.json();
         let allReferrals: CostDetail[] = data.costs;
 
-        // 🆕 현재 월의 비용만 필터링
+        // 현재 월의 비용만 필터링
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth() + 1;
@@ -634,7 +638,7 @@ export default function Dashboard() {
             userMap.set(referral.userId, {
               userId: referral.userId,
               userName: referral.userName,
-              loginId: "", // with-status에는 loginId가 없으므로 빈 문자열
+              loginId: "",
               totalReferralCost: 0,
               referralCount: 0,
               paidAmount: 0,
@@ -695,7 +699,7 @@ export default function Dashboard() {
         { type: "study", name: "강사비" },
       ];
 
-      // 🆕 현재 월 필터 정보
+      // 현재 월 필터 정보
       const today = new Date();
       const currentYear = today.getFullYear();
       const currentMonth = today.getMonth() + 1;
@@ -710,7 +714,7 @@ export default function Dashboard() {
           const data = await response.json();
           let costs: CostDetail[] = data.costs;
 
-          // 🆕 현재 월의 비용만 필터링
+          // 현재 월의 비용만 필터링
           costs = costs.filter((cost) => {
             const costDate = new Date(cost.createdat);
             return (
@@ -719,7 +723,7 @@ export default function Dashboard() {
             );
           });
 
-          // 🆕 paidAmount와 unpaidAmount 직접 계산
+          // paidAmount와 unpaidAmount 직접 계산
           let paidAmount = 0;
           let unpaidAmount = 0;
 
@@ -777,7 +781,7 @@ export default function Dashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      // 🆕 캐시된 상세 데이터 초기화
+      // 캐시된 상세 데이터 초기화
       setCostDetails({});
       setExpandedItem(null);
       setExpandedReferralUser(null);
@@ -808,7 +812,7 @@ export default function Dashboard() {
         const data = await response.json();
         let costs: CostDetail[] = data.costs;
 
-        // 🆕 현재 월의 비용만 필터링
+        // 현재 월의 비용만 필터링
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth() + 1;
@@ -867,7 +871,7 @@ export default function Dashboard() {
           (item: CostDetail) => item.userId === userId
         );
 
-        // 🆕 현재 월의 비용만 필터링
+        // 현재 월의 비용만 필터링
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth() + 1;
@@ -895,7 +899,67 @@ export default function Dashboard() {
     }
   };
 
-  // 🔥 개선된 지급 상태 변경 함수
+  // 🆕 금액 수정 시작
+  const handleStartEditCost = (id: number, currentCost: number) => {
+    setEditingCostId(id);
+    setEditingCostValue(currentCost.toString());
+  };
+
+  // 🆕 금액 수정 취소
+  const handleCancelEditCost = () => {
+    setEditingCostId(null);
+    setEditingCostValue("");
+  };
+
+  // 🆕 금액 수정 저장
+  const handleSaveCost = async (
+    costType: string,
+    id: number,
+    userId: number
+  ) => {
+    const newCost = parseInt(editingCostValue);
+
+    if (isNaN(newCost) || newCost < 0) {
+      alert("올바른 금액을 입력해주세요.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://petback.hysu.kr/back/costs/${costType}/${id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ userId, cost: newCost }),
+        }
+      );
+
+      if (response.ok) {
+        alert("금액이 수정되었습니다.");
+        setEditingCostId(null);
+        setEditingCostValue("");
+
+        // 데이터 재조회
+        if (costType === "referral") {
+          await fetchReferralSummary();
+          if (expandedReferralUser) {
+            await fetchReferralDetails(expandedReferralUser);
+          }
+        } else {
+          await fetchCostDetails(costType);
+        }
+        await fetchPaymentStatistics();
+      } else {
+        throw new Error("수정 실패");
+      }
+    } catch (error) {
+      console.error("금액 수정 실패:", error);
+      alert("금액 수정에 실패했습니다.");
+    }
+  };
+
+  // 지급 상태 변경 함수
   const handlePaymentStatusChange = async (
     costType: string,
     id: number,
@@ -919,7 +983,7 @@ export default function Dashboard() {
       : null;
 
     try {
-      // 🔄 낙관적 업데이트 (Optimistic Update)
+      // 낙관적 업데이트 (Optimistic Update)
       if (costType === "referral") {
         const key = `referral-${expandedReferralUser}`;
         if (costDetails[key]) {
@@ -928,7 +992,7 @@ export default function Dashboard() {
           );
           setCostDetails({ ...costDetails, [key]: updatedDetails });
 
-          // 🆕 referralSummary도 낙관적 업데이트
+          // referralSummary도 낙관적 업데이트
           if (referralSummary && expandedReferralUser) {
             const updatedSummary = {
               ...referralSummary,
@@ -979,7 +1043,7 @@ export default function Dashboard() {
           credentials: "include",
           body: JSON.stringify({ paymentStatus: newStatus }),
         },
-        10000 // 10초 타임아웃
+        10000
       );
 
       console.log("✅ API 응답:", response.status, response.statusText);
@@ -990,9 +1054,9 @@ export default function Dashboard() {
         throw new Error(`상태 변경 실패: ${response.status} - ${errorText}`);
       }
 
-      console.log(`✨ 지급 상태가 &quot;${newStatus}&quot;로 변경되었습니다.`);
+      console.log(`✨ 지급 상태가 "${newStatus}"로 변경되었습니다.`);
 
-      // 🔄 데이터 재조회
+      // 데이터 재조회
       if (costType === "referral") {
         await Promise.all([
           fetchReferralSummary(),
@@ -1008,7 +1072,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error("❌ 지급 상태 변경 실패:", error);
 
-      // ❌ 에러 시 이전 상태로 롤백
+      // 에러 시 이전 상태로 롤백
       setCostDetails(previousCostDetails);
       if (previousReferralSummary) {
         setReferralSummary(previousReferralSummary);
@@ -1661,8 +1725,64 @@ export default function Dashboard() {
                                                                 }{" "}
                                                               </td>
                                                               <td className="py-1 px-3 text-xs text-right">
-                                                                {detail.cost.toLocaleString()}
-                                                                원
+                                                                {editingCostId ===
+                                                                detail.id ? (
+                                                                  <div className="flex items-center justify-end gap-1">
+                                                                    <input
+                                                                      type="number"
+                                                                      value={
+                                                                        editingCostValue
+                                                                      }
+                                                                      onChange={(
+                                                                        e
+                                                                      ) =>
+                                                                        setEditingCostValue(
+                                                                          e
+                                                                            .target
+                                                                            .value
+                                                                        )
+                                                                      }
+                                                                      className="w-20 px-1 py-0.5 border border-blue-400 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                                      autoFocus
+                                                                    />
+                                                                    <button
+                                                                      onClick={() =>
+                                                                        handleSaveCost(
+                                                                          "referral",
+                                                                          detail.id,
+                                                                          detail.userId
+                                                                        )
+                                                                      }
+                                                                      className="text-green-600 hover:text-green-800 p-0.5"
+                                                                      title="저장"
+                                                                    >
+                                                                      <FaCheck className="text-xs" />
+                                                                    </button>
+                                                                    <button
+                                                                      onClick={
+                                                                        handleCancelEditCost
+                                                                      }
+                                                                      className="text-gray-600 hover:text-gray-800 p-0.5"
+                                                                      title="취소"
+                                                                    >
+                                                                      ✕
+                                                                    </button>
+                                                                  </div>
+                                                                ) : (
+                                                                  <span
+                                                                    onClick={() =>
+                                                                      handleStartEditCost(
+                                                                        detail.id,
+                                                                        detail.cost
+                                                                      )
+                                                                    }
+                                                                    className="cursor-pointer hover:text-blue-600 hover:underline"
+                                                                    title="클릭하여 수정"
+                                                                  >
+                                                                    {detail.cost.toLocaleString()}
+                                                                    원
+                                                                  </span>
+                                                                )}
                                                               </td>
                                                               <td className="py-1 px-3 text-xs text-center">
                                                                 {new Date(
@@ -1825,7 +1945,57 @@ export default function Dashboard() {
                                               </td>
 
                                               <td className="py-2 px-4 text-sm text-right">
-                                                {detail.cost.toLocaleString()}원
+                                                {editingCostId === detail.id ? (
+                                                  <div className="flex items-center justify-end gap-2">
+                                                    <input
+                                                      type="number"
+                                                      value={editingCostValue}
+                                                      onChange={(e) =>
+                                                        setEditingCostValue(
+                                                          e.target.value
+                                                        )
+                                                      }
+                                                      className="w-28 px-2 py-1 border border-blue-400 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                      autoFocus
+                                                    />
+                                                    <button
+                                                      onClick={() =>
+                                                        handleSaveCost(
+                                                          item.costType,
+                                                          detail.id,
+                                                          detail.userId
+                                                        )
+                                                      }
+                                                      className="text-green-600 hover:text-green-800 p-1"
+                                                      title="저장"
+                                                    >
+                                                      <FaCheck className="inline" />
+                                                    </button>
+                                                    <button
+                                                      onClick={
+                                                        handleCancelEditCost
+                                                      }
+                                                      className="text-gray-600 hover:text-gray-800 p-1"
+                                                      title="취소"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <span
+                                                    onClick={() =>
+                                                      handleStartEditCost(
+                                                        detail.id,
+                                                        detail.cost
+                                                      )
+                                                    }
+                                                    className="cursor-pointer hover:text-blue-600 hover:underline"
+                                                    title="클릭하여 수정"
+                                                  >
+                                                    {detail.cost.toLocaleString()}
+                                                    원
+                                                  </span>
+                                                )}
                                               </td>
                                               <td className="py-2 px-4 text-sm text-center">
                                                 {new Date(
