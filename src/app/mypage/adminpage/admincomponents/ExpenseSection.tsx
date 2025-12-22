@@ -208,9 +208,9 @@ export default function ExpenseSection({
     try {
       setLoading(true);
       const costTypes = [
-        { type: "charge", name: "영업비" },
+        { type: "charge", name: "수수료" },
         { type: "review", name: "심사비" },
-        { type: "invite", name: "수수료" },
+        { type: "invite", name: "영업비" },
         { type: "study", name: "강사비" },
       ];
 
