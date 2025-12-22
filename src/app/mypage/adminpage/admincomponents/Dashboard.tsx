@@ -429,7 +429,7 @@ export default function Dashboard() {
                 : "bg-white text-gray-600 hover:bg-gray-50 border-2 border-gray-200"
             }`}
           >
-            💸 비용 지급 현황
+            💸 지출 현황
           </button>
           <button
             onClick={() => setActiveTab("revenue")}
