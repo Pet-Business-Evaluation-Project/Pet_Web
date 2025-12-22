@@ -108,7 +108,8 @@ export default function CostCalculator() {
   >([]);
   const [reviewFeeConfigs, setReviewFeeConfigs] = useState<CostConfig[]>([]);
   const [commissionConfigs, setCommissionConfigs] = useState<CostConfig[]>([]);
-  const [referralCostConfig, setReferralCostConfig] = useState<CostConfig | null>(null);
+  const [referralCostConfig, setReferralCostConfig] =
+    useState<CostConfig | null>(null);
   const [selectedCertConfig, setSelectedCertConfig] =
     useState<CostConfig | null>(null);
   const [selectedReviewFeeConfig, setSelectedReviewFeeConfig] =
@@ -151,53 +152,53 @@ export default function CostCalculator() {
           console.log("전체 설정 응답 상태:", res.status);
           return res.json();
         })
-        .then((data: any) => {
+        .then((data: CostConfig[] | { message?: string; error?: string }) => {
+          // ✅ 수정!
           console.log("전체 설정 데이터:", JSON.stringify(data, null, 2));
 
-          if (data.message || data.error) {
-            console.error("백엔드 에러 메시지:", data.message || data.error);
-            alert(`비용 설정 로딩 실패: ${data.message || data.error}`);
+          if (!Array.isArray(data)) {
+            // 에러 응답 처리
+            const errorData = data as { message?: string; error?: string };
+            console.error(
+              "백엔드 에러 메시지:",
+              errorData.message || errorData.error
+            );
+            alert(
+              `비용 설정 로딩 실패: ${errorData.message || errorData.error}`
+            );
             setCertificationConfigs([]);
             setReviewFeeConfigs([]);
             setCommissionConfigs([]);
             return;
           }
 
-          if (Array.isArray(data)) {
-            // 타입별로 필터링
-            const certConfigs = data.filter(
-              (c: CostConfig) => c.configType === "MEMBER_GRADE_CERTIFICATION"
-            );
-            const reviewConfigs = data.filter(
-              (c: CostConfig) => c.configType === "REVIEWER_GRADE_REVIEW"
-            );
-            const commissionConfigs = data.filter(
-              (c: CostConfig) => c.configType === "REFERRAL_GRADE_CHARGE_RATE"
-            );
-            const referralConfigs = data.filter(
-              (c: CostConfig) => c.configType === "REFERRAL_COST_DEFAULT"
-            );
+          // 타입별로 필터링
+          const certConfigs = data.filter(
+            (c) => c.configType === "MEMBER_GRADE_CERTIFICATION"
+          );
+          const reviewConfigs = data.filter(
+            (c) => c.configType === "REVIEWER_GRADE_REVIEW"
+          );
+          const commissionConfigs = data.filter(
+            (c) => c.configType === "REFERRAL_GRADE_CHARGE_RATE"
+          );
+          const referralConfigs = data.filter(
+            (c) => c.configType === "REFERRAL_COST_DEFAULT"
+          );
 
-            console.log("기업 인증 비용:", certConfigs);
-            console.log("심사비:", reviewConfigs);
-            console.log("수수료 비율:", commissionConfigs);
-            console.log("추천비:", referralConfigs);
+          console.log("기업 인증 비용:", certConfigs);
+          console.log("심사비:", reviewConfigs);
+          console.log("수수료 비율:", commissionConfigs);
+          console.log("추천비:", referralConfigs);
 
-            setCertificationConfigs(certConfigs);
-            setReviewFeeConfigs(reviewConfigs);
-            setCommissionConfigs(commissionConfigs);
+          setCertificationConfigs(certConfigs);
+          setReviewFeeConfigs(reviewConfigs);
+          setCommissionConfigs(commissionConfigs);
 
-            // 추천비는 단일 항목
-            if (referralConfigs.length > 0) {
-              setReferralCostConfig(referralConfigs[0]);
-              setReferralCostValue(referralConfigs[0].value);
-            }
-          } else {
-            console.error("데이터가 배열이 아닙니다:", data);
-            setCertificationConfigs([]);
-            setReviewFeeConfigs([]);
-            setCommissionConfigs([]);
-            setReferralCostConfig(null);
+          // 추천비는 단일 항목
+          if (referralConfigs.length > 0) {
+            setReferralCostConfig(referralConfigs[0]);
+            setReferralCostValue(referralConfigs[0].value);
           }
         })
         .catch((error) => {
@@ -1002,9 +1003,7 @@ export default function CostCalculator() {
               <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
                 <DollarSign className="w-6 h-6" />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">
-                추천비 수정
-              </h2>
+              <h2 className="text-xl font-bold text-gray-800">추천비 수정</h2>
             </div>
 
             <div className="space-y-4">
@@ -1012,7 +1011,10 @@ export default function CostCalculator() {
                 <div>
                   <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">
-                      현재 추천비: <span className="font-bold text-purple-600">{referralCostConfig.value.toLocaleString()}원</span>
+                      현재 추천비:{" "}
+                      <span className="font-bold text-purple-600">
+                        {referralCostConfig.value.toLocaleString()}원
+                      </span>
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       * 회원가입 시 추천인에게 지급되는 금액입니다.
@@ -1027,7 +1029,9 @@ export default function CostCalculator() {
                       <input
                         type="number"
                         value={referralCostValue}
-                        onChange={(e) => setReferralCostValue(Number(e.target.value))}
+                        onChange={(e) =>
+                          setReferralCostValue(Number(e.target.value))
+                        }
                         className="w-full border border-gray-300 rounded-lg px-4 py-2"
                         min="0"
                       />
