@@ -45,7 +45,7 @@ interface RevenueSectionProps {
   lastRefreshTime: Date | null;
 }
 
-const BASE_URL = "http://petback.hysu.kr/back";
+const BASE_URL = "https://www.kcci.co.kr/back";
 
 export default function RevenueSection({
   lastRefreshTime,

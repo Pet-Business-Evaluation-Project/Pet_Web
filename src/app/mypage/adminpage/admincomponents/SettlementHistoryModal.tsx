@@ -102,7 +102,7 @@ export default function SettlementHistoryModal({
 
       const costPromises = costTypes.map(async ({ type, name }) => {
         const response = await fetch(
-          `http://petback.hysu.kr/back/costs/${type}/with-status`,
+          `https://www.kcci.co.kr/back/costs/${type}/with-status`,
           { credentials: "include" }
         );
 
@@ -141,7 +141,7 @@ export default function SettlementHistoryModal({
       });
 
       const referralResponse = await fetch(
-        "http://petback.hysu.kr/back/costs/referral/with-status",
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
         { credentials: "include" }
       );
 

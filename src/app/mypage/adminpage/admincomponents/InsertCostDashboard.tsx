@@ -79,7 +79,7 @@ interface CostConfig {
   updatedat: string;
 }
 
-const BASE_URL = "http://petback.hysu.kr/back";
+const BASE_URL = "https://www.kcci.co.kr/back";
 
 const fetchWithAuth = async (url: string, options: FetchOptions = {}) => {
   return fetch(url, {

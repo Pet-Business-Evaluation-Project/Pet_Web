@@ -124,7 +124,7 @@ export default function ExpenseSection({
   const fetchReferralSummary = async () => {
     try {
       const response = await fetch(
-        "http://petback.hysu.kr/back/costs/referral/with-status",
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
         { credentials: "include" }
       );
 
@@ -220,7 +220,7 @@ export default function ExpenseSection({
 
       const statisticsPromises = costTypes.map(async ({ type, name }) => {
         const response = await fetch(
-          `http://petback.hysu.kr/back/costs/${type}/with-status`,
+          `https://www.kcci.co.kr/back/costs/${type}/with-status`,
           { credentials: "include" }
         );
 
@@ -299,7 +299,7 @@ export default function ExpenseSection({
       setDetailsLoading({ ...detailsLoading, [costType]: true });
 
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/with-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/with-status`,
         { credentials: "include" }
       );
 
@@ -355,7 +355,7 @@ export default function ExpenseSection({
       setDetailsLoading({ ...detailsLoading, [`referral-${userId}`]: true });
 
       const response = await fetch(
-        "http://petback.hysu.kr/back/costs/referral/with-status",
+        "https://www.kcci.co.kr/back/costs/referral/with-status",
         { credentials: "include" }
       );
 
@@ -416,7 +416,7 @@ export default function ExpenseSection({
 
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -512,7 +512,7 @@ export default function ExpenseSection({
       }
 
       const response = await fetchWithTimeout(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}/payment-status`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}/payment-status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -581,7 +581,7 @@ export default function ExpenseSection({
 
     try {
       const response = await fetch(
-        `http://petback.hysu.kr/back/costs/${costType}/${id}`,
+        `https://www.kcci.co.kr/back/costs/${costType}/${id}`,
         {
           method: "DELETE",
           credentials: "include",
