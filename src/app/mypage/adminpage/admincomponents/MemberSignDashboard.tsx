@@ -56,7 +56,9 @@ export default function MemberSignDashboard() {
   const [reviewers, setReviewers] = useState<Reviewer[]>([]);
   const [reviewerSearch, setReviewerSearch] = useState("");
   const [selectedReviewers, setSelectedReviewers] = useState<number[]>([]);
-  const [selectedSalesReviewer, setSelectedSalesReviewer] = useState<number | null>(null);
+  const [selectedSalesReviewer, setSelectedSalesReviewer] = useState<
+    number | null
+  >(null);
   const [selectedGrade, setSelectedGrade] = useState(1);
   const [selectedSignType, setSelectedSignType] = useState<string | null>(null);
   const [assignedSignStarts, setAssignedSignStarts] = useState<SignStart[]>([]);
@@ -392,7 +394,8 @@ export default function MemberSignDashboard() {
     <div className="flex-1 max-w-full">
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-800 p-6">
-          <FaFileSignature className="text-blue-500 w-6 h-6" />기업 인증 배정
+          <FaFileSignature className="text-blue-500 w-6 h-6" />
+          기업 인증 배정
         </h2>
         <div className="flex flex-col md:flex-row gap-4 items-start">
           <div className="flex-1 flex flex-col">
@@ -466,7 +469,9 @@ export default function MemberSignDashboard() {
             <label className="font-semibold text-gray-600">영업 심사원:</label>
             <select
               className="border rounded px-3 py-2"
-              value={selectedSalesReviewer === null ? "" : selectedSalesReviewer}
+              value={
+                selectedSalesReviewer === null ? "" : selectedSalesReviewer
+              }
               onChange={(e) =>
                 setSelectedSalesReviewer(
                   e.target.value === "" ? null : Number(e.target.value)
