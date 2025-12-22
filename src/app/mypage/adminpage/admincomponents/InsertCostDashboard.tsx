@@ -108,6 +108,7 @@ export default function CostCalculator() {
   >([]);
   const [reviewFeeConfigs, setReviewFeeConfigs] = useState<CostConfig[]>([]);
   const [commissionConfigs, setCommissionConfigs] = useState<CostConfig[]>([]);
+  const [referralCostConfig, setReferralCostConfig] = useState<CostConfig | null>(null);
   const [selectedCertConfig, setSelectedCertConfig] =
     useState<CostConfig | null>(null);
   const [selectedReviewFeeConfig, setSelectedReviewFeeConfig] =
@@ -117,6 +118,7 @@ export default function CostCalculator() {
   const [certValue, setCertValue] = useState<number>(0);
   const [reviewFeeValue, setReviewFeeValue] = useState<number>(0);
   const [commissionValue, setCommissionValue] = useState<number>(0);
+  const [referralCostValue, setReferralCostValue] = useState<number>(0);
 
   // 🔹 심사원 로딩
   useEffect(() => {
@@ -172,19 +174,30 @@ export default function CostCalculator() {
             const commissionConfigs = data.filter(
               (c: CostConfig) => c.configType === "REFERRAL_GRADE_CHARGE_RATE"
             );
+            const referralConfigs = data.filter(
+              (c: CostConfig) => c.configType === "REFERRAL_COST_DEFAULT"
+            );
 
             console.log("기업 인증 비용:", certConfigs);
             console.log("심사비:", reviewConfigs);
             console.log("수수료 비율:", commissionConfigs);
+            console.log("추천비:", referralConfigs);
 
             setCertificationConfigs(certConfigs);
             setReviewFeeConfigs(reviewConfigs);
             setCommissionConfigs(commissionConfigs);
+
+            // 추천비는 단일 항목
+            if (referralConfigs.length > 0) {
+              setReferralCostConfig(referralConfigs[0]);
+              setReferralCostValue(referralConfigs[0].value);
+            }
           } else {
             console.error("데이터가 배열이 아닙니다:", data);
             setCertificationConfigs([]);
             setReviewFeeConfigs([]);
             setCommissionConfigs([]);
+            setReferralCostConfig(null);
           }
         })
         .catch((error) => {
@@ -431,6 +444,36 @@ export default function CostCalculator() {
       setCommissionConfigs(Array.isArray(data) ? data : []);
       setSelectedCommissionConfig(null);
       setCommissionValue(0);
+    } catch {
+      alert("오류 발생");
+    }
+  };
+
+  // 🔹 추천비 저장
+  const saveReferralCost = async () => {
+    if (!referralCostConfig) return alert("추천비 설정을 불러오지 못했습니다");
+
+    try {
+      const res = await fetchWithAuth(`${BASE_URL}/cost-config`, {
+        method: "PUT",
+        body: JSON.stringify({
+          configType: "REFERRAL_COST_DEFAULT",
+          gradeName: "default",
+          value: referralCostValue,
+        }),
+      });
+      if (!res.ok) return alert("저장 실패");
+      alert("저장 완료");
+
+      // 데이터 새로고침
+      const updated = await fetchWithAuth(
+        `${BASE_URL}/cost-config/REFERRAL_COST_DEFAULT`
+      );
+      const data = await updated.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setReferralCostConfig(data[0]);
+        setReferralCostValue(data[0].value);
+      }
     } catch {
       alert("오류 발생");
     }
@@ -949,6 +992,63 @@ export default function CostCalculator() {
                     </button>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* 추천비 수정 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">
+                추천비 수정
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {referralCostConfig ? (
+                <div>
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      현재 추천비: <span className="font-bold text-purple-600">{referralCostConfig.value.toLocaleString()}원</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      * 회원가입 시 추천인에게 지급되는 금액입니다.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        새로운 추천비
+                      </label>
+                      <input
+                        type="number"
+                        value={referralCostValue}
+                        onChange={(e) => setReferralCostValue(Number(e.target.value))}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        min="0"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pt-6">
+                      <span className="text-lg font-bold text-purple-600">
+                        {referralCostValue.toLocaleString()} 원
+                      </span>
+                      <button
+                        onClick={saveReferralCost}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg"
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-red-600">
+                  추천비 설정 데이터를 불러오지 못했습니다. 콘솔을 확인하세요.
+                </p>
               )}
             </div>
           </div>
