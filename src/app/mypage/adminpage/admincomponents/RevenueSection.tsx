@@ -464,7 +464,7 @@ export default function RevenueSection({
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
               <Tooltip
-                formatter={(value: number) => `${value.toLocaleString()}원`}
+                formatter={(value) => `${(value ?? 0).toLocaleString()}원`}
               />
               <Legend />
               <Bar
