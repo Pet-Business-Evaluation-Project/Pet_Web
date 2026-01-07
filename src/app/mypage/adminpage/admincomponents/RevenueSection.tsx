@@ -89,21 +89,85 @@ export default function RevenueSection({
   /**
    * 카테고리별 요약 데이터 가져오기
    */
-  const fetchRevenueSummary = async () => {
+   const fetchRevenueSummary = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${BASE_URL}/revenues/summary`, {
-        credentials: "include",
-      });
+      
+      // 현재 월의 전체 상세 데이터 가져오기
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth() + 1;
+      
+      const response = await fetch(
+        `${BASE_URL}/revenues/${currentYear}/${currentMonth}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (response.ok) {
-        const data: RevenueSummary[] = await response.json();
-        setRevenueData(data);
+        const revenues: RevenueItem[] = await response.json();
+        
+        // 카테고리별로 집계 (초기값 설정)
+        const summaryMap = new Map<string, RevenueSummary>();
+        
+        // 모든 카테고리를 0원으로 초기화
+        const categories = ["기업인증", "수강료", "기타"];
+        categories.forEach((category) => {
+          summaryMap.set(category, {
+            category: category,
+            count: 0,
+            totalAmount: 0,
+            receivedAmount: 0,
+            unreceivedAmount: 0,
+          });
+        });
+        
+        // 실제 데이터로 집계
+        revenues.forEach((revenue) => {
+          const category = revenue.category;
+          
+          if (!summaryMap.has(category)) {
+            summaryMap.set(category, {
+              category: category,
+              count: 0,
+              totalAmount: 0,
+              receivedAmount: 0,
+              unreceivedAmount: 0,
+            });
+          }
+          
+          const summary = summaryMap.get(category)!;
+          summary.count++;
+          summary.totalAmount += revenue.amount;
+          
+          if (revenue.status === "입금") {
+            summary.receivedAmount += revenue.amount;
+          } else {
+            summary.unreceivedAmount += revenue.amount;
+          }
+        });
+        
+        // Map을 배열로 변환
+        const summaryData = Array.from(summaryMap.values());
+        setRevenueData(summaryData);
       } else {
-        console.error("Revenue 요약 조회 실패");
+        console.error("Revenue 조회 실패");
+        // 실패 시에도 카테고리는 0원으로 표시
+        setRevenueData([
+          { category: "기업인증", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+          { category: "수강료", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+          { category: "기타", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+        ]);
       }
     } catch (error) {
-      console.error("Revenue 요약 조회 오류:", error);
+      console.error("Revenue 조회 오류:", error);
+      // 오류 시에도 카테고리는 0원으로 표시
+      setRevenueData([
+        { category: "기업인증", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+        { category: "수강료", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+        { category: "기타", count: 0, totalAmount: 0, receivedAmount: 0, unreceivedAmount: 0 },
+      ]);
     } finally {
       setLoading(false);
     }
