@@ -258,12 +258,17 @@ export default function Header() {
           >
             심사원 소개
           </Link>
-          <Link
-            href="/"
+        
+            <p>
+              회원사 소개
+            </p>
+            
+          {/* <Link
+            href="/memberinfo"
             className="hover:text-red-900 whitespace-nowrap"
           >
             회원사 소개
-          </Link>
+          </Link>  여기는 링크할때 주석 해제후 href링크 수정하면됨*/}
           <Link
             href="/memberregister"
             className="hover:text-red-900 whitespace-nowrap"
