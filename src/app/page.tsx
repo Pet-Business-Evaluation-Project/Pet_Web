@@ -133,7 +133,7 @@ export default function HomePage() {
 
           {/* 회원사 소개 */}
           <section
-            onClick={() => router.push("/memberinfo")}
+            // onClick={() => router.push("/memberinfo")}
             className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 py-12 px-8 text-center rounded-xl shadow-lg border border-blue-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
           >
             <h2 className="text-2xl font-bold mb-4 text-blue-800">
