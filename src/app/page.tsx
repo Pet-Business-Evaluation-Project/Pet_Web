@@ -14,7 +14,7 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    setShowPopup(true);
+    setShowPopup(false);
     // 모바일과 데스크톱에서 다른 위치 설정
     const isMobile = window.innerWidth < 768;
     const leftX = isMobile ? window.innerWidth * 0.05 : window.innerWidth * 0.15;

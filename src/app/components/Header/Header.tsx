@@ -259,7 +259,7 @@ export default function Header() {
             심사원 소개
           </Link>
           <Link
-            href="/memberinfo"
+            href="/"
             className="hover:text-red-900 whitespace-nowrap"
           >
             회원사 소개
